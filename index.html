@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zev DOD Social Media</title>
-<meta name="description" content="Affordable monthly social media management for small businesses: captions, graphics, scheduling and monthly reports. Plans from $150/month.">
+<title>Zev DOD: Stay in Motion</title>
+<meta name="description" content="Keep your business in motion. Affordable monthly social media management for small businesses: captions, graphics, scheduling and monthly reports. Plans from $150/month.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -126,6 +126,16 @@ fieldset{border:0;padding:0;margin:0 0 14px}legend{font-weight:600;font-size:15p
 footer{padding:32px max(5vw,16px);border-top:1px solid var(--line);color:var(--soft);font-size:15px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
 footer img{height:56px}
+/* motion */
+.mo{position:relative;display:inline-block;color:var(--red);font-style:italic;padding:0 .08em 0 .85em}
+.mo::before{content:"";position:absolute;left:0;top:24%;width:.65em;height:58%;background:repeating-linear-gradient(180deg,var(--mag) 0 5px,transparent 5px 13px);opacity:.85;animation:zip 1.6s ease-in-out infinite}
+@keyframes zip{0%,100%{transform:translateX(0);opacity:.85}50%{transform:translateX(-8px);opacity:.45}}
+.ticker{overflow:hidden;background:var(--ink2);color:var(--yel);border-block:3px solid var(--ink2);transform:rotate(-1deg) scaleX(1.02);margin:8px 0 0;position:relative;z-index:1}
+.ticker .track{display:flex;gap:40px;width:max-content;padding:12px 0;animation:roll 22s linear infinite;font:400 26px/1 "Luckiest Guy",Impact,sans-serif}
+.ticker span::after{content:"\2192";margin-left:40px;color:var(--mag)}
+@keyframes roll{to{transform:translateX(-50%)}}
+.wall::before{content:"";position:absolute;left:-4%;top:28%;width:36%;height:44%;background:repeating-linear-gradient(180deg,var(--red) 0 6px,transparent 6px 18px);opacity:.35;border-radius:4px}
+.pace{margin:-2px 0 0;font-weight:800;font-size:14px;color:var(--soft)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -133,7 +143,7 @@ footer img{height:56px}
 <header>
  <div class="nav">
   <a href="#top" aria-label="Zev DOD home"><img src="logo.png" alt="Zev Development Operations & Graphic Design"></a>
-  <nav aria-label="Main"><a href="#plans">Plans</a><a href="#how">How it works</a><a href="#samples">Samples</a><a href="#faq">FAQ</a></nav>
+  <nav aria-label="Main"><a href="#plans">Plans</a><a href="#how">How it works</a><a href="#samples">Samples</a><a href="#faq">FAQ</a><a href="perci.html">Perci Shorti</a></nav>
   <a class="btn" href="#contact">Get 3 free posts</a>
  </div>
 </header>
@@ -142,9 +152,9 @@ footer img{height:56px}
 <section class="band">
  <div class="hero">
   <div>
-   <h1>Your business, posted every week. You never touch the app.</h1>
-   <p class="lead">Zev DOD writes your captions, designs your graphics and schedules your posts on Facebook, Instagram and more, for a flat monthly price small businesses can actually afford.</p>
-   <div class="cta"><a class="btn" href="#contact">Get 3 free sample posts</a><a class="btn alt" href="#plans">See plans from $150</a></div>
+   <h1>Keep your business in <span class="mo">motion</span>.</h1>
+   <p class="lead">You're busy making moves. We keep your page moving with you: captions written, graphics designed and posts scheduled on Facebook, Instagram and more, every week, for a flat price small businesses can actually afford.</p>
+   <div class="cta"><a class="btn" href="#contact">Get 3 free sample posts</a><a class="btn alt" href="#plans">Pick your pace from $150</a></div>
    <ul class="facts"><li>Month-to-month</li><li>You approve every post</li><li>No passwords shared</li></ul>
   </div>
   <div class="wall" aria-hidden="false">
@@ -159,10 +169,12 @@ footer img{height:56px}
  </div>
 </section>
 
+<div style="overflow:hidden;padding:6px 0"><div class="ticker" aria-hidden="true"><div class="track"><span>STAY IN MOTION</span><span>POST WEEKLY</span><span>GET BOOKED</span><span>BUILD CONNECTIONS</span><span>MAKE MOVES</span><span>STAY IN MOTION</span><span>POST WEEKLY</span><span>GET BOOKED</span><span>BUILD CONNECTIONS</span><span>MAKE MOVES</span></div></div></div>
+
 <section class="band red" id="who">
  <div class="wrap">
-  <h2>Built for busy local owners</h2>
-  <p class="lead">If your page goes quiet every time things get busy, this is for you.</p>
+  <h2>Built for owners on the move</h2>
+  <p class="lead">Your shop stays busy. Your page shouldn't go quiet because of it.</p>
   <div class="who">
    <div><b>Barbershops and salons</b><span>Fresh cuts, open chairs, booking links</span></div>
    <div><b>Restaurants and food trucks</b><span>Specials, hours, where you're parked</span></div>
@@ -176,11 +188,11 @@ footer img{height:56px}
 
 <section class="band" id="plans">
  <div class="wrap">
-  <h2>Simple monthly plans</h2>
+  <h2>Pick your pace</h2>
   <p class="lead">Flat price, clear limits, cancel with 14 days' notice. You approve your full calendar before anything goes live.</p>
   <div class="plans">
    <article class="plan" style="--c:var(--yel)">
-    <h3>Starter</h3>
+    <h3>Starter</h3><p class="pace">First moves</p>
     <div class="price">$150<small>/month</small></div>
     <ul>
      <li>1 platform (Facebook or Instagram)</li>
@@ -194,7 +206,7 @@ footer img{height:56px}
    </article>
    <article class="plan" style="--c:var(--mag)">
     <span class="tag">Most popular</span>
-    <h3>Growth</h3>
+    <h3>Growth</h3><p class="pace">In motion</p>
     <div class="price">$300<small>/month</small></div>
     <ul>
      <li>2 platforms (Facebook + Instagram)</li>
@@ -207,7 +219,7 @@ footer img{height:56px}
     <a class="btn" href="#contact" data-plan="Growth">Choose Growth</a>
    </article>
    <article class="plan" style="--c:var(--pur)">
-    <h3>Pro</h3>
+    <h3>Pro</h3><p class="pace">Full motion</p>
     <div class="price">$500<small>/month</small></div>
     <ul>
      <li>3 platforms (FB, IG + Google Business Profile or TikTok)</li>
@@ -226,7 +238,7 @@ footer img{height:56px}
 
 <section class="band pur" id="how">
  <div class="wrap">
-  <h2>How it works</h2>
+  <h2>Zero to motion in 4 moves</h2>
   <ol class="steps">
    <li><b>Free samples</b>Tell us about your business and we'll write 3 sample posts for you, free.</li>
    <li><b>Pick a plan</b>Subscribe online with a card. Then fill out a 10-minute brand questionnaire.</li>
@@ -248,7 +260,7 @@ footer img{height:56px}
 
 <section class="band ink" id="promise">
  <div class="wrap">
-  <h2>Straight talk</h2>
+  <h2>Real motion. No fake numbers.</h2>
   <div class="two">
    <div><h3>What you get</h3><ul><li>Original captions written for your business, never copied</li><li>Only offers, prices and claims you approve in writing</li><li>Access through Meta Business Suite partner access, so you keep full control</li><li>Your content files, yours to keep if you ever cancel</li></ul></div>
    <div><h3>What we won't do</h3><ul><li>Ask for your passwords</li><li>Post fake reviews or made-up results</li><li>Buy followers or use engagement bots</li><li>Lock you into a contract</li></ul></div>
@@ -270,8 +282,8 @@ footer img{height:56px}
 <section class="band" id="contact" style="background:linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--mag) 10%,var(--bg)))">
  <div class="wrap formgrid">
   <div>
-   <h2>Get 3 free sample posts</h2>
-   <p class="lead">Tell us about your business. We'll write three posts for you within 48 hours, and if you'd like, set up a 15-minute call. No obligation.</p>
+   <h2>Get your page in motion</h2>
+   <p class="lead">Tell us about your business and we'll write 3 free sample posts within 48 hours. Want a 15-minute call too? Pick a day. No obligation.</p>
    <p class="contactline" id="contactline"></p>
   </div>
   <form id="lead" novalidate>
@@ -306,12 +318,22 @@ footer img{height:56px}
   </form>
  </div>
 </section>
+<section class="band" style="background:#0e0816;color:#fff;background-image:radial-gradient(90% 120% at 85% 50%,rgba(106,36,196,.55),transparent 60%)">
+ <div class="wrap" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:22px">
+  <div>
+   <span style="display:inline-block;background:var(--red);color:#fff;font-weight:800;font-size:14px;padding:5px 12px;border-radius:6px;transform:rotate(-2deg)">ALSO IN MOTION</span>
+   <h2 style="color:var(--yel);font-size:clamp(44px,8vw,80px);margin:12px 0 6px;text-shadow:4px 4px 0 #000">Perci Shorti</h2>
+   <p style="color:#d9cfe6;margin:0">Our original adult animated series. Chicago, 1987, Building 8. Episode 1 teasers are out now.</p>
+  </div>
+  <a class="btn" href="perci.html">Watch the teaser</a>
+ </div>
+</section>
 </main>
 
 <footer>
  <div class="wrap">
   <img src="logo.png" alt="Zev DOD logo">
-  <div>Zev Development Operations &amp; Graphic Design<br>Social media management for small businesses</div>
+  <div><strong style="color:var(--ink)">Stay in motion.</strong><br>Zev Development Operations &amp; Graphic Design<br>Social media management for small businesses</div>
   <div style="margin-left:auto"><a href="onboarding.html">Client onboarding form</a> &middot; &copy; <span id="yr"></span> Zev DOD</div>
  </div>
 </footer>
