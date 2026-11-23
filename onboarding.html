@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zev DOD Client Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, clear intake form under a loud brand header.
+   IDEA: a paper intake sheet clipped under the graffiti logo.
+   PICTURE: the form itself, one column, progress bar at top.
+   COLOUR and TYPE: brand red/purple/yellow accents; Luckiest Guy headings, Outfit body.
+   LAYOUT: logo, title, sticky progress, six sections, review and send. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121014);--ink:light-dark(#141217,#f6f3f8);--soft:light-dark(#57525e,#bdb5c6);--card:light-dark(#faf9fb,#1d1a22);--line:light-dark(#e2dce8,#363040);--red:#e4232b;--yel:#ffd21f;--pur:#5b1fa8;--mag:#e0219a;--ink2:#141217}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 Outfit,system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:"Luckiest Guy",Impact,sans-serif;font-weight:400;line-height:1.05;margin:0 0 .4em;text-wrap:balance}
+h1{font-size:clamp(32px,6vw,46px)}h2{font-size:26px;color:var(--pur)}
+:root[data-theme=dark] h2{color:#c9a7ff}@media (prefers-color-scheme:dark){:root:not([data-theme=light]) h2{color:#c9a7ff}}
+main{max-width:760px;margin:0 auto;padding:24px max(5vw,16px) 64px}
+.top{text-align:center}.top img{width:min(360px,80%);height:auto}
+.lead{color:var(--soft)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0}
+.bar div{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--mag),var(--pur));transition:width .3s}
+.bar small{color:var(--soft);font-size:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(16px,3vw,26px);margin:18px 0}
+label{display:block;font-weight:600;font-size:15px;margin:0 0 16px}
+label .req{color:var(--red)}
+input,textarea,select{display:block;width:100%;margin-top:6px;min-height:46px;padding:10px 12px;font:16px Outfit,sans-serif;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:10px}
+textarea{min-height:84px;resize:vertical}
+input:focus-visible,textarea:focus-visible,select:focus-visible,.btn:focus-visible{outline:3px solid var(--mag);outline-offset:2px}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.check input{width:22px;height:22px;min-height:0;margin:2px 0 0;accent-color:var(--mag);flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:999px;border:3px solid var(--ink2);font:800 17px Outfit,sans-serif;text-decoration:none;cursor:pointer;background:var(--yel);color:var(--ink2);box-shadow:4px 4px 0 var(--ink2)}
+.btn.alt{background:#fff}
+.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.err{color:var(--red);font-weight:600;min-height:22px}
+pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.5 ui-monospace,Menlo,monospace;max-height:340px;overflow:auto}
+#out{display:none}#out.show{display:block}
+.hint{font-weight:400;color:var(--soft);font-size:14px;display:block}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><a href="index.html"><img src="logo.png" alt="Zev Development Operations & Graphic Design" width="800" height="462"></a></div>
+ <h1>Welcome aboard. Let's learn your brand.</h1>
+ <p class="lead">About 10 minutes. Your answers are saved on this device as you type, so you can stop and come back. We'll never ask for your passwords.</p>
+ <div class="bar" aria-hidden="true"><div><span id="prog"></span></div><small id="progtxt">0% complete</small></div>
+ <form id="ob" novalidate></form>
+ <p class="err" id="err" role="alert"></p>
+ <div class="row"><button class="btn" type="button" id="finish">Review and send</button><button class="btn alt" type="button" id="clear">Start over</button></div>
+ <div id="out" aria-live="polite">
+  <h2 style="margin-top:28px">Ready to send</h2>
+  <p id="outtext">Tap a button to send your answers. They aren't sent until you do.</p>
+  <div class="row" id="sendrow"></div>
+  <pre id="summary"></pre>
+ </div>
+</main>
+<script>
+{
+ /* ===== SETTINGS: same values as index.html ===== */
+ const SETTINGS = { email: "", phone: "", formEndpoint: "" };
+ /* ================================================ */
+
+ const SECTIONS = [
+  ["A. Business information", [
+   ["legal","Legal business name, and the name customers know you by",1],
+   ["contact","Owner or main contact: name, phone, email, best time to reach you",1],
+   ["area","Address or service area, and hours of operation",1],
+   ["links","Website, booking link, menu or price list link",0],
+   ["services","Main products or services (top 5, most important first)",1,"area"],
+   ["customer","Who is your ideal customer? (age range, location, what they need)",1,"area"],
+   ["inspo","Three local competitors or businesses whose posts you like",0]]],
+  ["B. Brand details", [
+   ["logo","Link to your logo files (PNG with transparent background if you have it)",1],
+   ["colors","Brand colors and fonts (hex codes, or just describe them)",0],
+   ["voice","Describe your brand voice in three words",1],
+   ["avoid","Words, topics, emojis or slang to avoid",0,"area"],
+   ["photos","Shared photo folder link (Google Drive, iCloud or Dropbox) with 15+ real photos",1],
+   ["consent","Do you have permission to post photos of the customers and staff shown? (Yes / No / Only some: list)",1]]],
+  ["C. Goals", [
+   ["goal","Top goal for the next 90 days (more bookings, calls, foot traffic, a launch, or just staying consistent)",1],
+   ["buy","How do customers book or buy? (call, DM, website, walk-in, app)",1],
+   ["events","Events, launches or busy seasons coming up",0,"area"]]],
+  ["D. Approved offers and claims", [
+   ["offers","Current offers we may post, with exact terms and end dates (or \"none\")",1,"area"],
+   ["prices","Prices we may publish (or \"do not post prices\")",1,"area"],
+   ["creds","Licenses, insurance, certifications or awards we may mention (verified only, or \"none\")",0,"area"],
+   ["reviews","Real customer reviews we may quote, with source and permission (or \"none\")",0,"area"]]],
+  ["E. Posting preferences", [
+   ["handles","Platforms and account handles",1],
+   ["times","Preferred posting days and times (or \"use your recommendation\")",0],
+   ["approver","Who approves content, and how? (email, text, shared doc)",1],
+   ["dms","Comments and DMs: forward to you, or reply with approved answers? List your top FAQ answers.",0,"area"],
+   ["never","Anything you never want posted",0,"area"]]],
+  ["F. Access (no passwords)", [
+   ["meta","I have added Zev DOD as a partner in Meta Business Suite (instructions were sent by text)",0,"check"],
+   ["sched","I have accepted the scheduler invite, if one was sent",0,"check"],
+   ["confirm","I confirm the offers, prices and claims above are accurate and approved for posting",1,"check"],
+   ["sign","Your full name (as signature) and today's date",1]]]
+ ];
+ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const form = document.getElementById("ob");
+ form.innerHTML = SECTIONS.map(([title, qs]) => `<section><h2>${esc(title)}</h2>${qs.map(([id, q, req, kind]) =>
+  kind === "check"
+   ? `<label class="check"><input type="checkbox" id="q-${id}">${esc(q)}${req ? ' <span class="req">*</span>' : ''}</label>`
+   : `<label for="q-${id}">${esc(q)}${req ? ' <span class="req">*</span>' : ''}${kind === "area" ? `<textarea id="q-${id}"></textarea>` : `<input id="q-${id}">`}</label>`
+ ).join("")}</section>`).join("");
+
+ const all = SECTIONS.flatMap(([t, qs]) => qs.map(q => ({sec: t, id: q[0], q: q[1], req: q[2], kind: q[3]})));
+ const el = id => document.getElementById("q-" + id);
+ const get = f => f.kind === "check" ? el(f.id).checked : el(f.id).value.trim();
+ const KEY = "zevdod-onboarding";
+ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(all.map(f => [f.id, get(f)])))); } catch (_) {} };
+ try { const d = JSON.parse(localStorage.getItem(KEY) || "{}"); all.forEach(f => { if (d[f.id] !== undefined) { if (f.kind === "check") el(f.id).checked = d[f.id]; else el(f.id).value = d[f.id]; } }); } catch (_) {}
+ const prog = () => { const n = all.filter(f => get(f)).length, p = Math.round(n / all.length * 100); document.getElementById("prog").style.width = p + "%"; document.getElementById("progtxt").textContent = p + "% complete"; };
+ form.addEventListener("input", () => { save(); prog(); });
+ form.addEventListener("change", () => { save(); prog(); });
+ prog();
+
+ document.getElementById("clear").addEventListener("click", () => { all.forEach(f => { if (f.kind === "check") el(f.id).checked = false; else el(f.id).value = ""; }); save(); prog(); document.getElementById("out").classList.remove("show"); });
+
+ document.getElementById("finish").addEventListener("click", async () => {
+  const err = document.getElementById("err"); err.textContent = "";
+  const missing = all.filter(f => f.req && !get(f));
+  if (missing.length) { err.textContent = `Please complete ${missing.length} required item${missing.length > 1 ? "s" : ""} (marked *).`; el(missing[0].id).focus(); return; }
+  let text = "Zev DOD client onboarding\n", last = "";
+  all.forEach(f => { if (f.sec !== last) { text += `\n== ${f.sec} ==\n`; last = f.sec; } const v = get(f); text += `${f.q}:\n  ${f.kind === "check" ? (v ? "Yes" : "No") : (v || "-")}\n`; });
+  const out = document.getElementById("out"), row = document.getElementById("sendrow");
+  document.getElementById("summary").textContent = text; out.classList.add("show");
+  if (SETTINGS.formEndpoint) {
+   try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({form: "onboarding", answers: text})});
+    if (r.ok) { document.getElementById("outtext").textContent = "Received, thank you! Your first content calendar will be ready for approval within 7 days."; row.innerHTML = ""; return; } } catch (_) {}
+  }
+  const business = el("legal").value.trim().split("\n")[0];
+  const btns = [];
+  if (SETTINGS.email) btns.push(`<a class="btn" href="mailto:${esc(SETTINGS.email)}?subject=${encodeURIComponent("Onboarding: " + business)}&body=${encodeURIComponent(text)}">Send by email</a>`);
+  btns.push(`<button type="button" class="btn alt" id="copy">Copy answers</button>`);
+  row.innerHTML = btns.join("");
+  document.getElementById("copy").addEventListener("click", async ev => { try { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; } catch (_) { ev.target.textContent = "Select the text below to copy"; } });
+  out.scrollIntoView({behavior: "smooth"});
+ });
+}
+</script>
+</body>
+</html>
