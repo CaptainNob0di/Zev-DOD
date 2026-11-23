@@ -83,6 +83,7 @@ h2.anton{font-size:clamp(40px,6vw,64px);margin:0;color:#fff;text-shadow:4px 4px 
 .door .chain{position:absolute;right:8px;top:36%;width:60px;height:4px;background:repeating-linear-gradient(90deg,#c8c8c8 0 8px,transparent 8px 12px);transform:rotate(-8deg)}
 .door span{font-size:clamp(36px,8vw,56px);color:#fff;text-shadow:3px 3px 0 #000}
 .count{font-size:15px;color:var(--soft);margin-top:14px;min-height:24px}
+.lines[hidden]{display:none}
 .lines{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:22px}
 .lines div{background:#fff;color:#120a1c;border-radius:18px;padding:10px 16px;font-weight:600;position:relative}
 .lines div.gpt{background:#cdf7ff}
@@ -91,6 +92,16 @@ h2.anton{font-size:clamp(40px,6vw,64px);margin:0;color:#fff;text-shadow:4px 4px 
 .follow h2.anton{color:#120a1c;text-shadow:4px 4px 0 var(--mag)}
 .follow .sub{color:#3b2a14}
 .follow .btn{background:#120a1c;color:#fff;box-shadow:4px 4px 0 var(--red)}
+.prem{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+.prem .anton{background:var(--red);color:#fff;font-size:clamp(20px,3vw,28px);padding:8px 14px;border-radius:6px;transform:rotate(-1.5deg);box-shadow:4px 4px 0 #000}
+.prem b{color:var(--yel);font-weight:800;font-size:17px}
+.chal{background:radial-gradient(80% 120% at 20% 0%,rgba(224,33,154,.35),transparent 60%),#120a1c}
+.chalgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:center}
+@media(max-width:820px){.chalgrid{grid-template-columns:1fr}}
+.chal h2.anton{font-size:clamp(34px,6vw,60px);overflow-wrap:anywhere}
+.steps3{display:grid;gap:12px}
+.steps3 div{display:flex;align-items:center;gap:14px;background:var(--deep);border:2px solid #2f1f45;border-radius:14px;padding:14px 18px;font-weight:600}
+.steps3 b{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--yel);color:#120a1c;font-size:24px;flex:none}
 footer{padding:28px max(5vw,16px);color:var(--soft);font-size:15px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
 footer img{height:54px}
@@ -109,6 +120,7 @@ footer img{height:54px}
    <span class="kicker">A ZEV ORIGINAL ANIMATED SERIES</span>
    <h1 class="anton title">PERCI<br>SHORTI</h1>
    <div class="anton slash">EPISODE 1: <b>"WTF"</b></div>
+   <div class="prem"><span class="anton">PREMIERES THURSDAY 11.26</span><b id="countdown"></b></div>
    <p class="hook"><strong>Chicago. 1987. Building 8, 14th floor.</strong> Perci's got a PS5, a plaid couch and one bright idea. Then somebody knocks.</p>
    <div class="ctas">
     <a class="btn" href="#teasers">Watch the teaser</a>
@@ -149,10 +161,22 @@ footer img{height:54px}
  </div>
 </section>
 
+<section class="band chal">
+ <div class="wrap chalgrid">
+  <div>
+   <span class="kicker">NEW</span>
+   <h2 class="anton">#PERCISHORTICHALLENGE</h2>
+   <p class="sub">Chicago footwork, Perci style. Learn the dance, film yours and tag us so we can see your moves.</p>
+   <div class="ctas"><button type="button" class="btn" id="playchal">Watch the dance</button><a class="btn ghost" href="https://www.tiktok.com/@perci.shorti" target="_blank" rel="noopener">Post yours on TikTok</a></div>
+  </div>
+  <div class="steps3"><div><b class="anton">1</b>Watch Perci</div><div><b class="anton">2</b>Do the dance</div><div><b class="anton">3</b>Tag #PerciShortiChallenge</div></div>
+ </div>
+</section>
+
 <section class="band follow">
  <div class="wrap">
-  <h2 class="anton">EP.01 COMING SOON</h2>
-  <p class="sub">Teasers are out now on YouTube and TikTok. Follow both and turn on notifications so you catch Episode 1 the minute it lands.</p>
+  <h2 class="anton">EP.01 PREMIERES THURSDAY 11.26</h2>
+  <p class="sub">Thanksgiving Day on YouTube, TikTok and Instagram. Follow and turn on notifications so you catch Episode 1 the minute it lands.</p>
   <div class="ctas"><a class="btn" href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">Subscribe on YouTube</a><a class="btn" href="https://www.tiktok.com/@perci.shorti" target="_blank" rel="noopener">Follow on TikTok</a></div>
  </div>
 </section>
@@ -169,8 +193,10 @@ footer img{height:54px}
 {
  /* ===== TEASERS: paste YouTube Shorts links or uploaded .mp4 file names ===== */
  const TEASERS = [
-  { label: "Teaser 1", src: "" },   // e.g. "https://youtube.com/shorts/AbCdEf12345" or "perci-ep1-teaser.mp4"
-  { label: "Teaser 2", src: "" }
+  { label: "WTF", src: "perci-ep1-wtf.mp4", poster: "perci-ep1-wtf.jpg" },
+  { label: "The Question", src: "perci-ep1-question.mp4", poster: "perci-ep1-question.jpg" },
+  { label: "Premiere", src: "perci-ep1-premiere.mp4", poster: "perci-ep1-premiere.jpg" },
+  { label: "The Challenge", src: "perci-challenge.mp4", poster: "perci-challenge.jpg" }
  ];
  /* =========================================================================== */
 
@@ -182,7 +208,7 @@ footer img{height:54px}
  const play = t => {
   const id = ytId(t.src.trim());
   if (id) glass.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1" title="Perci Shorti ${t.label.replace(/"/g, "")}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`;
-  else { glass.innerHTML = ""; const v = document.createElement("video"); v.src = t.src.trim(); v.controls = true; v.playsInline = true; v.preload = "metadata"; v.setAttribute("aria-label", "Perci Shorti " + t.label); glass.appendChild(v); }
+  else { glass.innerHTML = ""; const v = document.createElement("video"); v.src = t.src.trim(); v.controls = true; v.playsInline = true; v.preload = "metadata"; if (t.poster) v.poster = t.poster; v.setAttribute("aria-label", "Perci Shorti " + t.label); glass.appendChild(v); }
   [...tabs.children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.i === String(ready.indexOf(t)))));
  };
  if (!ready.length) idle();
@@ -190,6 +216,15 @@ footer img{height:54px}
   if (ready.length > 1) ready.forEach((t, i) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t.label; b.dataset.i = i; b.addEventListener("click", () => play(t)); tabs.appendChild(b); });
   play(ready[0]);
  }
+
+ const cd = document.getElementById("countdown");
+ const prem = new Date(2026, 10, 26), today = new Date(); today.setHours(0,0,0,0);
+ const days = Math.round((prem - today) / 864e5);
+ cd.textContent = days > 1 ? `in ${days} days` : days === 1 ? "TOMORROW" : days === 0 ? "TODAY" : "OUT NOW";
+ document.getElementById("playchal").addEventListener("click", () => {
+  const t = ready.find(x => x.label === "The Challenge"); if (t) play(t);
+  document.getElementById("teasers").scrollIntoView({behavior: "smooth", block: "center"});
+ });
 
  const door = document.getElementById("door"), word = document.getElementById("doorword"), count = document.getElementById("count"), lines = document.getElementById("lines");
  let n = 0;
