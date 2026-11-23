@@ -112,7 +112,8 @@ footer img{height:54px}
    <p class="hook"><strong>Chicago. 1987. Building 8, 14th floor.</strong> Perci's got a PS5, a plaid couch and one bright idea. Then somebody knocks.</p>
    <div class="ctas">
     <a class="btn" href="#teasers">Watch the teaser</a>
-    <a class="btn ghost" href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">Subscribe @ZevDOD</a>
+    <a class="btn ghost" href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">YouTube @ZevDOD</a>
+    <a class="btn ghost" href="https://www.tiktok.com/@perci.shorti" target="_blank" rel="noopener">TikTok @perci.shorti</a>
    </div>
    <p class="rated"><span>18+</span>Adult animated comedy. Full episodes contain mature content.</p>
   </div>
@@ -151,8 +152,8 @@ footer img{height:54px}
 <section class="band follow">
  <div class="wrap">
   <h2 class="anton">EP.01 COMING SOON</h2>
-  <p class="sub">Teasers are out now. The full episode drops on YouTube first. Subscribe and turn on notifications so you catch it the minute it lands.</p>
-  <div class="ctas"><a class="btn" href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">Subscribe on YouTube</a></div>
+  <p class="sub">Teasers are out now on YouTube and TikTok. Follow both and turn on notifications so you catch Episode 1 the minute it lands.</p>
+  <div class="ctas"><a class="btn" href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">Subscribe on YouTube</a><a class="btn" href="https://www.tiktok.com/@perci.shorti" target="_blank" rel="noopener">Follow on TikTok</a></div>
  </div>
 </section>
 </main>
@@ -160,7 +161,7 @@ footer img{height:54px}
 <footer>
  <div class="wrap">
   <img src="logo.png" alt="ZEV logo">
-  <div>Perci Shorti is created by ZEV Development Operations &amp; Graphic Design.<br>All characters are original. &copy; <span id="yr"></span> ZEV DOD</div>
+  <div><a href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">YouTube</a> &middot; <a href="https://www.tiktok.com/@perci.shorti" target="_blank" rel="noopener">TikTok</a><br>Perci Shorti is created by ZEV Development Operations &amp; Graphic Design.<br>All characters are original. &copy; <span id="yr"></span> ZEV DOD</div>
  </div>
 </footer>
 
@@ -177,7 +178,7 @@ footer img{height:54px}
  const glass = document.getElementById("glass"), tabs = document.getElementById("tabs");
  const ready = TEASERS.filter(t => t.src.trim());
  const ytId = s => { const m = s.match(/(?:shorts\/|youtu\.be\/|v=|embed\/)([\w-]{11})/); return m ? m[1] : (/^[\w-]{11}$/.test(s) ? s : null); };
- const idle = () => { glass.innerHTML = '<div class="idle"><div class="eyes"><i></i><i></i></div><div class="anton">TEASER LOADING&hellip;</div><p>Catch it on YouTube @ZevDOD</p></div>'; };
+ const idle = () => { glass.innerHTML = '<div class="idle"><div class="eyes"><i></i><i></i></div><div class="anton">TEASER LOADING&hellip;</div><p>Catch it on YouTube @ZevDOD<br>and TikTok @perci.shorti</p></div>'; };
  const play = t => {
   const id = ytId(t.src.trim());
   if (id) glass.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1" title="Perci Shorti ${t.label.replace(/"/g, "")}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`;
