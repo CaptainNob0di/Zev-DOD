@@ -243,6 +243,23 @@ footer img{height:56px}
 .upl{border:2px dashed var(--line);border-radius:14px;padding:14px 16px;margin:0 0 16px;font-size:15px}
 .upl .btn{margin-top:10px}
 .pol{padding-left:20px}.pol li{margin:8px 0}
+
+/* zev upload button */
+.zup{display:flex;align-items:center;gap:14px;width:100%;max-width:520px;text-decoration:none;color:#fff;background:#141217;border:3px solid #141217;border-radius:22px;padding:12px 18px 12px 12px;box-shadow:6px 6px 0 var(--yel),12px 12px 0 var(--mag);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.zup::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 0 0,rgba(91,31,168,.7),transparent 60%),radial-gradient(50% 100% at 100% 100%,rgba(228,35,43,.55),transparent 60%);pointer-events:none}
+.zup::after{content:"";position:absolute;left:28px;right:28px;bottom:-1px;height:10px;background:radial-gradient(5px 9px at 12% 0,var(--mag) 98%,transparent),radial-gradient(4px 7px at 38% 0,var(--yel) 98%,transparent),radial-gradient(5px 10px at 63% 0,var(--red) 98%,transparent),radial-gradient(4px 8px at 88% 0,var(--pur) 98%,transparent)}
+.zup:hover,.zup:focus-visible{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--yel),15px 15px 0 var(--mag)}
+.zup:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--yel),5px 5px 0 var(--mag)}
+.zup-art{position:relative;flex:0 0 132px;height:84px;display:grid;place-items:center}
+.zup-art img{width:132px;height:auto;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));transition:transform .2s}
+.zup:hover .zup-art img{transform:rotate(-4deg) scale(1.05)}
+.zup-arrow{position:absolute;right:-6px;top:-4px;width:40px;height:40px;border-radius:50%;background:var(--yel);color:#141217;border:3px solid #141217;display:grid;place-items:center;animation:bob 1.4s ease-in-out infinite}
+.zup-arrow svg{width:22px;height:22px}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.zup-txt{position:relative;display:flex;flex-direction:column;min-width:0}
+.zup-txt b{font:400 clamp(24px,5vw,32px)/1 "Luckiest Guy",Impact,sans-serif;color:var(--yel);text-shadow:3px 3px 0 #000;letter-spacing:.02em}
+.zup-txt small{font-size:14px;color:#ddd3e8;margin-top:6px}
+@media(max-width:380px){.zup-art{flex-basis:100px}.zup-art img{width:100px}}
 </style>
 </head>
 <body>
@@ -411,13 +428,13 @@ footer img{height:56px}
    <div class="row"><label>Email<input id="o-email" type="email" autocomplete="email"></label><label>Phone or Instagram<input id="o-contact" placeholder="For quick questions"></label></div>
    <label>Text that goes on the design<textarea id="o-msg" placeholder="Business name, headline, dates, prices, address, menu items"></textarea></label>
    <div class="row"><label>Colors &amp; style <span class="opt">(optional)</span><input id="o-style" placeholder="e.g. black and gold, bold, fun"></label><label>Needed by <span class="opt">(optional)</span><input id="o-date" type="date"></label></div>
-   <div class="upl"><b>Logo, photos or videos?</b> Upload up to 2 GB per file, no account needed. Enter your name and business when it asks.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload files &uarr;</a></div>
+   <div class="upl"><p style="margin:0 0 12px"><b>Logo, photos or videos?</b> No account needed. Enter your name and business when it asks.</p><a class="zup" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener" aria-label="Upload your files to Zev DOD (opens Dropbox)"><span class="zup-art"><img src="logo.png" alt="" width="800" height="462"><span class="zup-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><span class="zup-txt"><b>UPLOAD FILES</b><small>Logo, photos, videos &middot; up to 2 GB each</small></span></a></div>
    <p class="err" id="o-err" role="alert"></p>
    <button class="btn sendbtn" type="submit" id="o-send">Send order &rarr;</button>
    <div id="o-done" hidden>
     <h3 style="margin-top:18px">Order <span id="o-num"></span> received &#10003;</h3>
     <ol class="next">
-     <li><b>Upload your files.</b> Logo, photos or videos, up to 2 GB each. No account needed. When it asks for your name, enter your name and order number.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload to Dropbox</a></li>
+     <li><b>Upload your files.</b> Logo, photos or videos, up to 2 GB each. No account needed. When it asks for your name, enter your name and order number.<div style="margin-top:12px"><a class="zup" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener" aria-label="Upload your files to Zev DOD (opens Dropbox)"><span class="zup-art"><img src="logo.png" alt="" width="800" height="462"><span class="zup-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><span class="zup-txt"><b>UPLOAD FILES</b><small>Logo, photos, videos &middot; up to 2 GB each</small></span></a></div></li>
      <li><b>Pay <span id="o-due"></span> to lock in your spot.</b> Put your order number in the payment note. Confirmation usually arrives within an hour during business hours.<br><a class="btn" href="https://www.paypal.com/ncp/payment/U2K9QWHRCAJS2" target="_blank" rel="noopener">Pay with PayPal</a></li>
      <li><b>Get your draft.</b> Work starts once payment is confirmed. Your draft arrives by email, and you get 2 rounds of changes.</li>
     </ol>
@@ -516,6 +533,7 @@ footer img{height:56px}
    <h2>Get your page in motion</h2>
    <p class="lead">Tell us about your business and we'll write 3 free sample posts within 48 hours. Want a 15-minute call too? Pick a day. No obligation.</p>
    <p class="contactline" id="contactline"></p>
+   <div style="margin-top:22px"><p style="margin:0 0 12px;font-weight:600">Already working with us? Send your files here.</p><a class="zup" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener" aria-label="Upload your files to Zev DOD (opens Dropbox)"><span class="zup-art"><img src="logo.png" alt="" width="800" height="462"><span class="zup-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><span class="zup-txt"><b>UPLOAD FILES</b><small>Logo, photos, videos &middot; up to 2 GB each</small></span></a></div>
   </div>
   <form id="lead" novalidate>
    <div class="row">
