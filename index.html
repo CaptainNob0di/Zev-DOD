@@ -413,7 +413,7 @@ footer img{height:56px}
   email: "zevdod.design@gmail.com",
   instagram: "",      // Instagram handle without @, e.g. "zevdod"
   phone: "",          // kept off the public site on purpose: share it only after a serious inquiry
-  formEndpoint: ""    // optional: Formspree/Tally/Getform URL; leads then arrive in your inbox automatically
+  formEndpoint: "https://formspree.io/f/xppdokvz"   // Formspree: leads arrive in zevdod.design@gmail.com
  };
  /* ======================================================= */
 
@@ -465,7 +465,7 @@ footer img{height:56px}
 
   if (SETTINGS.formEndpoint) {
    try {
-    const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify(data)});
+    const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({...data, _subject: `New lead: ${data.business} (${data.plan})`})});
     if (r.ok) {
      document.getElementById("done-title").textContent = "Request received";
      document.getElementById("done-text").textContent = "Thanks! We'll reach out within one business day.";
