@@ -410,8 +410,9 @@ footer img{height:56px}
 {
  /* ===== SETTINGS: change these to your real details ===== */
  const SETTINGS = {
-  email: "",          // e.g. "hello@zevdod.com"
-  phone: "",          // e.g. "+15555551234" (text-capable)
+  email: "zevdod.design@gmail.com",
+  instagram: "",      // Instagram handle without @, e.g. "zevdod"
+  phone: "",          // kept off the public site on purpose: share it only after a serious inquiry
   formEndpoint: ""    // optional: Formspree/Tally/Getform URL; leads then arrive in your inbox automatically
  };
  /* ======================================================= */
@@ -435,7 +436,9 @@ footer img{height:56px}
  document.getElementById("yr").textContent = new Date().getFullYear();
  const cl = document.getElementById("contactline");
  const bits = [];
+ bits.push(`<span style="font-weight:800">Isaiah Lewis</span>, founder`);
  if (SETTINGS.email) bits.push(`Email: <a href="mailto:${esc(SETTINGS.email)}">${esc(SETTINGS.email)}</a>`);
+ if (SETTINGS.instagram) bits.push(`Instagram DM: <a href="https://ig.me/m/${esc(SETTINGS.instagram)}" target="_blank" rel="noopener">@${esc(SETTINGS.instagram)}</a>`);
  if (SETTINGS.phone) bits.push(`Text or call: <a href="tel:${esc(SETTINGS.phone)}">${esc(SETTINGS.phone)}</a>`);
  cl.innerHTML = bits.join("<br>");
 
@@ -475,6 +478,7 @@ footer img{height:56px}
   const btns = [];
   if (SETTINGS.email) btns.push(`<a class="btn" href="mailto:${esc(SETTINGS.email)}?subject=${subject}&body=${body}">Send by email</a>`);
   if (SETTINGS.phone) btns.push(`<a class="btn alt" href="sms:${esc(SETTINGS.phone)}?&body=${body}">Send by text</a>`);
+  if (SETTINGS.instagram) btns.push(`<a class="btn alt" href="https://ig.me/m/${esc(SETTINGS.instagram)}" target="_blank" rel="noopener">DM on Instagram</a>`);
   btns.push(`<button type="button" class="btn alt" id="copy">Copy details</button>`);
   row.innerHTML = btns.join("");
   document.getElementById("done-text").textContent = SETTINGS.email || SETTINGS.phone
