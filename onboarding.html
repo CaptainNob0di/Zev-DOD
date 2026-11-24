@@ -63,7 +63,7 @@ pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);borde
 <script>
 {
  /* ===== SETTINGS: same values as index.html ===== */
- const SETTINGS = { email: "zevdod.design@gmail.com", phone: "", formEndpoint: "" };
+ const SETTINGS = { email: "zevdod.design@gmail.com", phone: "", formEndpoint: "https://formspree.io/f/xppdokvz" };
  /* ================================================ */
 
  const SECTIONS = [
@@ -133,7 +133,7 @@ pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);borde
   const out = document.getElementById("out"), row = document.getElementById("sendrow");
   document.getElementById("summary").textContent = text; out.classList.add("show");
   if (SETTINGS.formEndpoint) {
-   try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({form: "onboarding", answers: text})});
+   try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({form: "onboarding", _subject: "Client onboarding: " + el("legal").value.trim().split("\n")[0], answers: text})});
     if (r.ok) { document.getElementById("outtext").textContent = "Received, thank you! Your first content calendar will be ready for approval within 7 days."; row.innerHTML = ""; return; } } catch (_) {}
   }
   const business = el("legal").value.trim().split("\n")[0];
