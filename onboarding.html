@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zev DOD Client Onboarding</title>
+<title>Client Onboarding | Zev DOD</title>
+<meta name="description" content="Zev DOD client onboarding questionnaire for brand details, goals, approved offers and posting preferences.">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="https://zevsocialconnect.com/onboarding.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zev DOD">
 <meta property="og:title" content="Zev DOD client onboarding">
@@ -73,9 +76,10 @@ pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);borde
 .zup-txt small{font-size:14px;color:#ddd3e8;margin-top:6px}
 @media(max-width:380px){.zup-art{flex-basis:100px}.zup-art img{width:100px}}
 </style>
+<script src="/site.js" defer></script>
 </head>
 <body>
-<main>
+<main id="main">
  <div class="top"><a href="index.html"><img src="logo.png" alt="Zev Development Operations & Graphic Design" width="800" height="462"></a></div>
  <h1>Welcome aboard. Let's learn your brand.</h1>
  <p class="lead">About 10 minutes. Your answers are saved on this device as you type, so you can stop and come back. We'll never ask for your passwords.</p>
@@ -165,7 +169,7 @@ pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);borde
   document.getElementById("summary").textContent = text; out.classList.add("show");
   if (SETTINGS.formEndpoint) {
    try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({form: "onboarding", _subject: "Client onboarding: " + el("legal").value.trim().split("\n")[0], answers: text})});
-    if (r.ok) { document.getElementById("outtext").textContent = "Received, thank you! Your first content calendar will be ready for approval within 7 days."; row.innerHTML = ""; return; } } catch (_) {}
+    if (r.ok) { window.zevTrack && zevTrack("onboarding_submit", {}); document.getElementById("outtext").textContent = "Received, thank you! Your first content calendar will be ready for approval within 7 days."; row.innerHTML = ""; return; } } catch (_) {}
   }
   const business = el("legal").value.trim().split("\n")[0];
   const btns = [];
