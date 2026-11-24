@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zev DOD: Stay in Motion</title>
 <meta name="description" content="Keep your business in motion. Affordable monthly social media management for small businesses: captions, graphics, scheduling and monthly reports. Plans from $150/month.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Zev DOD">
+<meta property="og:title" content="Zev DOD: Keep your business in motion">
+<meta property="og:description" content="Social media management for small businesses: captions, graphics, scheduling and monthly reports. From $150/month.">
+<meta property="og:url" content="https://zevsocialconnect.com/">
+<meta property="og:image" content="https://zevsocialconnect.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://zevsocialconnect.com/og-image.jpg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#141217">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -119,6 +132,9 @@ fieldset{border:0;padding:0;margin:0 0 14px}legend{font-weight:600;font-size:15p
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .err{color:var(--red);font-size:14px;font-weight:600;min-height:20px}
 #done{display:none}
+#done.good{background:color-mix(in srgb,#1f8a3b 12%,transparent);border:2px solid #1f8a3b;border-radius:14px;padding:4px 16px 12px;margin-top:16px}
+.sendbtn{width:100%;min-height:58px;font-size:20px;background:var(--red);color:#fff}
+.sendbtn:disabled{opacity:.7;cursor:progress}
 #done.show{display:block}
 #done pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.5 ui-monospace,Menlo,monospace;max-height:260px;overflow:auto}
 .sendrow{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
@@ -387,7 +403,8 @@ footer img{height:56px}
    <label>Best time<select name="time" id="f-time"><option>No call needed, just send samples</option><option>Morning (9 to noon)</option><option>Afternoon (noon to 4)</option><option>Evening (4 to 7)</option></select></label>
    <label>Anything we should know?<textarea name="msg" id="f-msg" placeholder="Current offers, busy seasons, what you want more of"></textarea></label>
    <p class="err" id="err" role="alert"></p>
-   <button class="btn" type="submit">Send my request</button>
+   <button class="btn sendbtn" type="submit" id="sendbtn">Send &rarr;</button>
+   <p class="fine" style="margin-top:10px">Goes straight to Isaiah at zevdod.design@gmail.com. We reply within one business day.</p>
    <div id="done" aria-live="polite">
     <h3 id="done-title" style="margin-top:18px">Almost done</h3>
     <p id="done-text">Your request is ready. Tap a button below to send it.</p>
@@ -461,19 +478,25 @@ footer img{height:56px}
   const text = `New Zev DOD request\n\nName: ${data.name}\nBusiness: ${data.business}\nType: ${data.type}\nPhone: ${data.phone || "-"}\nEmail: ${data.email || "-"}\nSocial: ${data.social || "-"}\nPlan interest: ${data.plan}\nCall days: ${data.callDays}\nBest time: ${data.callTime}\nNotes: ${data.message || "-"}`;
   const done = document.getElementById("done"), row = document.getElementById("sendrow");
   document.getElementById("summary").textContent = text;
-  done.classList.add("show");
+  const sb = document.getElementById("sendbtn");
 
   if (SETTINGS.formEndpoint) {
+   sb.disabled = true; sb.textContent = "Sending...";
    try {
     const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({...data, _subject: `New lead: ${data.business} (${data.plan})`})});
     if (r.ok) {
-     document.getElementById("done-title").textContent = "Request received";
-     document.getElementById("done-text").textContent = "Thanks! We'll reach out within one business day.";
+     document.getElementById("done-title").textContent = "Sent! \u2713";
+     document.getElementById("done-text").textContent = "Thanks, " + data.name + ". Your request is in. Isaiah will reach out within one business day with your 3 free sample posts.";
+     document.getElementById("summary").hidden = true; done.classList.add("show", "good");
+     sb.disabled = false; sb.textContent = "Sent \u2713";
      row.innerHTML = ""; form.querySelectorAll("input,select,textarea").forEach(i => { if (i.type === "checkbox") i.checked = false; else if (i.tagName !== "SELECT") i.value = ""; });
      return;
     }
    } catch (_) { /* fall through to manual send */ }
+   sb.disabled = false; sb.textContent = "Send \u2192";
+   document.getElementById("done-title").textContent = "That didn't go through";
   }
+  done.classList.add("show"); document.getElementById("summary").hidden = false;
   const subject = encodeURIComponent(`Free samples request: ${biz}`), body = encodeURIComponent(text);
   const btns = [];
   if (SETTINGS.email) btns.push(`<a class="btn" href="mailto:${esc(SETTINGS.email)}?subject=${subject}&body=${body}">Send by email</a>`);
@@ -481,9 +504,9 @@ footer img{height:56px}
   if (SETTINGS.instagram) btns.push(`<a class="btn alt" href="https://ig.me/m/${esc(SETTINGS.instagram)}" target="_blank" rel="noopener">DM on Instagram</a>`);
   btns.push(`<button type="button" class="btn alt" id="copy">Copy details</button>`);
   row.innerHTML = btns.join("");
-  document.getElementById("done-text").textContent = SETTINGS.email || SETTINGS.phone
-   ? "Your request is ready. Tap a button to send it from your phone. It isn't sent until you do."
-   : "Your request is ready. Copy it and send it to us.";
+  document.getElementById("done-text").textContent = SETTINGS.formEndpoint
+   ? "Check your connection and tap Send again, or email it to us with the button below."
+   : "Your request is ready. Tap a button to send it from your phone. It isn't sent until you do.";
   document.getElementById("copy").addEventListener("click", async ev => {
    try { await navigator.clipboard.writeText(text); ev.target.textContent = "Copied"; } catch (_) { ev.target.textContent = "Select the text below to copy"; }
   });
