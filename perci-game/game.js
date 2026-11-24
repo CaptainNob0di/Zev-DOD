@@ -24,8 +24,9 @@ const CHARS = {
 };
 const ORDER = ['perci', 'miracle', 'chatgpt', 'jessica', 'mixi'];
 const BOT_NAMES = ['BROKE-pilot', 'A+ Bot', 'The Grader', 'Show-Your-Work', 'Vacuum-Tron'];
-const DIFF = { easy: { acc: 0.26, react: 0.6, mult: 0.75, speed: 0.92, mate: 0.2 }, normal: { acc: 0.12, react: 0.32, mult: 1, speed: 1.05, mate: 0.3 }, hard: { acc: 0.06, react: 0.18, mult: 1.5, speed: 1.15, mate: 0.38 } };
-const MATCH_TIME = 120, RESPAWN = 3, WORLD = { w: 1800, h: 1200 };
+const ALLY = { lead: 0.6, dodge: 1.5 };
+const DIFF = { easy: { acc: 0.13, react: 0.34, mult: 0.75, speed: 1.02, mate: 0.2, lead: 0.0, dodge: 99, rate: 1.0, hp: 3, focus: 0.85 }, normal: { acc: 0.09, react: 0.26, mult: 1, speed: 1.08, mate: 0.22, lead: 0.5, dodge: 1.9, rate: 0.95, hp: 3, focus: 0.75 }, hard: { acc: 0.045, react: 0.15, mult: 1.5, speed: 1.18, mate: 0.26, lead: 0.9, dodge: 1.0, rate: 0.8, hp: 4, focus: 0.6 } };
+const MATCH_TIME = 120, RESPAWN = 3, WORLD = { w: 2400, h: 1500 };
 const PICKUPS = {
   shield: { col: '#00e6ff', label: '+1 SHIELD' },
   rapid:  { col: '#ffd60a', label: 'RAPID FIRE!' },
@@ -51,27 +52,68 @@ function beep(f0, f1, dur, type = 'square', vol = 0.06) {
 const buzz = (ms) => { if (TOUCH && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} };
 const SFX = { pew: () => beep(1400, 380, 0.09, 'square', 0.03), beam: () => beep(600, 1800, 0.18, 'sawtooth', 0.035), hit: () => { beep(220, 80, 0.12, 'triangle', 0.08); buzz(25); }, tag: () => { beep(880, 220, 0.25, 'sawtooth', 0.06); buzz(40); }, power: () => beep(300, 1200, 0.35, 'sine', 0.08), pick: () => { beep(900, 1600, 0.12, 'sine', 0.07); beep(1300, 2200, 0.1, 'sine', 0.04); }, win: () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, f, 0.25, 'square', 0.05), i * 140)); }, lose: () => { [392, 330, 262].forEach((f, i) => setTimeout(() => beep(f, f * 0.95, 0.3, 'triangle', 0.07), i * 180)); } };
 
-/* ---------------- arena ---------------- */
-function buildWalls() {
-  const W = WORLD.w, H = WORLD.h, w = [];
-  const add = (x, y, ww, hh, kind = 'hay') => w.push({ x, y, w: ww, h: hh, kind });
-  add(-60, -60, W + 120, 60, 'edge'); add(-60, H, W + 120, 60, 'edge'); add(-60, 0, 60, H, 'edge'); add(W, 0, 60, H, 'edge');
-  const half = [[300, 220, 120, 60], [300, 920, 120, 60], [520, 520, 60, 160], [700, 300, 160, 50], [700, 850, 160, 50], [860, 560, 80, 80], [420, 380, 70, 70], [420, 750, 70, 70], [640, 100, 60, 110], [640, 990, 60, 110], [760, 470, 50, 50], [760, 680, 50, 50]];
-  half.forEach(([x, y, ww, hh], i) => { add(x, y, ww, hh, i % 2 ? 'crate' : 'hay'); add(W - x - ww, y, ww, hh, i % 2 ? 'crate' : 'hay'); });
-  add(880, 150, 40, 150, 'glitch'); add(880, 900, 40, 150, 'glitch');
-  return w;
+/* ---------------- arena: a new generated map every match ---------------- */
+let STATIC = null;
+let WALLS = [], SOLID = [], MAPNAME = '', MAPSEED = 0;
+const CELL = 30, INFL = 24;
+let GC = 0, GR = 0, BLOCK = new Uint8Array(0), G_SCORE = new Float32Array(0), CAME = new Int32Array(0), STAMP = new Int32Array(0); let stampN = 0;
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const MAP_STYLES = [
+  { name: 'CORN MAZE', tint: [40, 34, 18] }, { name: 'BUILDING 8 HALLS', tint: [36, 22, 52] }, { name: 'MIGHT BE CASTLE LOT', tint: [44, 26, 30] },
+  { name: 'THE BARN', tint: [46, 26, 18] }, { name: 'DREAM GRID', tint: [18, 24, 50] }, { name: 'SCHOOL GYM', tint: [44, 34, 22] },
+];
+function spawnPoint(team, i) { return { x: team === 'P' ? 120 : WORLD.w - 120, y: Math.round(WORLD.h * (i + 1) / 6) }; }
+function rebuildGrid() {
+  GC = Math.ceil(WORLD.w / CELL); GR = Math.ceil(WORLD.h / CELL);
+  BLOCK = new Uint8Array(GC * GR); G_SCORE = new Float32Array(GC * GR); CAME = new Int32Array(GC * GR); STAMP = new Int32Array(GC * GR); stampN = 0;
+  for (let r = 0; r < GR; r++) for (let c = 0; c < GC; c++) {
+    const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
+    if (x < INFL || y < INFL || x > WORLD.w - INFL || y > WORLD.h - INFL) { BLOCK[r * GC + c] = 1; continue; }
+    for (const w of SOLID) if (x > w.x - INFL && x < w.x + w.w + INFL && y > w.y - INFL && y < w.y + w.h + INFL) { BLOCK[r * GC + c] = 1; break; }
+  }
 }
-const WALLS = buildWalls();
-const SOLID = WALLS.filter((w) => w.kind !== 'edge');
-
-/* ---------------- navigation grid (A*) ---------------- */
-const CELL = 30, GC = Math.ceil(WORLD.w / CELL), GR = Math.ceil(WORLD.h / CELL), INFL = 24;
-const BLOCK = new Uint8Array(GC * GR);
-for (let r = 0; r < GR; r++) for (let c = 0; c < GC; c++) {
-  const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
-  if (x < INFL || y < INFL || x > WORLD.w - INFL || y > WORLD.h - INFL) { BLOCK[r * GC + c] = 1; continue; }
-  for (const w of SOLID) if (x > w.x - INFL && x < w.x + w.w + INFL && y > w.y - INFL && y < w.y + w.h + INFL) { BLOCK[r * GC + c] = 1; break; }
+function reachableShare() {
+  const s = spawnPoint('P', 2), sc = Math.floor(s.x / CELL), sr = Math.floor(s.y / CELL), seen = new Uint8Array(GC * GR), q = [sr * GC + sc];
+  if (BLOCK[q[0]]) return 0; seen[q[0]] = 1; let n = 0;
+  while (q.length) { const m = q.pop(); n++; const c = m % GC, r = (m / GC) | 0; for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const cc = c + dc, rr = r + dr; if (cc < 0 || rr < 0 || cc >= GC || rr >= GR) continue; const k = rr * GC + cc; if (!seen[k] && !BLOCK[k]) { seen[k] = 1; q.push(k); } } }
+  let free = 0; for (let i = 0; i < BLOCK.length; i++) if (!BLOCK[i]) free++;
+  for (const team of ['P', 'B']) for (let i = 0; i < 5; i++) { const p = spawnPoint(team, i), k = Math.floor(p.y / CELL) * GC + Math.floor(p.x / CELL); if (!seen[k]) return 0; }
+  return n / Math.max(1, free);
 }
+function buildArena(seed) {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const R = mulberry(seed + attempt * 7919);
+    const style = MAP_STYLES[Math.floor(R() * MAP_STYLES.length)];
+    WORLD.w = 2200 + Math.round(R() * 10) * 60; WORLD.h = 1300 + Math.round(R() * 6) * 60;
+    const W = WORLD.w, H = WORLD.h, w = [];
+    const add = (x, y, ww, hh, kind) => w.push({ x: Math.round(x), y: Math.round(y), w: Math.round(ww), h: Math.round(hh), kind });
+    add(-60, -60, W + 120, 60, 'edge'); add(-60, H, W + 120, 60, 'edge'); add(-60, 0, 60, H, 'edge'); add(W, 0, 60, H, 'edge');
+    const half = [], cx = W / 2;
+    const ok = (x, y, ww, hh) => x > 250 && x + ww < cx - 30 && y > 40 && y + hh < H - 40 && !half.some((o) => x < o[0] + o[2] + 70 && x + ww + 70 > o[0] && y < o[1] + o[3] + 70 && y + hh + 70 > o[1]);
+    const kinds = ['hay', 'crate'];
+    const layout = Math.floor(R() * 3);
+    const count = 9 + Math.floor(R() * 6);
+    for (let k = 0, tries = 0; k < count && tries < 400; tries++) {
+      let ww, hh;
+      if (layout === 0) { ww = 50 + R() * 110; hh = 50 + R() * 110; }                         // scattered cover
+      else if (layout === 1) { const v = R() < 0.5; ww = v ? 50 : 150 + R() * 180; hh = v ? 150 + R() * 220 : 50; } // long walls and lanes
+      else { ww = 60 + R() * 60; hh = 60 + R() * 60; if (R() < 0.35) { ww *= 2.2; } }          // bunkers
+      const x = 260 + R() * (cx - 300 - ww), y = 60 + R() * (H - 120 - hh);
+      if (!ok(x, y, ww, hh)) continue;
+      half.push([x, y, ww, hh]); k++;
+    }
+    half.forEach(([x, y, ww, hh], i) => { const kind = kinds[i % 2]; add(x, y, ww, hh, kind); add(W - x - ww, y, ww, hh, kind); });
+    // center piece: glitch pillars or a big crate
+    if (R() < 0.6) { add(cx - 20, H * 0.18, 40, 150, 'glitch'); add(cx - 20, H * 0.82 - 150, 40, 150, 'glitch'); }
+    else { add(cx - 55, H / 2 - 55, 110, 110, 'crate'); }
+    WALLS = w; SOLID = w.filter((o) => o.kind !== 'edge');
+    rebuildGrid();
+    if (reachableShare() > 0.9) { MAPNAME = style.name; MAPSEED = seed; MAPTINT = style.tint; STATIC = null; return; }
+  }
+  STATIC = null;
+}
+let MAPTINT = [28, 16, 41];
+buildArena(1);
 const cellOf = (x, y) => [Math.max(0, Math.min(GC - 1, Math.floor(x / CELL))), Math.max(0, Math.min(GR - 1, Math.floor(y / CELL)))];
 function nearestFree(c, r) {
   if (!BLOCK[r * GC + c]) return [c, r];
@@ -80,7 +122,6 @@ function nearestFree(c, r) {
   }
   return [c, r];
 }
-const G_SCORE = new Float32Array(GC * GR), CAME = new Int32Array(GC * GR), STAMP = new Int32Array(GC * GR); let stampN = 0;
 function astar(sx, sy, tx, ty) {
   let [sc, sr] = nearestFree(...cellOf(sx, sy)); const [tc, tr] = nearestFree(...cellOf(tx, ty));
   const start = sr * GC + sc, goal = tr * GC + tc; if (start === goal) return [{ x: tx, y: ty }];
@@ -90,7 +131,7 @@ function astar(sx, sy, tx, ty) {
   const h = (n) => { const dc = Math.abs((n % GC) - tc), dr = Math.abs(((n / GC) | 0) - tr); return (dc + dr) + (Math.SQRT2 - 2) * Math.min(dc, dr); };
   STAMP[start] = stampN; G_SCORE[start] = 0; CAME[start] = -1; push(start, h(start));
   let found = false, iter = 0;
-  while (heap.length && iter++ < 4000) {
+  while (heap.length && iter++ < 9000) {
     const n = pop(); if (n === goal) { found = true; break; }
     const c = n % GC, r = (n / GC) | 0;
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
@@ -136,26 +177,28 @@ const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim:
 
 function newEntity(team, kind, i, isPlayer) {
   const c = kind !== 'bot' ? CHARS[kind] : null;
-  const base = team === 'P' ? { x: 120, y: 200 + i * 200 } : { x: WORLD.w - 120, y: 200 + i * 200 };
+  const base = spawnPoint(team, i);
   return {
     team, kind, isPlayer, human: !!isPlayer, pid: null, life: 0, abSeen: 0, name: c ? c.name : BOT_NAMES[i], spawn: { ...base }, x: base.x, y: base.y, vx: 0, vy: 0, a: team === 'P' ? 0 : Math.PI,
-    r: c && c.small ? 17 : 21, hp: c ? c.hp : 3, maxhp: c ? c.hp : 3, cool: 0, dead: 0, abilityCd: 0, rapid: 0, shield: 2, frozen: 0, fast: 0, flash: 0, hurt: 0, bob: Math.random() * 6,
+    r: c && c.small ? 17 : 21, hp: c ? c.hp : DIFF[diff].hp, maxhp: c ? c.hp : DIFF[diff].hp, dodgeCd: 0, cool: 0, dead: 0, abilityCd: 0, rapid: 0, shield: 2, frozen: 0, fast: 0, flash: 0, hurt: 0, bob: Math.random() * 6,
     stats: c || { speed: 200, rate: 0.36, dmg: 1, range: 560, spread: 0.06, shot: '#ff8c28', body: '#ff8c28' }, tags: 0, tagged: 0, shots: 0, hits: 0, picks: 0,
     ai: { target: null, think: Math.random() * 0.3, strafe: Math.random() < 0.5 ? 1 : -1, path: [], repath: 0, goal: null, chk: 0.5, lx: base.x, ly: base.y, escape: 0, ex: 0, ey: 0, react: 0, goalKind: '' },
   };
 }
 
 function startMatch() {
+  buildArena((Math.random() * 1e9) | 0);
   const others = ORDER.filter((k) => k !== pick);
   const P = [newEntity('P', pick, 2, true)].concat(others.map((k, i) => newEntity('P', k, [0, 1, 3, 4][i], false)));
   const B = [0, 1, 2, 3, 4].map((i) => newEntity('B', 'bot', i, false));
   beginMatch(P.concat(B), P[0]);
 }
 function beginMatch(ents, me) {
+  for (const e of ents) e.dodgeCd = 0;
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y - VH / Z / 2;
   showScreen(null); $('hud').classList.add('on'); document.body.classList.add('playing'); if (document.activeElement) document.activeElement.blur(); state = 'play';
-  feed(MP.on && MP.mode === 'versus' ? 'Team vs team! Most tags wins.' : "Match start! Tag BROKE-pilot's bots!"); banner('FIGHT!');
+  feed('Map: ' + MAPNAME); feed(MP.on && MP.mode === 'versus' ? 'Team vs team! Most tags wins.' : "Match start! Tag BROKE-pilot's bots!"); banner('FIGHT!');
   document.body.classList.toggle('mp', MP.on); $('pauseBtn').textContent = MP.on ? '\u2715' : 'II';
   if (TOUCH && VH > VW && !sessionStorage.getItem('ps_rot')) { sessionStorage.setItem('ps_rot', '1'); setTimeout(() => feed('Tip: turn your phone sideways for a wider view'), 1500); }
   if (ac() && AC.state === 'suspended') AC.resume();
@@ -171,7 +214,7 @@ function banner(t) { const b = $('banner'); b.textContent = t; b.style.opacity =
 function fire(e, ang) {
   const s = e.stats;
   if (e.cool > 0 || e.dead > 0 || e.frozen > 0) return;
-  e.cool = s.rate * (e.rapid > 0 ? 0.45 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 1.8 : 1);
+  e.cool = s.rate * (e.kind === 'bot' ? DIFF[diff].rate : 1) * (e.rapid > 0 ? 0.45 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 1.8 : 1);
   const spread = (Math.random() - 0.5) * 2 * (s.spread + (e.human ? 0 : e.kind === 'bot' ? DIFF[diff].acc : DIFF[diff].mate));
   const a = ang + spread, sp = e.kind === 'chatgpt' ? 1500 : 950;
   G.bullets.push({ x: e.x + Math.cos(a) * (e.r + 14), y: e.y + Math.sin(a) * (e.r + 14), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, owner: e, team: e.team, dmg: s.dmg, col: s.shot, bounce: s.bounce ? 1 : 0, beam: e.kind === 'chatgpt', age: 0 });
@@ -237,7 +280,7 @@ function aiThink(e, dt) {
   if (ai.think <= 0) {
     ai.think = 0.25 + Math.random() * 0.25;
     let best = null, bd = 1e9;
-    for (const f of G.ents) { if (f.team === e.team || f.dead > 0) continue; const dd = dist(e, f) * (los(e, f) ? 1 : 1.6) * (f.human && e.kind === 'bot' ? 0.85 : 1); if (dd < bd) { bd = dd; best = f; } }
+    for (const f of G.ents) { if (f.team === e.team || f.dead > 0) continue; const dd = dist(e, f) * (los(e, f) ? 1 : 1.6) * (f.human && e.kind === 'bot' ? d.focus : 1) * (0.75 + 0.25 * (f.hp / f.maxhp)); if (dd < bd) { bd = dd; best = f; } }
     if (best !== ai.target) ai.react = e.kind === 'bot' ? d.react : 0.45;
     ai.target = best;
     if (Math.random() < 0.1) ai.strafe *= -1;
@@ -256,7 +299,22 @@ function aiThink(e, dt) {
   // aim + shoot whenever a target is visible
   if (t && see) {
     const a = Math.atan2(t.y - e.y, t.x - e.x); e.a = a; ai.react -= dt;
-    if (dd < e.stats.range && ai.react <= 0) fire(e, a + (t.vx || 0) * 0.00035 * dd / 10);
+    if (dd < e.stats.range && ai.react <= 0) {
+      let aim = a;
+      { const tt = dd / 950 * (e.kind === 'bot' ? d.lead : ALLY.lead); aim = Math.atan2(t.y + (t.vy || 0) * tt - e.y, t.x + (t.vx || 0) * tt - e.x); }
+      fire(e, aim);
+    }
+  }
+  // bots sidestep lasers that are about to hit them
+  {
+    e.dodgeCd -= dt;
+    if (e.dodgeCd <= 0) for (const b of G.bullets) {
+      if (b.team === e.team) continue;
+      const rx = e.x - b.x, ry = e.y - b.y, sp = Math.hypot(b.vx, b.vy) || 1, along = (rx * b.vx + ry * b.vy) / sp;
+      if (along < 0 || along > 260) continue;
+      const perp = (rx * b.vy - ry * b.vx) / sp;
+      if (Math.abs(perp) < e.r + 14) { const side = perp >= 0 ? 1 : -1, ang = Math.atan2(b.vy, b.vx) + side * Math.PI / 2; ai.ex = Math.cos(ang); ai.ey = Math.sin(ang); ai.escape = 0.28; e.dodgeCd = (e.kind === 'bot' ? d.dodge : ALLY.dodge) * (0.7 + Math.random() * 0.6); break; }
+    }
   }
   if (ai.escape > 0) { ai.escape -= dt; mx = ai.ex; my = ai.ey; }
   else if (ai.goalKind === 'foe' && see && dd < e.stats.range * 1.05) {
@@ -270,7 +328,9 @@ function aiThink(e, dt) {
     // follow an A* path around obstacles
     const g = ai.goal;
     if (ai.repath <= 0 || !ai.path.length || (ai.pg && Math.hypot(ai.pg.x - g.x, ai.pg.y - g.y) > 90)) {
-      ai.path = astar(e.x, e.y, g.x, g.y); ai.pg = { x: g.x, y: g.y }; ai.repath = 0.7 + Math.random() * 0.3;
+      let gx = g.x, gy = g.y;
+      if (ai.goalKind === 'foe' && !see) { const ang = Math.atan2(e.y - g.y, e.x - g.x) + ai.strafe * 0.9; gx = clamp(g.x + Math.cos(ang) * 220, 60, WORLD.w - 60); gy = clamp(g.y + Math.sin(ang) * 220, 60, WORLD.h - 60); }
+      ai.path = astar(e.x, e.y, gx, gy); ai.pg = { x: g.x, y: g.y }; ai.repath = 0.7 + Math.random() * 0.3;
     }
     while (ai.path.length > 1 && clear(e, ai.path[1], e.r - 4)) ai.path.shift();      // string-pull: skip visible waypoints
     if (ai.path.length && Math.hypot(ai.path[0].x - e.x, ai.path[0].y - e.y) < 14) ai.path.shift();
@@ -375,7 +435,7 @@ function cameraStep(dt) {
 }
 
 /* ---------------- graphics: pre-rendered layers ---------------- */
-let STATIC = null, VIGN = null;
+let VIGN = null;
 const GLOW = {};
 function glowSprite(col, size = 128) {
   const k = col + size; if (GLOW[k]) return GLOW[k];
@@ -387,7 +447,7 @@ function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 214748
 function buildStatic() {
   const c = document.createElement('canvas'); c.width = WORLD.w; c.height = WORLD.h; const g = c.getContext('2d'); const R = rng(7);
   // floor: dark dream-barn planks
-  g.fillStyle = '#1c1029'; g.fillRect(0, 0, WORLD.w, WORLD.h);
+  g.fillStyle = `rgb(${MAPTINT[0]},${MAPTINT[1]},${MAPTINT[2]})`; g.fillRect(0, 0, WORLD.w, WORLD.h);
   for (let y = 0; y < WORLD.h; y += 48) {
     let x = -R() * 200;
     while (x < WORLD.w) { const len = 160 + R() * 220, v = R() * 12 - 6; g.fillStyle = `rgb(${38 + v},${22 + v / 2},${54 + v})`; g.fillRect(x + 2, y + 2, len - 4, 44); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + 2, y + 42, len - 4, 4); for (let k = 0; k < 3; k++) { g.strokeStyle = 'rgba(255,255,255,0.03)'; g.beginPath(); g.moveTo(x + 10, y + 10 + k * 12); g.lineTo(x + len - 10, y + 12 + k * 12); g.stroke(); } x += len; }
@@ -782,7 +842,7 @@ function mpWire() {
       if (state !== 'play' && $('sLobby').classList.contains('on')) renderLobby();
     });
     n.on('full', (p) => { if (p.pid !== MP.pid) return; mpLeave(true); showScreen('sOnline'); mpMsg('That room is full.'); });
-    n.on('start', (p) => { if (!p.defs.some((d) => d.pid === MP.pid)) return; diff = p.diff; MP.mode = p.mode; mpBegin(p.defs); });
+    n.on('start', (p) => { if (!p.defs.some((d) => d.pid === MP.pid)) return; diff = p.diff; MP.mode = p.mode; mpBegin(p.defs, p.seed); });
     n.on('snap', (s) => { MP.hostSeen = performance.now(); applySnap(s); });
     n.on('end', (p) => { MP.hostSeen = performance.now(); if (!MP.started || !G) return; G.score.P = p.s[0]; G.score.B = p.s[1]; endMatch(); });
   }
@@ -823,9 +883,10 @@ function buildDefs() {
 }
 function mpStartMatch() {
   if (!MP.host || MP.started) return;
-  const defs = buildDefs(); MP.net.send('start', { defs, diff, mode: MP.mode }); mpBegin(defs);
+  const defs = buildDefs(), seed = (Math.random() * 1e9) | 0; MP.net.send('start', { defs, diff, mode: MP.mode, seed }); mpBegin(defs, seed);
 }
-function mpBegin(defs) {
+function mpBegin(defs, seed) {
+  buildArena(seed || 1);
   const ents = defs.map((d) => { const e = newEntity(d.team, d.kind, d.slot, d.pid === MP.pid); if (d.pid) { e.human = true; e.pid = d.pid; e.name = d.name; } return e; });
   const me = ents.find((e) => e.pid === MP.pid); if (!me) return;
   MP.started = true; MP.inputs = {}; MP.ev = []; MP.abN = 0; MP.sendT = 0; MP.lastSnap = performance.now();
@@ -1015,5 +1076,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();
