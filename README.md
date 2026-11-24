@@ -1,58 +1,9 @@
-# Perci Shorti vs BROKE-pilot: Dream Laser Tag
+# Zev DOD website
 
-A 5v5 browser game for the Perci Shorti section of zevsocialconnect.com.
-Pick Perci, Miracle, ChatGPT, Jessica or Mixi, team up with the other four (AI teammates),
-and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb sticks) and desktop
-(WASD + mouse). No build step and no frameworks: just upload the folder.
+zevsocialconnect.com: social media management and graphic design for Omaha small businesses. Hosted on GitHub Pages.
 
-## 0. Launch lock (private until Episode 6)
-The public sees a "Coming soon" countdown until **Thu Dec 31, 2026, 6:00 PM CT**. The game then unlocks by itself.
-- Your private link: `zevsocialconnect.com/perci-game/?preview=YOUR-KEY` (the key is in `index.html`, the `PREVIEW_KEY` line).
-  Open it once on each of your devices and that device stays unlocked.
-- To change the date, edit `LAUNCH_AT` in `index.html`. To open it to everyone now, set `LAUNCH_AT` to `''`.
-- Don't share the preview link, and hold off on adding the PLAY button to your pages until launch day.
-- This lock is a curtain, not a vault: someone who digs through the page code could get around it. For a fully private test, don't upload until launch.
-
-## 1. Put it on the site
-1. Upload this whole folder to your site as `perci-game/` (so the game lives at `zevsocialconnect.com/perci-game/`).
-   Keep `index.html`, `game.js` and the `assets/` folder together.
-2. Add a button to `perci.html` (and the Perci Shorti section on the home page):
-
-   ```html
-   <a href="perci-game/" class="btn">PLAY PERCI SHORTI LASER TAG</a>
-   ```
-
-   Or embed it right on the page:
-
-   ```html
-   <iframe src="perci-game/" style="width:100%;height:80vh;border:0;border-radius:16px" allow="fullscreen"></iframe>
-   ```
-3. The title screen's "Watch the show" link points to `../perci.html`. Change it in `index.html` if your page is named differently.
-
-## 2. Turn on the PUBLIC leaderboard (about 10 minutes, free)
-Until this is done, scores save on each player's own device only, and the game says the public board is coming.
-
-1. Make a free account at https://supabase.com and create a new project.
-2. Open **SQL Editor > New query**, paste everything from `leaderboard-setup.sql`, and click **Run**.
-3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
-4. In `index.html`, find the `LEADERBOARD` line near the bottom and paste them in:
-
-   ```js
-   const LEADERBOARD = { url: 'https://YOURPROJECT.supabase.co', anonKey: 'eyJ...', table: 'perci_scores' };
-   ```
-5. Re-upload `index.html`. Done: the ALL-TIME and TODAY tabs now show everyone's scores.
-
-The anon key is meant to be public. The table rules only allow reading scores and adding new ones,
-and the database rejects impossible values (scores over 15,000, bad names, unknown characters).
-To remove a troll entry, delete the row in Supabase's Table Editor.
-
-## 3. Ideas to grow it
-- Pin a "post your laser tag score" comment under each episode and feature the weekly #1 in a Short.
-- Run a weekly challenge: top score on HARD by Sunday gets drawn into an episode as a cameo.
-- Put the PLAY button in the end screen of every episode upload and in your link-in-bio.
-
-## Files
-- `index.html`: screens, styles, and the leaderboard config line
-- `game.js`: the game (arena, characters, AI, scoring, leaderboard)
-- `assets/`: character art from the show (made by ZEV DOD)
-- `leaderboard-setup.sql`: one-time database setup for the public board
+## Settings you can edit
+- **Analytics:** `site.js` → `GA4_ID` and/or `CF_BEACON_TOKEN` (blank = nothing loads).
+- **Forms:** `index.html` and `onboarding.html` → `SETTINGS` (email, Instagram, Formspree endpoint).
+- **New blog post:** copy an article page, edit it, then add its URL to `sitemap.xml`, `blog.html` and `feed.xml`.
+- **IndexNow key file:** `5287d9e9c81afe1f49489397cb8c59ff.txt` (do not delete).
