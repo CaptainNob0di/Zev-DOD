@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#141217">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Perci Shorti vs BROKE-pilot: Dream Laser Tag</title>
 <meta name="description" content="5v5 dream laser tag. Pick Perci, Miracle, ChatGPT, Jessica or Mixi and take down BROKE-pilot. Post your score to the public leaderboard.">
 <meta property="og:title" content="Perci Shorti vs BROKE-pilot: Dream Laser Tag">
@@ -14,10 +17,11 @@
 <style>
 :root{--bg:#141217;--panel:#1f1b29;--ink:#100814;--gold:#ffd60a;--purple:#8232dc;--cyan:#00e6ff;--orange:#ff8c28;--text:#f1eefa;--muted:#a79fc0}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Poppins,system-ui,sans-serif;overflow:hidden;touch-action:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Poppins,system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
+input{-webkit-user-select:text;user-select:text}
 #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
 canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
-.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:24px 16px 40px;background:radial-gradient(ellipse at 50% 0%,#3a1d5c 0%,#141217 60%);touch-action:pan-y}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(20px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 0%,#3a1d5c 0%,#141217 60%);touch-action:pan-y}
 .screen.on{display:flex}
 h1,h2,h3{font-family:Anton,Impact,sans-serif;letter-spacing:.5px;margin:.2em 0;font-weight:400}
 h2{font-size:clamp(28px,6vw,44px);color:var(--gold);text-shadow:3px 3px 0 var(--ink)}
@@ -56,25 +60,32 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
 .how{font-size:14px;line-height:1.55}.how b{color:var(--gold)}
 #hud{position:absolute;inset:0;pointer-events:none;display:none}
 #hud.on{display:block}
-#scorebar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font-family:Anton;font-size:24px;white-space:nowrap}
-@media (max-width:600px){#scorebar{top:44px;font-size:18px}#scorebar .t{padding:1px 8px}#me{font-size:11px}}
-#scorebar .t{padding:2px 14px;border:3px solid var(--ink);border-radius:10px}
+#scorebar{position:absolute;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font-family:Anton;font-size:24px;white-space:nowrap}
+#scorebar .t{padding:2px 12px;border:3px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink)}
 #tp{background:#c81e32;color:#fff}#tb{background:var(--orange);color:var(--ink)}
-#clock{background:#000a;padding:2px 12px;border-radius:10px;min-width:72px;text-align:center}
-#me{position:absolute;top:8px;left:10px;font-size:13px;background:#0009;padding:6px 10px;border-radius:10px}
-#feed{position:absolute;top:56px;right:10px;font-size:13px;text-align:right}
-#feed div{background:#0009;margin:3px 0;padding:3px 8px;border-radius:8px;animation:fade 3.5s forwards}
+#clock{background:#000b;padding:2px 12px;border-radius:10px;min-width:70px;text-align:center;border:2px solid #fff3}
+#clock.hurry{color:#ff5a5a;animation:pulse .6s infinite alternate}
+@keyframes pulse{to{transform:scale(1.12)}}
+#me{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));font-size:13px;font-weight:700;background:#000a;padding:6px 10px;border-radius:10px}
+#feed{position:absolute;top:calc(58px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));font-size:13px;text-align:right;max-width:46vw}
+#feed div{background:#000a;margin:3px 0;padding:3px 8px;border-radius:8px;animation:fade 3.5s forwards}
 @keyframes fade{0%,80%{opacity:1}100%{opacity:0}}
-#abil{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:Anton;font-size:16px;background:#000a;padding:4px 14px;border-radius:10px}
-#banner{position:absolute;top:38%;left:0;right:0;text-align:center;font-family:Anton;font-size:clamp(30px,8vw,64px);color:var(--gold);text-shadow:4px 4px 0 var(--ink);opacity:0;transition:opacity .2s}
-#pauseBtn,#muteBtn{position:absolute;top:8px;pointer-events:auto;font-family:Anton;background:#000a;color:#fff;border:2px solid #fff4;border-radius:10px;padding:4px 10px;font-size:16px}
-#pauseBtn{right:10px}#muteBtn{right:84px}
+#abil{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-family:Anton;font-size:16px;background:#000a;padding:4px 14px;border-radius:10px;white-space:nowrap}
+#banner{position:absolute;top:34%;left:0;right:0;text-align:center;font-family:Anton;font-size:clamp(32px,8vw,64px);color:var(--gold);text-shadow:4px 4px 0 var(--ink);opacity:0;transition:opacity .2s,transform .15s}
+.hbtn{position:absolute;top:calc(8px + env(safe-area-inset-top));pointer-events:auto;font-family:Anton;background:#000b;color:#fff;border:2px solid #fff4;border-radius:10px;padding:4px 10px;font-size:16px;min-width:40px;min-height:36px}
+#pauseBtn{right:calc(10px + env(safe-area-inset-right))}#muteBtn{right:calc(62px + env(safe-area-inset-right))}
+#autoBtn{right:calc(114px + env(safe-area-inset-right));display:none;font-size:13px}#autoBtn.on{background:var(--cyan);color:var(--ink)}
 .wm{position:fixed;left:10px;bottom:8px;width:96px;opacity:.85;pointer-events:none;z-index:5}
-@media (pointer:coarse){body.playing .wm{left:auto;right:10px;bottom:auto;top:84px;width:70px}}
+body.playing .wm{display:none}
+body.playing .previewTag{display:none}
 #touchHint{display:none}
-@media (pointer:coarse){#touchHint{display:block}}
-.ab{position:absolute;bottom:26px;right:26px;width:84px;height:84px;border-radius:50%;background:rgba(255,214,10,.85);border:4px solid var(--ink);font-family:Anton;font-size:15px;display:none;align-items:center;justify-content:center;text-align:center;pointer-events:auto;color:var(--ink)}
-@media (pointer:coarse){#hud.on .ab{display:flex}#abil{bottom:120px}}
+.ab{position:absolute;bottom:calc(196px + env(safe-area-inset-bottom));right:calc(52px + env(safe-area-inset-right));width:78px;height:78px;border-radius:50%;background:rgba(80,70,100,.85);border:4px solid var(--ink);font-family:Anton;font-size:14px;display:none;align-items:center;justify-content:center;text-align:center;pointer-events:auto;color:#fff;box-shadow:0 0 0 3px #fff3}
+.ab.ready{background:var(--gold);color:var(--ink);box-shadow:0 0 22px rgba(255,214,10,.8);animation:pulse .7s infinite alternate}
+@media (pointer:coarse){#hud.on .ab{display:flex}#hud.on #autoBtn{display:block}#touchHint{display:block}#abil{display:none}}
+@media (max-width:720px){#scorebar{font-size:17px;gap:5px;top:calc(48px + env(safe-area-inset-top))}#scorebar .t{padding:1px 7px;border-width:2px;box-shadow:2px 2px 0 var(--ink)}#clock{min-width:52px;padding:1px 8px}#me{font-size:11px;padding:4px 8px}#feed{top:calc(84px + env(safe-area-inset-top));font-size:11px}}
+@media (max-height:460px){#scorebar{top:calc(6px + env(safe-area-inset-top));font-size:17px}#feed{top:calc(46px + env(safe-area-inset-top))}.ab{bottom:calc(150px + env(safe-area-inset-bottom))}}
+.card{touch-action:manipulation}.btn{touch-action:manipulation}
+@media (max-width:520px){.wm{display:none}.cards{grid-template-columns:repeat(2,1fr)}.card{padding:8px}.card img{width:72px;height:72px}.card h3{font-size:19px}.card .role{font-size:11px;min-height:28px}.btn{min-width:180px;font-size:20px}}
 </style>
 </head>
 <body>
@@ -84,7 +95,7 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
 <div id="hud">
   <div id="me"></div>
   <div id="scorebar"><div class="t" id="tp">PERCI 0</div><div id="clock">2:00</div><div class="t" id="tb">0 BROKE</div></div>
-  <button id="muteBtn">SOUND</button><button id="pauseBtn">II</button>
+  <button class="hbtn" id="autoBtn">AUTO ON</button><button class="hbtn" id="muteBtn">SOUND</button><button class="hbtn" id="pauseBtn">II</button>
   <div id="feed"></div>
   <div id="abil"></div>
   <div id="banner"></div>
@@ -129,9 +140,10 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
     <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power. <b>P</b> pauses.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and fires, tap <b>POWER</b> for your ability.</p>
-    <p><b>Shields:</b> everyone has 3. Lose them all and you're tagged out for 3 seconds. Grab glowing <b>A+</b> icons to restore a shield.</p>
-    <p><b>Score:</b> +100 per tag, +500 for a win, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and fires (with aim assist). <b>AUTO</b> fires at the closest bot in view when you're only moving. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
+    <p><b>Power-ups</b> (just run over them): <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each.</p>
+    <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
     <p><b>Leaderboard:</b> post your score under your name and show it off. Top 50 all-time and today's best.</p>
   </div>
   <button class="btn" id="bBack2">GOT IT</button>
