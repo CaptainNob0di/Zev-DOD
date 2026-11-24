@@ -573,6 +573,7 @@ const BAD = ['fuck', 'shit', 'bitch', 'nigg', 'fag', 'cunt', 'dick', 'pussy', 'w
 function cleanName(n) { n = (n || '').toUpperCase().replace(/[^A-Z0-9 _.-]/g, '').trim().slice(0, 14); if (n.length < 2) return null; const l = n.toLowerCase().replace(/[^a-z]/g, ''); if (BAD.some((b) => l.includes(b))) return null; return n; }
 function saveLocal(r) { const all = JSON.parse(localStorage.getItem('ps_local') || '[]'); all.push({ ...r, name: localStorage.getItem('ps_name') || 'YOU', created_at: new Date().toISOString() }); all.sort((a, b) => b.score - a.score); localStorage.setItem('ps_local', JSON.stringify(all.slice(0, 50))); }
 const online = () => LEADERBOARD.url && LEADERBOARD.anonKey;
+const sbHead = (extra) => Object.assign({ apikey: LEADERBOARD.anonKey }, LEADERBOARD.anonKey.startsWith('eyJ') ? { Authorization: 'Bearer ' + LEADERBOARD.anonKey } : {}, extra || {});
 async function submitScore() {
   const name = cleanName($('nameIn').value);
   if (!name) { $('submitMsg').textContent = 'Pick a name: 2-14 letters or numbers, keep it clean.'; return; }
@@ -581,7 +582,7 @@ async function submitScore() {
   const loc = JSON.parse(localStorage.getItem('ps_local') || '[]'); const i = loc.findIndex((x) => x.score === row.score && x.name === 'YOU'); if (i >= 0) { loc[i].name = name; localStorage.setItem('ps_local', JSON.stringify(loc)); }
   if (!online()) { $('submitMsg').textContent = 'Saved! (The public board goes live once the site owner connects it.)'; return; }
   try {
-    const r = await fetch(`${LEADERBOARD.url}/rest/v1/${LEADERBOARD.table}`, { method: 'POST', headers: { apikey: LEADERBOARD.anonKey, Authorization: 'Bearer ' + LEADERBOARD.anonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(row) });
+    const r = await fetch(`${LEADERBOARD.url}/rest/v1/${LEADERBOARD.table}`, { method: 'POST', headers: sbHead({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }), body: JSON.stringify(row) });
     if (!r.ok) throw new Error(r.status);
     $('submitMsg').textContent = 'Posted! Check the leaderboard.';
   } catch (e) { $('submitMsg').textContent = 'Could not reach the leaderboard. Saved on this device.'; $('bSubmit').disabled = false; }
@@ -598,8 +599,8 @@ async function loadBoard(mode) {
     try {
       let q = `${LEADERBOARD.url}/rest/v1/${LEADERBOARD.table}?select=name,character,score,tags,difficulty,won,created_at&order=score.desc&limit=50`;
       if (mode === 'today') { const d0 = new Date(); d0.setHours(0, 0, 0, 0); q += '&created_at=gte.' + d0.toISOString(); }
-      const r = await fetch(q, { headers: { apikey: LEADERBOARD.anonKey, Authorization: 'Bearer ' + LEADERBOARD.anonKey } });
-      rows = await r.json(); note = 'Public leaderboard • top 50';
+      const r = await fetch(q, { headers: sbHead() });
+      if (!r.ok) throw new Error(r.status); rows = await r.json(); note = 'Public leaderboard • top 50';
     } catch (e) { rows = []; note = 'Could not load the public board right now.'; }
   }
   body.innerHTML = rows.length ? rows.slice(0, 50).map((r, i) => `<tr class="${r.name === me ? 'me' : ''}"><td class="rank">${i + 1}</td><td><img src="assets/${r.character}_tok.png" alt="">${esc(r.name)}</td><td><b>${r.score}</b></td><td>${r.tags}</td><td>${(r.difficulty || '').toUpperCase()}${r.won ? ' ✓' : ''}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">No scores yet. Be the first!</td></tr>';

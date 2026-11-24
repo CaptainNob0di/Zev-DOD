@@ -25,3 +25,7 @@ create policy "public read" on public.perci_scores for select to anon using (tru
 
 drop policy if exists "public insert" on public.perci_scores;
 create policy "public insert" on public.perci_scores for insert to anon with check (true);
+
+-- Let the public key read and add scores (needed on newer Supabase projects).
+grant usage on schema public to anon;
+grant select, insert on public.perci_scores to anon;
