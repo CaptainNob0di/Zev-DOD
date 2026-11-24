@@ -237,6 +237,11 @@ footer img{height:56px}
 .next{padding-left:22px}.next li{margin:12px 0}.next .btn{margin-top:8px}
 .obar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;background:var(--ink2);color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:999px;box-shadow:4px 4px 0 var(--yel);white-space:nowrap}
 .obar b{color:var(--yel)}
+.chipsrow{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:16px 0 4px;list-style:none}
+.chipsrow li{border:2px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;font-weight:700;font-size:15px}
+.opt{font-weight:400;color:var(--soft)}
+.upl{border:2px dashed var(--line);border-radius:14px;padding:14px 16px;margin:0 0 16px;font-size:15px}
+.upl .btn{margin-top:10px}
 .pol{padding-left:20px}.pol li{margin:8px 0}
 </style>
 </head>
@@ -257,7 +262,7 @@ footer img{height:56px}
   <div>
    <img class="logo" src="logo.png" alt="Zev Development Operations & Graphic Design" width="800" height="462">
    <h1>Keep your business in <span class="mo">motion</span>.<span class="rot" id="rot" aria-live="off"><span>Posting weekly.</span></span></h1>
-   <p class="lead">Monthly social media management from $150, and one-time design from $20. For Omaha small businesses that want to look big and stay local.</p>
+   <p class="lead">Monthly social media management from $150, and one-time design from $25. For Omaha small businesses that want to look big and stay local.</p>
    <div class="cta"><a class="btn" href="#contact">Get 3 free posts</a><a class="btn alt" href="#design">Order a design</a></div>
   </div>
   <div class="phone" aria-label="Sample posts sliding through a phone feed"><div class="scr"><div class="bar"><span class="av"></span>your.business</div><span class="live">LIVE</span><div class="feed" id="feed"></div></div></div>
@@ -270,7 +275,7 @@ footer img{height:56px}
   <div class="go">
    <a href="#services" style="background:var(--red)"><b>Social plans</b><span>$150, $300 or $500 a month. Month-to-month.</span></a>
    <a href="#samples" style="background:var(--pur)"><b>Our work</b><span>Real videos and branding we made.</span></a>
-   <a href="#design" style="background:var(--mag)"><b>Design</b><span>Flyers, menus, logos from $20. Look big, stay local.</span></a>
+   <a href="#design" style="background:var(--mag)"><b>Design</b><span>Flyers, menus, logos from $25. Look big, stay local.</span></a>
    <a href="#contact" style="background:var(--ink2)"><b>Free posts</b><span>3 sample posts for your business, free.</span></a>
   </div>
  </div>
@@ -356,7 +361,9 @@ footer img{height:56px}
  <div class="wrap">
   <span class="kick">OMAHA, NE &middot; ONE-TIME DESIGN</span>
   <h2 class="big">Look big, <span>stay local.</span></h2>
-  <p class="lead">Flyers, menus, social graphics, logos and event ads for small businesses. First drafts in as little as 24 hours. English or Spanish at no extra charge.</p>
+  <p class="lead">Design that gets you customers. Flyers, menus, social graphics, logos and event ads for Omaha-area small businesses, with 2 revisions on every order.</p>
+  <ul class="chipsrow"><li>From $25</li><li>24&ndash;48 hr delivery</li><li>2 revisions included</li><li>Print + social files</li><li>Omaha metro, local or remote</li><li>English or Spanish</li></ul>
+  <div class="cta"><a class="btn" href="#order" data-jump="order">Start an order</a><a class="btn alt" href="#samples">See the work</a></div>
  </div>
 </section>
 <section class="band" id="bundles">
@@ -402,18 +409,33 @@ footer img{height:56px}
   <form id="oform" novalidate>
    <div class="row"><label>Your name<input id="o-name" autocomplete="name"></label><label>Business name<input id="o-biz" autocomplete="organization"></label></div>
    <div class="row"><label>Email<input id="o-email" type="email" autocomplete="email"></label><label>Phone or Instagram<input id="o-contact" placeholder="For quick questions"></label></div>
-   <label>What should it say? Dates, prices, offers, style<textarea id="o-msg" placeholder="Event name, date, address, menu items, colors you like"></textarea></label>
+   <label>Text that goes on the design<textarea id="o-msg" placeholder="Business name, headline, dates, prices, address, menu items"></textarea></label>
+   <div class="row"><label>Colors &amp; style <span class="opt">(optional)</span><input id="o-style" placeholder="e.g. black and gold, bold, fun"></label><label>Needed by <span class="opt">(optional)</span><input id="o-date" type="date"></label></div>
+   <div class="upl"><b>Logo, photos or videos?</b> Upload up to 2 GB per file, no account needed. Enter your name and business when it asks.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload files &uarr;</a></div>
    <p class="err" id="o-err" role="alert"></p>
    <button class="btn sendbtn" type="submit" id="o-send">Send order &rarr;</button>
    <div id="o-done" hidden>
     <h3 style="margin-top:18px">Order <span id="o-num"></span> received &#10003;</h3>
     <ol class="next">
-     <li><b>Upload your files.</b> Logo, photos or videos (up to 2 GB each). Name them with your order number.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload to Dropbox</a></li>
-     <li><b>Pay <span id="o-due"></span> with PayPal.</b> Put your order number in the note so we can match it.<br><a class="btn" href="https://www.paypal.com/ncp/payment/U2K9QWHRCAJS2" target="_blank" rel="noopener">Pay with PayPal</a></li>
-     <li><b>Get your draft.</b> Work starts once payment is confirmed. Your draft arrives by email or DM.</li>
+     <li><b>Upload your files.</b> Logo, photos or videos, up to 2 GB each. No account needed. When it asks for your name, enter your name and order number.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload to Dropbox</a></li>
+     <li><b>Pay <span id="o-due"></span> to lock in your spot.</b> Put your order number in the payment note. Confirmation usually arrives within an hour during business hours.<br><a class="btn" href="https://www.paypal.com/ncp/payment/U2K9QWHRCAJS2" target="_blank" rel="noopener">Pay with PayPal</a></li>
+     <li><b>Get your draft.</b> Work starts once payment is confirmed. Your draft arrives by email, and you get 2 rounds of changes.</li>
     </ol>
+    <div class="cta"><a class="btn alt" href="https://ig.me/m/zevdod" target="_blank" rel="noopener">Questions? DM @zevdod</a><button type="button" class="btn alt" id="o-again">Start another order</button></div>
    </div>
   </form>
+ </div>
+</section>
+<section class="band pur">
+ <div class="wrap">
+  <h2>How a design order works</h2>
+  <ol class="steps">
+   <li><b>Order</b>Pick your design and fill out the form. About 2 minutes.</li>
+   <li><b>Pay</b>Pay with PayPal. Your spot is held once payment arrives.</li>
+   <li><b>Review</b>Get a fast first draft and up to 2 rounds of changes.</li>
+   <li><b>Launch</b>Get your final print and social files.</li>
+  </ol>
+  <p class="lead" style="margin-top:18px">No calls needed. Everything happens by email, DM or text.</p>
  </div>
 </section>
 <section class="band" style="padding-top:clamp(28px,4vw,48px)">
@@ -426,6 +448,14 @@ footer img{height:56px}
    <li>You own the final design after full payment.</li>
    <li>Logos are built from original shapes and fonts, with no stock graphics, so you can register them.</li>
   </ul>
+  <h3 style="margin-top:28px">Design FAQ</h3>
+  <details><summary>How fast will I get my design?</summary><p>Flyers, event ads and social sets: first draft within 24 hours of payment. Menus: 24 to 48 hours. Branding concepts: within 48 hours. Rush 6-hour delivery (+$15) is available for single designs.</p></details>
+  <details><summary>What if I don't love the draft?</summary><p>Every order includes 2 revision rounds. Extra rounds are $5 each.</p></details>
+  <details><summary>What files do I get?</summary><p>A social-sized PNG and a print-ready PDF. Want to edit it yourself later? Add an editable Canva link for $10.</p></details>
+  <details><summary>Can you do Spanish?</summary><p>Yes. Bilingual English/Spanish flyers and menus at no extra charge.</p></details>
+  <details><summary>Do you print?</summary><p>We send print-ready files you can take to any print shop or online printer. Ask and we'll recommend sizes and paper.</p></details>
+  <details><summary>Refunds?</summary><p>If your first draft isn't delivered on time, you get a full refund. After a draft is delivered, refunds aren't offered, but your revisions are included.</p></details>
+  <details><summary>Who owns the design?</summary><p>You do, once it's paid in full. Logos use original shapes and licensed fonts so you can register them.</p></details>
  </div>
 </section>
 </div>
@@ -662,6 +692,8 @@ footer img{height:56px}
   const r = e.target.closest("[data-rm]"); if (r) { cart.splice(+r.dataset.rm, 1); draw(); }
  });
  document.getElementById("addons").addEventListener("change", totals);
+ document.querySelectorAll("[data-jump]").forEach(x => x.addEventListener("click", e => { e.preventDefault(); document.getElementById(x.dataset.jump).scrollIntoView({behavior: "smooth"}); }));
+ document.getElementById("o-again").addEventListener("click", () => { cart.length = 0; oform.reset(); document.querySelectorAll("#addons input").forEach(i => i.checked = false); document.getElementById("o-done").hidden = true; const sb = document.getElementById("o-send"); sb.textContent = "Send order \u2192"; draw(); document.getElementById("bundles").scrollIntoView({behavior: "smooth"}); });
  document.getElementById("obar").addEventListener("click", e => { e.preventDefault(); document.getElementById("order").scrollIntoView({behavior: "smooth"}); });
  draw();
  const oform = document.getElementById("oform");
@@ -669,6 +701,7 @@ footer img{height:56px}
   e.preventDefault();
   const err = document.getElementById("o-err"), sb = document.getElementById("o-send"); err.textContent = "";
   const name = val("o-name"), biz = val("o-biz"), email = val("o-email"), contact = val("o-contact"), msg = val("o-msg");
+  const style = val("o-style"), needby = val("o-date");
   if (!cart.length) { err.textContent = "Add at least one bundle or service to your order."; return; }
   if (!name) { err.textContent = "Please add your name."; return; }
   if (!email && !contact) { err.textContent = "Add an email, phone or Instagram so we can reach you."; return; }
@@ -676,7 +709,7 @@ footer img{height:56px}
   const {adds, total, due} = totals();
   const d = new Date(), num = `ZEV-${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const lines = cart.map(k => `- ${ITEMS[k][0]}: ${money(ITEMS[k][1])}`).concat(adds.map(k => `- ${ADDS[k][0]}: ${money(ADDS[k][1])}`)).join("\n");
-  const text = `Design order ${num}\n\nName: ${name}\nBusiness: ${biz || "-"}\nEmail: ${email || "-"}\nPhone/IG: ${contact || "-"}\n\n${lines}\n\nTotal: ${money(total)}\nDue now: ${money(due)}${total >= 100 ? " (50% deposit)" : ""}\n\nDetails: ${msg || "-"}`;
+  const text = `Design order ${num}\n\nName: ${name}\nBusiness: ${biz || "-"}\nEmail: ${email || "-"}\nPhone/IG: ${contact || "-"}\n\n${lines}\n\nTotal: ${money(total)}\nDue now: ${money(due)}${total >= 100 ? " (50% deposit)" : ""}\n\nText on design: ${msg || "-"}\nColors & style: ${style || "-"}\nNeeded by: ${needby || "-"}`;
   sb.disabled = true; sb.textContent = "Sending...";
   let ok = false;
   try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({_subject: `Design order ${num}: ${biz || name} (${money(total)})`, email, order: text})}); ok = r.ok; } catch (_) {}
