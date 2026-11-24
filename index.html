@@ -210,6 +210,34 @@ footer img{height:56px}
 .wk .body p{margin:0 0 10px;color:var(--soft);font-size:15px}
 .wk .tags2{display:flex;flex-wrap:wrap;gap:6px}
 .wk .tags2 span{font-size:12px;font-weight:700;border:2px solid var(--line);border-radius:999px;padding:3px 10px}
+
+/* design */
+.dhero{background:var(--ink2);color:#fff;background-image:radial-gradient(70% 120% at 90% 0,rgba(224,33,154,.45),transparent 60%),radial-gradient(60% 100% at 0 100%,rgba(91,31,168,.55),transparent 60%)}
+.dhero .lead{color:#ddd3e8}
+.kick{display:inline-block;background:var(--yel);color:var(--ink2);font-weight:800;font-size:14px;padding:5px 12px;border-radius:6px;transform:rotate(-1.5deg)}
+.big{font-size:clamp(44px,8vw,84px);margin:14px 0 10px;color:#fff}.big span{color:var(--yel)}
+.svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:20px}
+.sv{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column}
+.sv b{font-size:19px}.sv p{color:var(--soft);font-size:15px;margin:6px 0 12px;flex:1}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{min-height:44px;padding:0 14px;border-radius:999px;border:2px solid var(--ink);background:var(--card);color:var(--ink);font:700 15px Outfit,sans-serif;cursor:pointer}
+.opts button:hover,.opts button.just{background:var(--yel);color:var(--ink2);border-color:var(--ink2)}
+.cart{margin:14px 0 18px;display:grid;gap:8px}
+.cart .ci{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px 8px 8px 14px}
+.cart .ci span{flex:1;font-weight:600}.cart .ci em{font-style:normal;font-weight:800;white-space:nowrap}
+.cart .ci button{width:40px;height:40px;border-radius:50%;border:0;background:var(--line);color:var(--ink);font-size:18px;cursor:pointer}
+.cart .empty{color:var(--soft)}
+.addons{display:grid;gap:8px}
+.addons label{display:flex;align-items:center;gap:10px;margin:0;font-weight:600;min-height:40px}
+.addons input{width:20px;height:20px;min-height:0;margin:0;accent-color:var(--mag)}
+.addons em{font-style:normal;color:var(--soft);margin-left:auto;white-space:nowrap}
+.tot{display:flex;gap:12px;margin-top:16px}
+.tot div{flex:1;background:var(--ink2);color:#fff;border-radius:14px;padding:12px 16px}
+.tot span{display:block;font-size:13px;opacity:.8}.tot b{font:400 34px/1.1 "Luckiest Guy",Impact,sans-serif;color:var(--yel);white-space:nowrap}
+.next{padding-left:22px}.next li{margin:12px 0}.next .btn{margin-top:8px}
+.obar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;background:var(--ink2);color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:999px;box-shadow:4px 4px 0 var(--yel);white-space:nowrap}
+.obar b{color:var(--yel)}
+.pol{padding-left:20px}.pol li{margin:8px 0}
 </style>
 </head>
 <body>
@@ -220,7 +248,7 @@ footer img{height:56px}
  </div>
 </header>
 <div class="tabbar"><nav aria-label="Sections" id="tabs">
- <a href="#home">Home</a><a href="#services">Plans</a><a href="#samples">Our work</a><a href="#how">How it works</a><a href="#contact">Contact</a><a class="perci" href="perci.html">Perci Shorti</a>
+ <a href="#home">Home</a><a href="#services">Social plans</a><a href="#design">Design</a><a href="#samples">Our work</a><a href="#how">How it works</a><a href="#contact">Contact</a><a class="perci" href="perci.html">Perci Shorti</a>
 </nav></div>
 <main>
 <div class="view" id="view-home">
@@ -229,8 +257,8 @@ footer img{height:56px}
   <div>
    <img class="logo" src="logo.png" alt="Zev Development Operations & Graphic Design" width="800" height="462">
    <h1>Keep your business in <span class="mo">motion</span>.<span class="rot" id="rot" aria-live="off"><span>Posting weekly.</span></span></h1>
-   <p class="lead">Captions, graphics and scheduling for small businesses, done for you every week. From $150 a month.</p>
-   <div class="cta"><a class="btn" href="#contact">Get 3 free posts</a><a class="btn alt" href="#services">See plans</a></div>
+   <p class="lead">Monthly social media management from $150, and one-time design from $20. For Omaha small businesses that want to look big and stay local.</p>
+   <div class="cta"><a class="btn" href="#contact">Get 3 free posts</a><a class="btn alt" href="#design">Order a design</a></div>
   </div>
   <div class="phone" aria-label="Sample posts sliding through a phone feed"><div class="scr"><div class="bar"><span class="av"></span>your.business</div><span class="live">LIVE</span><div class="feed" id="feed"></div></div></div>
  </div>
@@ -240,9 +268,9 @@ footer img{height:56px}
  <div class="wrap">
   <h2>Make your next move</h2>
   <div class="go">
-   <a href="#services" style="background:var(--red)"><b>Plans</b><span>$150, $300 or $500 a month. Month-to-month.</span></a>
+   <a href="#services" style="background:var(--red)"><b>Social plans</b><span>$150, $300 or $500 a month. Month-to-month.</span></a>
    <a href="#samples" style="background:var(--pur)"><b>Our work</b><span>Real videos and branding we made.</span></a>
-   <a href="#how" style="background:var(--mag)"><b>How it works</b><span>Zero to motion in 4 moves.</span></a>
+   <a href="#design" style="background:var(--mag)"><b>Design</b><span>Flyers, menus, logos from $20. Look big, stay local.</span></a>
    <a href="#contact" style="background:var(--ink2)"><b>Free posts</b><span>3 sample posts for your business, free.</span></a>
   </div>
  </div>
@@ -323,6 +351,84 @@ footer img{height:56px}
 </section>
 <div class="drip" style="--c:var(--red)"></div>
 </div>
+<div class="view" id="view-design">
+<section class="band dhero">
+ <div class="wrap">
+  <span class="kick">OMAHA, NE &middot; ONE-TIME DESIGN</span>
+  <h2 class="big">Look big, <span>stay local.</span></h2>
+  <p class="lead">Flyers, menus, social graphics, logos and event ads for small businesses. First drafts in as little as 24 hours. English or Spanish at no extra charge.</p>
+ </div>
+</section>
+<section class="band" id="bundles">
+ <div class="wrap">
+  <h2>Bundles</h2>
+  <div class="plans">
+   <article class="plan" style="--c:var(--yel)"><h3>Get Seen Starter</h3><div class="price">$35<small> value $45</small></div><ul><li>1 promo flyer</li><li>3 matching social posts</li><li>Ready in 24 hours</li></ul><button type="button" class="btn alt" data-add="starter">Add to order</button></article>
+   <article class="plan" style="--c:var(--mag)"><span class="tag">&#9733; Best seller</span><h3>Grand Opening Hype Kit</h3><div class="price">$75<small> value $95</small></div><ul><li>Event ad set: flyer, post and story</li><li>1-page menu or price list</li><li>3 countdown posts</li><li>Ready in 48 hours</li></ul><button type="button" class="btn" data-add="hype">Add to order</button></article>
+   <article class="plan" style="--c:var(--pur)"><h3>Brand-in-a-Box</h3><div class="price">$150<small> value $200</small></div><ul><li>Branding starter</li><li>6 branded posts</li><li>1 flyer or menu</li><li>Free editable Canva link</li></ul><button type="button" class="btn alt" data-add="box">Add to order</button></article>
+  </div>
+ </div>
+</section>
+<section class="band" style="padding-top:0">
+ <div class="wrap">
+  <h2>Services</h2>
+  <div class="svc">
+   <div class="sv"><b>Promotional flyer</b><p>1 custom flyer, print (8.5x11) and Instagram sizes. 24-hour first draft, 2 revisions.</p><div class="opts"><button type="button" data-add="flyer">$25 &middot; Add</button></div></div>
+   <div class="sv"><b>Business menu</b><p>Up to 30 items. Print PDF and phone-friendly image. 24 to 48 hours, 2 revisions.</p><div class="opts"><button type="button" data-add="menu1">1-page $45</button><button type="button" data-add="menu2">2-sided or tri-fold $75</button></div></div>
+   <div class="sv"><b>Social media graphics</b><p>Matching set in your colors, logo and fonts. 24 hours, 2 revisions.</p><div class="opts"><button type="button" data-add="soc3">3 posts $20</button><button type="button" data-add="soc6">6 posts $35</button><button type="button" data-add="soc10">10 posts $55</button></div></div>
+   <div class="sv"><b>Branding package</b><p>2 logo concepts to 1 final, color palette, font pairing, logo files (full color, black, white, transparent) and a 1-page brand sheet. First concepts in 48 hours.</p><div class="opts"><button type="button" data-add="brand">$120 &middot; Add</button></div></div>
+   <div class="sv"><b>Event advertisement</b><p>Event flyer, square post and story. 24 hours, 2 revisions.</p><div class="opts"><button type="button" data-add="event">$30 &middot; Add</button></div></div>
+  </div>
+ </div>
+</section>
+<a href="#order" class="obar" id="obar" hidden>Your order: <b id="obar-t">$0</b> &middot; View &darr;</a>
+<section class="band" id="order" style="background:color-mix(in srgb,var(--yel) 14%,var(--bg))">
+ <div class="wrap formgrid">
+  <div>
+   <h2>Your order</h2>
+   <div class="cart" id="cart"></div>
+   <fieldset><legend>Add-ons</legend>
+    <div class="addons" id="addons">
+     <label><input type="checkbox" value="rush">Rush 6-hour delivery <em>+$15</em></label>
+     <label><input type="checkbox" value="canva">Editable Canva link <em>+$10</em></label>
+     <label><input type="checkbox" value="rev">Extra revision round <em>+$5</em></label>
+     <label><input type="checkbox" value="size">Extra size or format <em>+$5</em></label>
+     <label><input type="checkbox" value="es">Bilingual English/Spanish <em>free</em></label>
+    </div>
+   </fieldset>
+   <div class="tot"><div><span>Total</span><b id="t-total">$0</b></div><div><span id="t-duelabel">Due now</span><b id="t-due">$0</b></div></div>
+   <p class="fine" id="t-note">Under $100: paid in full up front. $100 and up: 50% deposit, balance before final files.</p>
+  </div>
+  <form id="oform" novalidate>
+   <div class="row"><label>Your name<input id="o-name" autocomplete="name"></label><label>Business name<input id="o-biz" autocomplete="organization"></label></div>
+   <div class="row"><label>Email<input id="o-email" type="email" autocomplete="email"></label><label>Phone or Instagram<input id="o-contact" placeholder="For quick questions"></label></div>
+   <label>What should it say? Dates, prices, offers, style<textarea id="o-msg" placeholder="Event name, date, address, menu items, colors you like"></textarea></label>
+   <p class="err" id="o-err" role="alert"></p>
+   <button class="btn sendbtn" type="submit" id="o-send">Send order &rarr;</button>
+   <div id="o-done" hidden>
+    <h3 style="margin-top:18px">Order <span id="o-num"></span> received &#10003;</h3>
+    <ol class="next">
+     <li><b>Upload your files.</b> Logo, photos or videos (up to 2 GB each). Name them with your order number.<br><a class="btn alt" href="https://www.dropbox.com/request/hbjvblvcclmgpjiroklg" target="_blank" rel="noopener">Upload to Dropbox</a></li>
+     <li><b>Pay <span id="o-due"></span> with PayPal.</b> Put your order number in the note so we can match it.<br><a class="btn" href="https://www.paypal.com/ncp/payment/U2K9QWHRCAJS2" target="_blank" rel="noopener">Pay with PayPal</a></li>
+     <li><b>Get your draft.</b> Work starts once payment is confirmed. Your draft arrives by email or DM.</li>
+    </ol>
+   </div>
+  </form>
+ </div>
+</section>
+<section class="band" style="padding-top:clamp(28px,4vw,48px)">
+ <div class="wrap" style="max-width:860px">
+  <h2>Good to know</h2>
+  <ul class="pol">
+   <li>Every order includes a high-res PNG for social and a print-ready PDF.</li>
+   <li>2 revision rounds included. One list of changes counts as one round.</li>
+   <li>Full refund if your first draft isn't delivered on time. No refunds after the draft.</li>
+   <li>You own the final design after full payment.</li>
+   <li>Logos are built from original shapes and fonts, with no stock graphics, so you can register them.</li>
+  </ul>
+ </div>
+</section>
+</div>
 <div class="view" id="view-samples">
 <section class="band" id="samples">
  <div class="wrap">
@@ -392,7 +498,7 @@ footer img{height:56px}
    </div>
    <div class="row">
     <label>Type of business<select name="type" id="f-type"><option value="">Choose one</option><option>Barbershop / salon</option><option>Restaurant / food truck / bakery</option><option>Home services</option><option>Fitness / studio</option><option>Retail / boutique</option><option>Other</option></select></label>
-    <label>Plan you're interested in<select name="plan" id="f-plan"><option>Not sure yet</option><option>Starter $150/mo</option><option>Growth $300/mo</option><option>Pro $500/mo</option></select></label>
+    <label>Plan you're interested in<select name="plan" id="f-plan"><option>Not sure yet</option><option>Starter $150/mo</option><option>Growth $300/mo</option><option>Pro $500/mo</option><option>One-time design</option></select></label>
    </div>
    <label>Instagram or Facebook link<input name="social" id="f-social" placeholder="instagram.com/yourbusiness"></label>
    <fieldset><legend>Want a 15-minute call?</legend>
@@ -419,7 +525,7 @@ footer img{height:56px}
 <footer>
  <div class="wrap">
   <img src="logo.png" alt="Zev DOD logo">
-  <div><strong style="color:var(--ink)">Stay in motion.</strong><br>Zev Development Operations &amp; Graphic Design<br>Social media management for small businesses</div>
+  <div><strong style="color:var(--ink)">Stay in motion.</strong><br>Zev Development Operations &amp; Graphic Design<br>Social media and graphic design &middot; Omaha, NE<br><a href="https://instagram.com/zevdod" target="_blank" rel="noopener">Instagram @zevdod</a> &middot; <a href="https://www.youtube.com/@ZevDOD" target="_blank" rel="noopener">YouTube</a></div>
   <div style="margin-left:auto"><a href="onboarding.html">Client onboarding form</a> &middot; &copy; <span id="yr"></span> Zev DOD</div>
  </div>
 </footer>
@@ -428,7 +534,7 @@ footer img{height:56px}
  /* ===== SETTINGS: change these to your real details ===== */
  const SETTINGS = {
   email: "zevdod.design@gmail.com",
-  instagram: "",      // Instagram handle without @, e.g. "zevdod"
+  instagram: "zevdod",
   phone: "",          // kept off the public site on purpose: share it only after a serious inquiry
   formEndpoint: "https://formspree.io/f/xppdokvz"   // Formspree: leads arrive in zevdod.design@gmail.com
  };
@@ -530,8 +636,60 @@ footer img{height:56px}
   m.innerHTML = `<video src="${w.v}" poster="${w.img}" controls playsinline autoplay></video>`;
  });
 
+ /* design order */
+ const ITEMS = {starter:["Get Seen Starter",35],hype:["Grand Opening Hype Kit",75],box:["Brand-in-a-Box",150],flyer:["Promotional flyer",25],menu1:["Business menu, 1-page",45],menu2:["Business menu, 2-sided or tri-fold",75],soc3:["Social graphics, 3 posts",20],soc6:["Social graphics, 6 posts",35],soc10:["Social graphics, 10 posts",55],brand:["Branding package",120],event:["Event advertisement",30]};
+ const ADDS = {rush:["Rush 6-hour delivery",15],canva:["Editable Canva link",10],rev:["Extra revision round",5],size:["Extra size or format",5],es:["Bilingual English/Spanish",0]};
+ const cart = [];
+ const money = n => "$" + (Number.isInteger(n) ? n : n.toFixed(2));
+ const cartEl = document.getElementById("cart");
+ const totals = () => {
+  const adds = [...document.querySelectorAll("#addons input:checked")].map(i => i.value);
+  const total = cart.reduce((a, k) => a + ITEMS[k][1], 0) + (cart.length ? adds.reduce((a, k) => a + ADDS[k][1], 0) : 0);
+  const due = total >= 100 ? Math.round(total * 50) / 100 : total;
+  document.getElementById("t-total").textContent = money(total);
+  document.getElementById("t-due").textContent = money(due);
+  document.getElementById("t-duelabel").textContent = total >= 100 ? "50% deposit now" : "Due now";
+  const ob = document.getElementById("obar"); ob.hidden = !cart.length; document.getElementById("obar-t").textContent = money(total);
+  return {adds, total, due};
+ };
+ const draw = () => {
+  cartEl.innerHTML = cart.length ? cart.map((k, i) => `<div class="ci"><span>${ITEMS[k][0]}</span><em>${money(ITEMS[k][1])}</em><button type="button" data-rm="${i}" aria-label="Remove ${ITEMS[k][0]}">&times;</button></div>`).join("") : '<p class="empty">Nothing yet. Tap "Add" on a bundle or service.</p>';
+  totals();
+ };
+ document.getElementById("view-design").addEventListener("click", e => {
+  const b = e.target.closest("[data-add]");
+  if (b) { cart.push(b.dataset.add); draw(); b.classList.add("just"); const old = b.innerHTML; b.textContent = "Added \u2713"; setTimeout(() => { b.innerHTML = old; b.classList.remove("just"); }, 1200); return; }
+  const r = e.target.closest("[data-rm]"); if (r) { cart.splice(+r.dataset.rm, 1); draw(); }
+ });
+ document.getElementById("addons").addEventListener("change", totals);
+ document.getElementById("obar").addEventListener("click", e => { e.preventDefault(); document.getElementById("order").scrollIntoView({behavior: "smooth"}); });
+ draw();
+ const oform = document.getElementById("oform");
+ oform.addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = document.getElementById("o-err"), sb = document.getElementById("o-send"); err.textContent = "";
+  const name = val("o-name"), biz = val("o-biz"), email = val("o-email"), contact = val("o-contact"), msg = val("o-msg");
+  if (!cart.length) { err.textContent = "Add at least one bundle or service to your order."; return; }
+  if (!name) { err.textContent = "Please add your name."; return; }
+  if (!email && !contact) { err.textContent = "Add an email, phone or Instagram so we can reach you."; return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "That email doesn't look right."; return; }
+  const {adds, total, due} = totals();
+  const d = new Date(), num = `ZEV-${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const lines = cart.map(k => `- ${ITEMS[k][0]}: ${money(ITEMS[k][1])}`).concat(adds.map(k => `- ${ADDS[k][0]}: ${money(ADDS[k][1])}`)).join("\n");
+  const text = `Design order ${num}\n\nName: ${name}\nBusiness: ${biz || "-"}\nEmail: ${email || "-"}\nPhone/IG: ${contact || "-"}\n\n${lines}\n\nTotal: ${money(total)}\nDue now: ${money(due)}${total >= 100 ? " (50% deposit)" : ""}\n\nDetails: ${msg || "-"}`;
+  sb.disabled = true; sb.textContent = "Sending...";
+  let ok = false;
+  try { const r = await fetch(SETTINGS.formEndpoint, {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({_subject: `Design order ${num}: ${biz || name} (${money(total)})`, email, order: text})}); ok = r.ok; } catch (_) {}
+  sb.disabled = false;
+  if (!ok) { sb.textContent = "Send order \u2192"; err.innerHTML = `That didn't go through. Try again, or <a href="mailto:${SETTINGS.email}?subject=${encodeURIComponent("Design order " + num)}&body=${encodeURIComponent(text)}">email your order</a>.`; return; }
+  sb.textContent = "Sent \u2713";
+  document.getElementById("o-num").textContent = num;
+  document.getElementById("o-due").textContent = money(due);
+  const dn = document.getElementById("o-done"); dn.hidden = false; dn.scrollIntoView({behavior: "smooth", block: "start"});
+ });
+
  /* tabs */
- const VIEWS = ["home","services","samples","how","contact"];
+ const VIEWS = ["home","services","design","samples","how","contact"];
  const show = () => {
   const h = location.hash.slice(1), v = VIEWS.includes(h) ? h : "home";
   document.querySelectorAll(".view").forEach(el => el.classList.toggle("on", el.id === "view-" + v));
