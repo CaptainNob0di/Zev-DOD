@@ -5,6 +5,20 @@ Pick Perci, Miracle, ChatGPT, Jessica or Mixi, team up with the other four (AI t
 and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb sticks) and desktop
 (WASD + mouse). No build step and no frameworks: just upload the folder.
 
+## What's in it (current version)
+- **2.5D look:** tilted camera, full-body characters in their show outfits (faces from the show art),
+  hovering BROKE-pilot robots, hay bales and crates with real height. A box fades if it hides you.
+- **New map every match:** six styles (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn,
+  Dream Grid, School Gym), random size (about 2200-2800 x 1300-1660) and layout, mirrored so both sides
+  are fair, checked so every spawn and area can be reached.
+- **Bots that fight back:** they lead their shots, sidestep lasers, flank, and focus weak targets.
+  Your AI teammates have the same smarts; Easy / Normal / Hard only changes BROKE-pilot's side.
+- **Power-ups** (run over them): A+ shield, rapid fire, speed, power recharge. +10 points each.
+- **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
+  up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
+  The host's device runs the match, so the host should keep the screen on.
+- **Phones:** twin sticks with aim assist, optional auto-fire, safe-area aware layout.
+
 ## 0. Launch lock (private until Episode 6)
 The public sees a "Coming soon" countdown until **Thu Dec 31, 2026, 6:00 PM CT**. The game then unlocks by itself.
 - Your private link: `zevsocialconnect.com/perci-game/?preview=YOUR-KEY` (the key is in `index.html`, the `PREVIEW_KEY` line).
@@ -51,8 +65,15 @@ To remove a troll entry, delete the row in Supabase's Table Editor.
 - Run a weekly challenge: top score on HARD by Sunday gets drawn into an episode as a cameo.
 - Put the PLAY button in the end screen of every episode upload and in your link-in-bio.
 
+## Status
+- Supabase project is connected (`LEADERBOARD` line in `index.html`). Run `leaderboard-setup.sql` once in the
+  Supabase SQL Editor if the public board shows no scores.
+- If online rooms say "Couldn't open a room", check Supabase > Project Settings > Realtime and make sure
+  public (non-private) channels are allowed.
+
 ## Files
-- `index.html`: screens, styles, and the leaderboard config line
-- `game.js`: the game (arena, characters, AI, scoring, leaderboard)
+- `index.html`: screens, styles, launch lock and the leaderboard config line
+- `game.js`: the game, in sections: settings and characters, map generator, A* navigation, combat,
+  AI, player controls, 2.5D renderer, HUD, leaderboard, online multiplayer, launch lock
 - `assets/`: character art from the show (made by ZEV DOD)
 - `leaderboard-setup.sql`: one-time database setup for the public board
