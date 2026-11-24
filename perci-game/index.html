@@ -57,6 +57,22 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
 .win{color:var(--gold)}.lose{color:#ff5a5a}
 .kv{display:grid;grid-template-columns:1fr auto;gap:4px 18px;font-size:16px}.kv b{font-family:Anton;font-weight:400;font-size:20px;color:#fff;text-align:right}
 .muted{color:var(--muted);font-size:13px}
+.lab{font-family:Anton;font-size:15px;color:var(--muted);letter-spacing:1px;margin:8px 0 6px}
+.tokrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0}
+.tok{background:#2c2540;border:3px solid #3a3150;border-radius:14px;padding:6px 6px 4px;color:#fff;font-family:Anton;font-size:12px;cursor:pointer;width:68px;touch-action:manipulation}
+.tok img{width:46px;height:46px;border-radius:50%;display:block;margin:0 auto 2px;border:2px solid var(--ink)}
+.tok.sel{border-color:var(--gold);box-shadow:0 0 14px rgba(255,214,10,.5)}
+.code{font-family:Anton;font-size:clamp(54px,14vw,84px);letter-spacing:10px;color:var(--gold);text-shadow:4px 4px 0 var(--ink);line-height:1}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(620px,100%);margin:8px 0}
+.tm{background:var(--panel);border:3px solid #3a3150;border-radius:14px;padding:8px 10px}
+.tm.p{border-color:#c81e32}.tm.b{border-color:var(--orange)}
+.tm h4{font-family:Anton;font-weight:400;margin:0 0 6px;font-size:17px;letter-spacing:.5px}.tm.p h4{color:#ff5a6e}.tm.b h4{color:var(--orange)}
+.pl{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin:4px 0;word-break:break-all}
+.pl img{width:26px;height:26px;border-radius:50%}.pl i{font-style:normal;font-size:10px;background:var(--purple);padding:1px 5px;border-radius:6px}
+.pl.me{color:var(--gold)}.pl.bot{color:var(--muted);font-weight:600}
+.diff button:disabled{opacity:.55}
+#sLobby,#sOnline{padding-top:calc(70px + env(safe-area-inset-top))}
+body.mp #autoBtn{right:calc(114px + env(safe-area-inset-right))}
 .how{font-size:14px;line-height:1.55}.how b{color:var(--gold)}
 #hud{position:absolute;inset:0;pointer-events:none;display:none}
 #hud.on{display:block}
@@ -120,7 +136,8 @@ body.playing .previewTag{display:none}
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
-  <button class="btn" id="bPlay">PLAY</button>
+  <button class="btn" id="bPlay">PLAY SOLO</button>
+  <button class="btn purple" id="bOnline">PLAY ONLINE</button>
   <button class="btn alt" id="bBoard">LEADERBOARD</button>
   <button class="btn alt small" id="bHow">HOW TO PLAY</button>
   <p class="muted">Watch the show: <a href="../perci.html" style="color:var(--gold)">Perci Shorti</a> &bull; @perci.shorti &bull; @ZevDOD</p>
@@ -134,6 +151,41 @@ body.playing .previewTag{display:none}
   <div class="row"><button class="btn" id="bStart">START MATCH</button><button class="btn alt small" id="bBack1">BACK</button></div>
 </section>
 
+<!-- ONLINE -->
+<section class="screen" id="sOnline">
+  <h2>PLAY ONLINE</h2>
+  <p class="muted" style="max-width:480px;text-align:center">Play with friends on any phone or computer. Up to 10 players, and bots fill any empty spots.</p>
+  <div class="panel" style="text-align:center">
+    <div class="lab">YOUR NAME</div>
+    <input id="mpName" maxlength="14" placeholder="NAME" autocomplete="off">
+    <div class="lab">YOUR FIGHTER</div>
+    <div class="tokrow" id="mpChars"></div>
+  </div>
+  <div class="panel" style="text-align:center">
+    <button class="btn" id="bCreate">CREATE ROOM</button>
+    <div class="lab" style="margin-top:10px">OR JOIN A FRIEND</div>
+    <div class="row"><input id="mpCode" maxlength="4" placeholder="CODE" autocomplete="off" style="width:130px;text-align:center;letter-spacing:4px"><button class="btn alt small" id="bJoin">JOIN</button></div>
+  </div>
+  <p id="mpMsg" style="color:var(--gold);font-weight:700;min-height:20px;text-align:center"></p>
+  <button class="btn alt small" id="bBack4">BACK</button>
+</section>
+
+<!-- LOBBY -->
+<section class="screen" id="sLobby">
+  <div class="muted">ROOM CODE</div>
+  <div class="code" id="lbCode">ABCD</div>
+  <button class="btn alt small" id="bInvite">INVITE FRIENDS</button>
+  <div class="muted" id="lbWho"></div>
+  <div class="row diff" id="lbMode"><button data-m="coop">TEAM UP VS BOTS</button><button data-m="versus">TEAM VS TEAM</button></div>
+  <div class="row diff" id="lbDiff"><button data-d="easy">EASY</button><button data-d="normal">NORMAL</button><button data-d="hard">HARD</button></div>
+  <div class="tokrow" id="lbChars"></div>
+  <div class="teams"><div id="lbP" class="tm p"></div><div id="lbB" class="tm b"></div></div>
+  <button class="btn alt small" id="bSwitch">SWITCH TEAM</button>
+  <button class="btn" id="bGo">START MATCH</button>
+  <p id="lbMsg" class="muted" style="text-align:center"></p>
+  <button class="btn alt small" id="bLeave">LEAVE ROOM</button>
+</section>
+
 <!-- HOW -->
 <section class="screen" id="sHow">
   <h2>HOW TO PLAY</h2>
@@ -144,6 +196,7 @@ body.playing .previewTag{display:none}
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
     <p><b>Power-ups</b> (just run over them): <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each.</p>
     <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
+    <p><b>Online:</b> tap PLAY ONLINE, create a room and share the 4-letter code. The host picks <b>Team up vs bots</b> or <b>Team vs team</b>. Players marked with a star are real people. Tap the X twice to leave.</p>
     <p><b>Leaderboard:</b> post your score under your name and show it off. Top 50 all-time and today's best.</p>
   </div>
   <button class="btn" id="bBack2">GOT IT</button>
