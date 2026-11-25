@@ -171,9 +171,10 @@ function moveEnt(e, dx, dy) { const s = Math.max(1, Math.ceil(Math.max(Math.abs(
 
 /* ---------------- state ---------------- */
 let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = localStorage.getItem('ps_diff') || 'normal';
-let autoFire = TOUCH && localStorage.getItem('ps_auto') !== '0';
+let autoFire = TOUCH && localStorage.getItem('ps_auto') === '1';
+let aimAssist = +(localStorage.getItem('ps_assist') || (TOUCH ? 3 : 2));   // 1 off, 2 light, 3 strong
 let G = null;
-const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim: null, ability: false };
+const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim: null, ability: false, coverL: false, coverR: false };
 
 function newEntity(team, kind, i, isPlayer) {
   const c = kind !== 'bot' ? CHARS[kind] : null;
@@ -195,6 +196,7 @@ function startMatch() {
 }
 function beginMatch(ents, me) {
   for (const e of ents) e.dodgeCd = 0;
+  me.inv = MP.on ? null : [null, null, null, null];   // item slots (solo); online keeps instant power-ups
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y * TILT - 40 - VH / Z / 2;
   showScreen(null); $('hud').classList.add('on'); document.body.classList.add('playing'); if (document.activeElement) document.activeElement.blur(); state = 'play';
@@ -202,7 +204,7 @@ function beginMatch(ents, me) {
   document.body.classList.toggle('mp', MP.on); $('pauseBtn').textContent = MP.on ? '\u2715' : 'II';
   if (TOUCH && VH > VW && !sessionStorage.getItem('ps_rot')) { sessionStorage.setItem('ps_rot', '1'); setTimeout(() => feed('Tip: turn your phone sideways for a wider view'), 1500); }
   if (ac() && AC.state === 'suspended') AC.resume();
-  syncAutoBtn();
+  syncAutoBtn(); syncInv();
 }
 
 /* ---------------- HUD helpers ---------------- */
@@ -248,7 +250,7 @@ function useAbility(e) {
   if (e.kind === 'miracle') { G.slow = 4; G.slowTeam = e.team === 'P' ? 'B' : 'P'; spark(e.x, e.y, '#ff8c28', 30); }
   if (e.kind === 'mixi') e.shield = 3;
   if (e.kind === 'jessica') { const t = G.ents.filter((o) => o.team !== e.team && o.dead <= 0).sort((a, b) => dist(a, e) - dist(b, e))[0]; if (t) { t.frozen = 3; spark(t.x, t.y, '#7cff6b', 24); } }
-  if (e.kind === 'chatgpt' && (!e.human || e === G.player)) { const ox = e.x, oy = e.y; moveEnt(e, Math.cos(e.a) * 240, Math.sin(e.a) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
+  if (e.kind === 'chatgpt' && (!e.human || e === G.player)) { const ox = e.x, oy = e.y, dd = e === G.player && e.moveAngle !== undefined ? e.moveAngle : e.a; moveEnt(e, Math.cos(dd) * 240, Math.sin(dd) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
 }
 
 /* ---------------- pickups (auto-collect on contact) ---------------- */
@@ -261,15 +263,45 @@ function spawnPickup() {
     G.pickups.push({ x, y, t: 0, id: ++G.pkId, kind: kinds[Math.floor(Math.random() * kinds.length)] }); G.rings.push({ x, y, r: 6, life: 0.5, col: '#ffffff' }); return;
   }
 }
+function applyPickup(e, kind) {
+  if (kind === 'shield') { if (e.hp < e.maxhp) e.hp++; else e.shield = Math.max(e.shield, 2.5); }
+  if (kind === 'rapid') e.rapid = Math.max(e.rapid, 4);
+  if (kind === 'speed') e.fast = 4;
+  if (kind === 'charge') e.abilityCd = 0;
+}
 function collect(e, pk) {
+  if (e === G.player && e.inv) {
+    const slot = e.inv.indexOf(null);
+    if (slot < 0) return false;                          // slots full: leave it on the floor
+    e.inv[slot] = pk.kind; pk.gone = true; e.picks++;
+    spark(pk.x, pk.y, PICKUPS[pk.kind].col, 18, 200); G.rings.push({ x: pk.x, y: pk.y, r: 8, life: 0.4, col: PICKUPS[pk.kind].col });
+    SFX.pick(); banner('STORED: ' + PICKUPS[pk.kind].label); buzz(20); G.pops.push({ x: pk.x, y: pk.y - 24, txt: '+10', life: 0.8, col: '#ffffff' });
+    syncInv(); return true;
+  }
   pk.gone = true; e.picks++;
   if (MP.host) MP.ev.push(['k', G.ents.indexOf(e), pk.kind, Math.round(pk.x), Math.round(pk.y)]);
-  if (pk.kind === 'shield') { if (e.hp < e.maxhp) e.hp++; else e.shield = Math.max(e.shield, 2.5); }
-  if (pk.kind === 'rapid') e.rapid = Math.max(e.rapid, 4);
-  if (pk.kind === 'speed') e.fast = 4;
-  if (pk.kind === 'charge') e.abilityCd = 0;
+  applyPickup(e, pk.kind);
   spark(pk.x, pk.y, PICKUPS[pk.kind].col, 18, 200); G.rings.push({ x: pk.x, y: pk.y, r: 8, life: 0.4, col: PICKUPS[pk.kind].col });
   if (e.isPlayer) { SFX.pick(); banner(PICKUPS[pk.kind].label); buzz(20); G.pops.push({ x: pk.x, y: pk.y - 24, txt: '+10', life: 0.8, col: '#ffffff' }); }
+  return true;
+}
+function useItem(i) {
+  const p = G && G.player;
+  if (!p || state !== 'play' || !p.inv || p.dead > 0 || !p.inv[i]) return;
+  const kind = p.inv[i]; p.inv[i] = null;
+  applyPickup(p, kind); SFX.power(); banner(PICKUPS[kind].label); buzz(30);
+  G.rings.push({ x: p.x, y: p.y, r: 10, life: 0.5, col: PICKUPS[kind].col }); spark(p.x, p.y, PICKUPS[kind].col, 16, 200);
+  syncInv();
+}
+const INV_ICON = { shield: 'A+', rapid: '\u26A1', speed: '\u00BB', charge: '\u2605' };
+function syncInv() {
+  const box = $('inv'); if (!box || !G || !G.player) return;
+  const inv = G.player.inv || [];
+  box.querySelectorAll('.slot').forEach((b, i) => {
+    const k = inv[i]; b.classList.toggle('full', !!k);
+    b.style.setProperty('--c', k ? PICKUPS[k].col : '#5a4f70');
+    b.innerHTML = `<span>${k ? INV_ICON[k] : ''}</span><i>${i + 1}</i>`;
+  });
 }
 
 /* ---------------- AI ---------------- */
@@ -352,31 +384,57 @@ function aiThink(e, dt) {
 }
 
 /* ---------------- player helpers ---------------- */
-function autoTarget(p, coneDir) {
+function autoTarget(p, coneDir, coneLimit) {
   let best = null, bs = 1e9;
   for (const e of G.ents) {
     if (e.team === p.team || e.dead > 0) continue; const d = dist(p, e); if (d > p.stats.range) continue; if (!los(p, e)) continue;
-    let s = d; if (coneDir !== undefined) { let da = Math.abs(((Math.atan2(e.y - p.y, e.x - p.x) - coneDir + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da > 0.55) continue; s = d * (1 + da * 2); }
+    let s = d; if (coneDir !== undefined) { let da = Math.abs(((Math.atan2(e.y - p.y, e.x - p.x) - coneDir + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da > (coneLimit || 0.55)) continue; s = d * (1 + da * 2); }
     if (s < bs) { bs = s; best = e; }
   }
   return best;
 }
 
 /* ---------------- local player control (solo, host and online guests) ---------------- */
+function seekCover(e, side) {
+  let best = null, bd = 230;
+  for (const w of SOLID) {
+    const r = e.r + 8;
+    const cands = [{ x: w.x - r, y: clamp(e.y, w.y, w.y + w.h) }, { x: w.x + w.w + r, y: clamp(e.y, w.y, w.y + w.h) }, { x: clamp(e.x, w.x, w.x + w.w), y: w.y - r }, { x: clamp(e.x, w.x, w.x + w.w), y: w.y + w.h + r }];
+    for (const c of cands) {
+      const d = dist(e, c);
+      if ((c.x - e.x) * side > 6 && d < bd) { const probe = { x: e.x, y: e.y, r: e.r }; moveEnt(probe, c.x - e.x, c.y - e.y); if (dist(probe, c) < 3) { best = c; bd = d; } }
+    }
+  }
+  e.coverGoal = best;
+  banner(best ? (side < 0 ? 'COVER LEFT' : 'COVER RIGHT') : 'NO COVER NEARBY'); if (best) buzz(15);
+}
 function controlLocal(e, dt, shoot, ability) {
     let mx = 0, my = 0; const k = input.keys;
     if (k.KeyW || k.ArrowUp) my -= 1; if (k.KeyS || k.ArrowDown) my += 1; if (k.KeyA || k.ArrowLeft) mx -= 1; if (k.KeyD || k.ArrowRight) mx += 1;
     if (input.touchMove) { mx = input.touchMove.dx; my = input.touchMove.dy; }
     const m = Math.hypot(mx, my); if (m > 1) { mx /= m; my /= m; }
     const spd = e.stats.speed * (e.fast > 0 ? 1.35 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 0.5 : 1);
-    const ox = e.x, oy = e.y; moveEnt(e, mx * spd * dt, my * spd * dt); e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
-    if (input.touchAim && input.touchAim.m > 0.25) {
-      const dir = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx), t = autoTarget(e, dir);   // aim assist toward the stick direction
-      e.a = t ? Math.atan2(t.y - e.y, t.x - e.x) : dir; shoot(e, e.a);
-    } else if (TOUCH) {
+    if (input.coverL) { input.coverL = false; seekCover(e, -1); } else if (input.coverR) { input.coverR = false; seekCover(e, 1); }
+    if (m > 0.2) { e.coverGoal = null; e.moveAngle = Math.atan2(my, mx); }
+    const ox = e.x, oy = e.y;
+    if (e.coverGoal) {
+      const dx = e.coverGoal.x - e.x, dy = e.coverGoal.y - e.y, d = Math.hypot(dx, dy);
+      if (d < 3) e.coverGoal = null; else { const st = Math.min(d, spd * 1.5 * dt); moveEnt(e, dx / d * st, dy / d * st); if (Math.hypot(e.x - ox, e.y - oy) < 0.1) e.coverGoal = null; }
+    } else moveEnt(e, mx * spd * dt, my * spd * dt);
+    e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
+    // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
+    let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
+    if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = true; }
+    else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
-      if (t) { e.a = Math.atan2(t.y - e.y, t.x - e.x); shoot(e, e.a); } else if (m > 0.2) e.a = Math.atan2(my, mx);
-    } else { e.a = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); if (input.mdown) shoot(e, e.a); }
+      if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
+    } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
+    e.rawAim = raw; e.a = raw; e.assistTarget = null;
+    if (aimAssist > 1) {
+      const cone = aimAssist === 3 ? 0.48 : 0.28, t = autoTarget(e, raw, cone);
+      if (t) { const off = ((Math.atan2(t.y - e.y, t.x - e.x) - raw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; e.a = raw + off * (aimAssist === 3 ? 0.85 : 0.55); e.assistTarget = t; }
+    }
+    if (firing) shoot(e, e.a);
     if (input.ability) { input.ability = false; ability(e); }
 }
 /* ---------------- update ---------------- */
@@ -387,7 +445,7 @@ function update(dt) {
   const p = G.player;
   for (const e of G.ents) {
     e.cool = Math.max(0, e.cool - dt); e.abilityCd = Math.max(0, e.abilityCd - dt); e.rapid = Math.max(0, e.rapid - dt); e.shield = Math.max(0, e.shield - dt); e.frozen = Math.max(0, e.frozen - dt); e.fast = Math.max(0, e.fast - dt); e.flash = Math.max(0, e.flash - dt); e.hurt = Math.max(0, e.hurt - dt);
-    if (e.dead > 0) { e.dead -= dt; if (e.dead <= 0) { e.hp = e.maxhp; e.x = e.spawn.x; e.y = e.spawn.y; e.tx = undefined; e.life++; e.shield = 1.5; e.ai.path = []; G.rings.push({ x: e.x, y: e.y, r: 6, life: 0.4, col: '#ffffff' }); } continue; }
+    if (e.dead > 0) { e.dead -= dt; if (e.dead <= 0) { e.hp = e.maxhp; e.x = e.spawn.x; e.y = e.spawn.y; e.tx = undefined; e.coverGoal = null; e.life++; e.shield = 1.5; e.ai.path = []; G.rings.push({ x: e.x, y: e.y, r: 6, life: 0.4, col: '#ffffff' }); } continue; }
     if (e.frozen > 0) continue;
     if (e === G.player) controlLocal(e, dt, fire, useAbility);
     else if (e.human) controlRemote(e, dt);
@@ -414,7 +472,7 @@ function update(dt) {
   // pickups: everyone collects automatically by walking over them
   G.pickupT -= dt;
   if (G.pickupT <= 0) { G.pickupT = 5.5; if (G.pickups.length < 5) spawnPickup(); }
-  for (const pk of G.pickups) { pk.t += dt; for (const e of G.ents) if (e.dead <= 0 && dist(e, pk) < e.r + 20) { collect(e, pk); break; } }
+  for (const pk of G.pickups) { pk.t += dt; for (const e of G.ents) if (e.dead <= 0 && dist(e, pk) < e.r + 20) { if (collect(e, pk)) break; } }
   G.pickups = G.pickups.filter((q) => !q.gone);
   cameraStep(dt);
   hud();
@@ -430,7 +488,7 @@ function cameraStep(dt) {
   // camera: smooth follow with a little look-ahead toward the aim
   const vw = VW / Z, vh = VH / Z;
   const fh = WORLD.h * TILT;
-  const look = TOUCH ? 1 : 0;   // look-ahead only on phones; with a mouse it would drag the target out from under the cursor
+  const look = 0;   // camera stays centered on you
   const tx = clamp(p.x + Math.cos(p.a) * 70 * look - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + Math.sin(p.a) * 50 * look - vh / 2, -140, fh - vh + 80);
   G.cam.x += ((vw > WORLD.w + 160 ? (WORLD.w - vw) / 2 : tx) - G.cam.x) * Math.min(1, dt * 8);
   G.cam.y += ((vh > fh + 220 ? (fh - vh) / 2 - 40 : ty) - G.cam.y) * Math.min(1, dt * 8);
@@ -449,18 +507,19 @@ function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 214748
 function buildStatic() {
   const c = document.createElement('canvas'); c.width = WORLD.w; c.height = Math.ceil(WORLD.h * TILT); const g = c.getContext('2d'); const R = rng(7);
   g.save(); g.scale(1, TILT);
-  // floor: dark dream-barn planks
-  g.fillStyle = `rgb(${MAPTINT[0]},${MAPTINT[1]},${MAPTINT[2]})`; g.fillRect(0, 0, WORLD.w, WORLD.h);
-  for (let y = 0; y < WORLD.h; y += 48) {
-    let x = -R() * 200;
-    while (x < WORLD.w) { const len = 160 + R() * 220, v = R() * 12 - 6; g.fillStyle = `rgb(${38 + v},${22 + v / 2},${54 + v})`; g.fillRect(x + 2, y + 2, len - 4, 44); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + 2, y + 42, len - 4, 4); for (let k = 0; k < 3; k++) { g.strokeStyle = 'rgba(255,255,255,0.03)'; g.beginPath(); g.moveTo(x + 10, y + 10 + k * 12); g.lineTo(x + len - 10, y + 12 + k * 12); g.stroke(); } x += len; }
+  // floor: concrete slabs with joints, scuffs, lane paint and safety stripes (tactical V10 look)
+  const tint = MAPTINT;
+  for (let y = 0; y < WORLD.h; y += 96) for (let x = 0; x < WORLD.w; x += 128) {
+    const v = 46 + R() * 12; g.fillStyle = `rgb(${Math.round(v + tint[0] * 0.25)},${Math.round(v + 3 + tint[1] * 0.25)},${Math.round(v + 6 + tint[2] * 0.25)})`; g.fillRect(x + 1, y + 1, 126, 94);
+    g.fillStyle = 'rgba(20,23,26,0.65)'; g.fillRect(x, y, 128, 2); g.fillRect(x, y, 2, 96); g.fillStyle = 'rgba(90,92,95,0.14)'; g.fillRect(x + 2, y + 3, 123, 1);
   }
-  // neon grid
-  g.strokeStyle = 'rgba(150,90,255,0.10)'; g.lineWidth = 1;
-  for (let x = 0; x <= WORLD.w; x += 100) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, WORLD.h); g.stroke(); }
-  for (let y = 0; y <= WORLD.h; y += 100) { g.beginPath(); g.moveTo(0, y); g.lineTo(WORLD.w, y); g.stroke(); }
+  for (let i = 0; i < 1800; i++) { g.fillStyle = `rgba(14,16,18,${0.14 + R() * 0.14})`; g.fillRect(R() * WORLD.w, R() * WORLD.h, 2 + R() * 7, 1 + R() * 3); }
+  g.strokeStyle = 'rgba(204,190,102,0.55)'; g.lineWidth = 3;
+  for (let x = 40; x < WORLD.w - 80; x += 100) { g.beginPath(); g.moveTo(x, WORLD.h / 2); g.lineTo(x + 45, WORLD.h / 2); g.stroke(); }
+  for (const y of [32, WORLD.h - 32]) { g.fillStyle = 'rgba(140,125,61,0.7)'; g.fillRect(0, y - 8, WORLD.w, 16); g.fillStyle = 'rgba(20,23,26,0.9)'; for (let x = 0; x < WORLD.w - 24; x += 32) { g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x + 12, y - 8); g.lineTo(x + 24, y + 8); g.lineTo(x + 12, y + 8); g.closePath(); g.fill(); } }
+  for (const w of SOLID) { g.fillStyle = 'rgba(15,18,20,0.75)'; g.fillRect(w.x - 5, w.y - 5, w.w + 10, w.h + 10); g.strokeStyle = 'rgba(178,155,64,0.35)'; g.lineWidth = 2; g.strokeRect(w.x - 8, w.y - 8, w.w + 16, w.h + 16); }
   // dream fog pools
-  for (let i = 0; i < 9; i++) { const x = R() * WORLD.w, y = R() * WORLD.h, r = 180 + R() * 260; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${R() < 0.5 ? '120,60,220' : '0,160,220'},0.13)`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 9; i++) { const x = R() * WORLD.w, y = R() * WORLD.h, r = 180 + R() * 260; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${R() < 0.5 ? '120,60,220' : '0,160,220'},0.07)`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
   // team bases
   let gr = g.createLinearGradient(0, 0, 300, 0); gr.addColorStop(0, 'rgba(220,30,60,0.32)'); gr.addColorStop(1, 'rgba(220,30,60,0)'); g.fillStyle = gr; g.fillRect(0, 0, 300, WORLD.h);
   gr = g.createLinearGradient(WORLD.w, 0, WORLD.w - 300, 0); gr.addColorStop(0, 'rgba(255,140,40,0.32)'); gr.addColorStop(1, 'rgba(255,140,40,0)'); g.fillStyle = gr; g.fillRect(WORLD.w - 300, 0, 300, WORLD.h);
@@ -503,24 +562,16 @@ function wallSprite(w) {
   const z = WALL_Z[w.kind] || 60, top = Math.max(6, Math.round(w.h * TILT)), c = document.createElement('canvas');
   c.width = w.w + 6; c.height = top + z + 6; const g = c.getContext('2d'), R = rng(Math.abs(w.x * 7 + w.y * 13) + 1);
   g.translate(3, 3);
-  if (w.kind === 'hay') {
-    let gr = g.createLinearGradient(0, top, 0, top + z); gr.addColorStop(0, '#c49a40'); gr.addColorStop(1, '#8a6a28');
-    g.fillStyle = gr; g.fillRect(0, top, w.w, z);
-    g.fillStyle = '#e2c466'; g.fillRect(0, 0, w.w, top);
-    g.lineWidth = 1.6;
-    for (let k = 0; k < (w.w * (top + z)) / 55; k++) { const x = 3 + R() * (w.w - 6), y = 3 + R() * (top + z - 6); g.strokeStyle = y < top ? 'rgba(150,110,40,0.55)' : 'rgba(90,60,20,0.5)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + R() * 10 - 5, y + (y < top ? 3 : 6)); g.stroke(); }
-    g.fillStyle = '#6e3c1c';
-    for (const f of [0.3, 0.7]) { const bx = w.w * f - 2; g.fillRect(bx, 0, 4, top); g.fillRect(bx, top, 4, z); }
-  } else {
-    g.fillStyle = '#9a6842'; g.fillRect(0, 0, w.w, top);
-    g.fillStyle = '#6e4428'; g.fillRect(0, top, w.w, z);
-    g.strokeStyle = 'rgba(40,20,10,0.55)'; g.lineWidth = 2;
-    for (let y = 12; y < top; y += 12) { g.beginPath(); g.moveTo(3, y); g.lineTo(w.w - 3, y); g.stroke(); }
-    for (let y = top + 14; y < top + z; y += 14) { g.beginPath(); g.moveTo(3, y); g.lineTo(w.w - 3, y); g.stroke(); }
-    g.strokeStyle = '#b88458'; g.lineWidth = 4; g.strokeRect(4, top + 4, w.w - 8, z - 8);
-    g.beginPath(); g.moveTo(6, top + 6); g.lineTo(w.w - 6, top + z - 6); g.moveTo(w.w - 6, top + 6); g.lineTo(6, top + z - 6); g.stroke();
-    g.strokeStyle = 'rgba(255,230,190,0.25)'; g.lineWidth = 3; g.strokeRect(3, 3, w.w - 6, top - 6);
-  }
+  const padded = w.kind === 'hay', tall = w.kind === 'glitch';
+  g.fillStyle = padded ? '#4e5961' : tall ? '#465462' : '#657077'; g.fillRect(0, 0, w.w, top);
+  g.fillStyle = padded ? '#303b44' : '#29343c'; g.fillRect(0, top, w.w, z);
+  g.strokeStyle = 'rgba(133,145,152,0.65)'; g.lineWidth = 2; g.strokeRect(4, 4, w.w - 8, Math.max(2, top - 8));
+  g.strokeStyle = 'rgba(23,35,44,0.7)'; g.strokeRect(5, top + 5, w.w - 10, z - 10);
+  for (let xx = 12; xx < w.w - 8; xx += 24) { g.fillStyle = 'rgba(18,27,33,0.65)'; g.fillRect(xx, top + 9, 3, z - 18); g.fillStyle = 'rgba(154,164,170,0.38)'; g.fillRect(xx + 3, top + 9, 2, z - 18); }
+  g.fillStyle = '#b19a43'; g.fillRect(5, top + 5, w.w - 10, 5);
+  g.fillStyle = '#111a20'; for (let xx = 7; xx < w.w - 15; xx += 16) g.fillRect(xx, top + 5, 7, 5);
+  if (tall) { g.fillStyle = 'rgba(66,196,220,0.85)'; g.fillRect(6, top + z - 12, w.w - 12, 3); }
+  g.fillStyle = '#9ca5ac'; for (const xx of [8, w.w - 8]) for (const yy of [top + 13, top + z - 9]) { g.beginPath(); g.arc(xx, yy, 2, 0, Math.PI * 2); g.fill(); }
   g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(0, 0, w.w, 3);
   g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, top, w.w, 4);
   g.strokeStyle = '#120a10'; g.lineWidth = 3; g.strokeRect(0, 0, w.w, top); g.strokeRect(0, top, w.w, z);
@@ -529,14 +580,6 @@ function wallSprite(w) {
 }
 function drawWall(w, t) {
   const p = G.player;
-  if (w.kind === 'glitch') {
-    const z = WALL_Z.glitch, j = Math.sin(t * 9) * 3, x = w.x + j, y0 = w.y * TILT - z, top = w.h * TILT;
-    ctx.fillStyle = 'rgba(0,230,255,0.16)'; ctx.fillRect(x, y0, w.w, top + z);
-    ctx.fillStyle = 'rgba(0,230,255,0.28)'; ctx.fillRect(x, y0, w.w, top);
-    ctx.strokeStyle = '#00e6ff'; ctx.lineWidth = 2; ctx.strokeRect(x, y0, w.w, top); ctx.strokeRect(x, y0 + top, w.w, z);
-    ctx.fillStyle = 'rgba(0,230,255,0.55)'; for (let k = 0; k < 7; k++) { const yy = y0 + ((t * 120 + k * 30) % (top + z)); ctx.fillRect(x, yy, w.w, 2); }
-    return;
-  }
   const s = wallSprite(w);
   const hides = p && p.dead <= 0 && p.y < w.y + w.h && p.x > w.x - 26 && p.x < w.x + w.w + 26 && p.y * TILT > w.y * TILT - s.z - 4 && p.y * TILT - 125 < (w.y + w.h) * TILT;
   if (hides) ctx.globalAlpha = 0.42;
@@ -671,6 +714,11 @@ function drawWorld(t) {
   for (const e of G.ents) if (e.dead <= 0) items.push([e.y, 2, e]);
   items.sort((a, b) => a[0] - b[0]);
   for (const [, kind, o] of items) { if (kind === 0) drawWall(o, t); else if (kind === 1) drawPickupIcon(o, t); else drawEnt(o, t); }
+  const at = G.player.assistTarget;
+  if (G.player.dead <= 0 && at && at.dead <= 0) {
+    const x = at.x, y = at.y * TILT - LASER_Z; ctx.strokeStyle = 'rgba(77,255,190,0.85)'; ctx.lineWidth = 2;
+    for (const dx of [-1, 1]) for (const dy of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + dx * 12, y + dy * 21); ctx.lineTo(x + dx * 21, y + dy * 21); ctx.lineTo(x + dx * 21, y + dy * 12); ctx.stroke(); }
+  }
   // lasers fly at chest height (additive glow)
   const LZ = LASER_Z;
   ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
@@ -822,6 +870,25 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 /* ---------------- input ---------------- */
 addEventListener('keydown', (e) => { input.keys[e.code] = true; if (e.code === 'Space' && (state === 'play' || state === 'paused')) { input.ability = true; e.preventDefault(); } if (e.code === 'KeyP' || e.code === 'Escape') togglePause(); });
 addEventListener('keyup', (e) => { input.keys[e.code] = false; });
+addEventListener('keydown', (e) => {
+  if (state !== 'play' || e.repeat) return;
+  if (e.code === 'KeyQ') input.coverL = true;
+  else if (e.code === 'KeyE') input.coverR = true;
+  else if (/^Digit[1-4]$/.test(e.code)) useItem(+e.code.slice(5) - 1);
+  else if (e.code === 'KeyF' && G && G.player.inv) { const i = G.player.inv.findIndex((k) => k); if (i >= 0) useItem(i); }
+});
+const tapBtn = (el, fn) => { if (!el) return; el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
+tapBtn($('covL'), () => { input.coverL = true; }); tapBtn($('covR'), () => { input.coverR = true; });
+document.querySelectorAll('#inv .slot').forEach((b, i) => tapBtn(b, () => useItem(i)));
+// settings screen: aim assist + phone auto-fire
+function syncSettings() {
+  document.querySelectorAll('#setAssist button').forEach((b) => b.classList.toggle('sel', +b.dataset.v === aimAssist));
+  document.querySelectorAll('#setAuto button').forEach((b) => b.classList.toggle('sel', (b.dataset.v === '1') === autoFire));
+}
+document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
+document.querySelectorAll('#setAuto button').forEach((b) => (b.onclick = () => { autoFire = b.dataset.v === '1'; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); }));
+if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
+if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
 cvs.addEventListener('mousemove', (e) => { input.mx = e.clientX; input.my = e.clientY; });
 cvs.addEventListener('mousedown', (e) => { input.mdown = true; input.mx = e.clientX; input.my = e.clientY; if (state === 'paused') state = 'play'; });
 addEventListener('mouseup', () => { input.mdown = false; });
@@ -1043,7 +1110,7 @@ function clientAbility(e) {
   if (e.abilityCd > 0 || e.dead > 0) return;
   const c = CHARS[e.kind]; MP.abN++; e.abilityCd = c.cd;
   SFX.power(); banner(c.ability); buzz(60); G.rings.push({ x: e.x, y: e.y, r: 10, life: 0.5, col: c.shot });
-  if (e.kind === 'chatgpt') { const ox = e.x, oy = e.y; moveEnt(e, Math.cos(e.a) * 240, Math.sin(e.a) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
+  if (e.kind === 'chatgpt') { const ox = e.x, oy = e.y, dd = e.moveAngle !== undefined ? e.moveAngle : e.a; moveEnt(e, Math.cos(dd) * 240, Math.sin(dd) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
 }
 function updateClient(dt) {
   G.t += dt; G.time = Math.max(0, G.time - dt); G.slow = Math.max(0, G.slow - dt); G.shake = Math.max(0, G.shake - dt);
@@ -1178,5 +1245,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { get Z() { return Z; }, buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();

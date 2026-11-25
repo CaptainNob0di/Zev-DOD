@@ -71,6 +71,29 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
 .pl img{width:26px;height:26px;border-radius:50%}.pl i{font-style:normal;font-size:10px;background:var(--purple);padding:1px 5px;border-radius:6px}
 .pl.me{color:var(--gold)}.pl.bot{color:var(--muted);font-weight:600}
 .diff button:disabled{opacity:.55}
+#inv{position:absolute;display:none;gap:6px;pointer-events:auto;left:50%;transform:translateX(-50%);bottom:calc(46px + env(safe-area-inset-bottom))}
+#hud.on #inv{display:flex}body.mp #inv{display:none!important}
+#inv .slot{width:50px;height:50px;border-radius:12px;background:rgba(20,14,32,.82);border:3px solid var(--c,#5a4f70);color:#fff;font-family:Anton;font-size:22px;position:relative;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#inv .slot.full{box-shadow:0 0 12px var(--c);background:rgba(40,28,60,.92)}
+#inv .slot span{color:var(--c);display:block;line-height:44px}
+#inv .slot i{position:absolute;top:1px;left:4px;font-style:normal;font-size:11px;color:#fff9;font-family:Poppins}
+.cov{position:absolute;display:none;pointer-events:auto;width:56px;height:56px;border-radius:14px;background:rgba(30,40,50,.85);border:3px solid #8fa0aa;color:#fff;font-family:Anton;font-size:18px;line-height:1;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cov small{font-size:10px;letter-spacing:.5px}
+.cov:active{background:#b19a43;color:var(--ink)}
+@media (pointer:coarse){
+  #hud.on .cov{display:block}
+  #inv{left:calc(10px + env(safe-area-inset-left));transform:none;bottom:calc(200px + env(safe-area-inset-bottom))}
+  #inv .slot{width:46px;height:46px}
+  #inv .slot span{line-height:40px}
+  #covR{right:calc(50px + env(safe-area-inset-right));bottom:calc(286px + env(safe-area-inset-bottom))}
+  #covL{right:calc(114px + env(safe-area-inset-right));bottom:calc(286px + env(safe-area-inset-bottom))}
+}
+@media (pointer:coarse) and (max-height:460px){
+  #inv{bottom:calc(150px + env(safe-area-inset-bottom))}
+  #covR{right:calc(140px + env(safe-area-inset-right));bottom:calc(161px + env(safe-area-inset-bottom))}
+  #covL{right:calc(202px + env(safe-area-inset-right));bottom:calc(161px + env(safe-area-inset-bottom))}
+}
+#sSettings{padding-top:calc(70px + env(safe-area-inset-top))}
 #sLobby,#sOnline{padding-top:calc(70px + env(safe-area-inset-top))}
 body.mp #autoBtn{right:calc(114px + env(safe-area-inset-right))}
 .how{font-size:14px;line-height:1.55}.how b{color:var(--gold)}
@@ -116,6 +139,8 @@ body.playing .previewTag{display:none}
   <div id="abil"></div>
   <div id="banner"></div>
   <div class="ab" id="abBtn">POWER</div>
+  <div id="inv"><button class="slot"></button><button class="slot"></button><button class="slot"></button><button class="slot"></button></div>
+  <button class="cov" id="covL">&#9664;<br><small>COVER</small></button><button class="cov" id="covR">&#9654;<br><small>COVER</small></button>
 </div>
 
 
@@ -140,6 +165,7 @@ body.playing .previewTag{display:none}
   <button class="btn purple" id="bOnline">PLAY ONLINE</button>
   <button class="btn alt" id="bBoard">LEADERBOARD</button>
   <button class="btn alt small" id="bHow">HOW TO PLAY</button>
+  <button class="btn alt small" id="bSettings">SETTINGS</button>
   <p class="muted">Watch the show: <a href="../perci.html" style="color:var(--gold)">Perci Shorti</a> &bull; @perci.shorti &bull; @ZevDOD</p>
 </section>
 
@@ -186,16 +212,34 @@ body.playing .previewTag{display:none}
   <button class="btn alt small" id="bLeave">LEAVE ROOM</button>
 </section>
 
+<!-- SETTINGS -->
+<section class="screen" id="sSettings">
+  <h2>SETTINGS</h2>
+  <div class="panel" style="text-align:center">
+    <div class="lab">AIM ASSIST</div>
+    <div class="row diff" id="setAssist"><button data-v="1">OFF</button><button data-v="2">LIGHT</button><button data-v="3">STRONG</button></div>
+    <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
+    <div class="lab">AUTO FIRE (PHONES)</div>
+    <div class="row diff" id="setAuto"><button data-v="0">OFF</button><button data-v="1">ON</button></div>
+    <p class="muted" style="margin:6px 0 0">When on, you shoot the closest bot while you're only moving.</p>
+  </div>
+  <div class="panel how">
+    <p><b>Phone:</b> left thumb moves &bull; right thumb aims and fires &bull; tap an <b>item slot</b> to use it &bull; <b>&#9664; &#9654; COVER</b> dashes to the nearest box on that side &bull; yellow button = your power.</p>
+    <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>1-4</b> use items (<b>F</b> = first item) &bull; <b>Q / E</b> cover left / right &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
+  </div>
+  <button class="btn" id="bBack5">DONE</button>
+</section>
+
 <!-- HOW -->
 <section class="screen" id="sHow">
   <h2>HOW TO PLAY</h2>
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
-    <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power. <b>P</b> pauses.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and fires (with aim assist). <b>AUTO</b> fires at the closest bot in view when you're only moving. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and fires (aim assist helps). Tap an <b>item slot</b> to use a power-up. <b>&#9664; &#9654; COVER</b> dashes you behind the nearest box on that side. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power, <b>1-4</b> to use items, <b>Q / E</b> for cover left / right. <b>P</b> pauses.</p>
     <p><b>Maps:</b> every match builds a brand-new arena (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn, Dream Grid, School Gym), so no two games play the same.</p>
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
-    <p><b>Power-ups</b> (just run over them): <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each.</p>
+    <p><b>Power-ups</b> (run over them to grab): they go into your <b>4 item slots</b> so you can use them when you need them. <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each. Slots full? Use one to grab more. (Online matches use power-ups right away.)</p>
     <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
     <p><b>Online:</b> tap PLAY ONLINE, create a room and share the 4-letter code. The host picks <b>Team up vs bots</b> or <b>Team vs team</b>. Players marked with a star are real people. Tap the X twice to leave.</p>
     <p><b>Leaderboard:</b> post your score under your name and show it off. Top 50 all-time and today's best.</p>

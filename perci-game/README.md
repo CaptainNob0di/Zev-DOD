@@ -13,11 +13,18 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   are fair, checked so every spawn and area can be reached.
 - **Bots that fight back:** they lead their shots, sidestep lasers, flank, and focus weak targets.
   Your AI teammates have the same smarts; Easy / Normal / Hard only changes BROKE-pilot's side.
-- **Power-ups** (run over them): A+ shield, rapid fire, speed, power recharge. +10 points each.
+- **Power-ups + item slots (from handheld V10):** run over a power-up to store it in one of 4 item slots
+  (A+ shield, rapid fire, speed, power recharge), then tap the slot (phones) or press 1-4 (keyboard) to use it.
+  Full slots leave power-ups on the floor. Online matches still use power-ups instantly. +10 points each.
+- **Cover (V10):** the left/right COVER buttons (Q / E on keyboard) dash you behind the nearest box on that side.
+- **Aim assist (V10):** Off / Light / Strong in SETTINGS (Strong by default on phones, Light on desktop);
+  green brackets show the bot it's helping you hit. Phone auto-fire is off by default (toggle in SETTINGS).
+- **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
+  cargo crates and tall dividers.
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.
-- **Phones:** twin sticks with aim assist, optional auto-fire, safe-area aware layout.
+- **Phones first:** twin sticks, item slots above the left thumb, COVER buttons by the POWER button, safe-area aware layout.
 
 ## 0. Launch lock (private until Episode 6)
 The public sees a "Coming soon" countdown until **Thu Dec 31, 2026, 6:00 PM CT**. The game then unlocks by itself.
