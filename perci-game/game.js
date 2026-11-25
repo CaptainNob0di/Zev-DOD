@@ -80,10 +80,10 @@ function reachableShare() {
   for (const team of ['P', 'B']) for (let i = 0; i < 5; i++) { const p = spawnPoint(team, i), k = Math.floor(p.y / CELL) * GC + Math.floor(p.x / CELL); if (!seen[k]) return 0; }
   return n / Math.max(1, free);
 }
-function buildArena(seed) {
+function buildArena(seed, forceStyle) {
   for (let attempt = 0; attempt < 30; attempt++) {
     const R = mulberry(seed + attempt * 7919);
-    const style = MAP_STYLES[Math.floor(R() * MAP_STYLES.length)];
+    const pickS = R(), style = (forceStyle && MAP_STYLES.find((s) => s.name === forceStyle)) || MAP_STYLES[Math.floor(pickS * MAP_STYLES.length)];
     WORLD.w = 2200 + Math.round(R() * 10) * 60; WORLD.h = 1300 + Math.round(R() * 6) * 60;
     const W = WORLD.w, H = WORLD.h, w = [];
     const add = (x, y, ww, hh, kind) => w.push({ x: Math.round(x), y: Math.round(y), w: Math.round(ww), h: Math.round(hh), kind });
@@ -202,9 +202,9 @@ function beginMatch(ents, me) {
   showScreen(null); $('hud').classList.add('on'); document.body.classList.add('playing'); if (document.activeElement) document.activeElement.blur(); state = 'play';
   feed('Map: ' + MAPNAME); feed(MP.on && MP.mode === 'versus' ? 'Team vs team! Most tags wins.' : "Match start! Tag BROKE-pilot's bots!"); banner('FIGHT!');
   document.body.classList.toggle('mp', MP.on); $('pauseBtn').textContent = MP.on ? '\u2715' : 'II';
-  if (TOUCH && VH > VW && !sessionStorage.getItem('ps_rot')) { sessionStorage.setItem('ps_rot', '1'); setTimeout(() => feed('Tip: turn your phone sideways for a wider view'), 1500); }
+  if (TOUCH && VH > VW && !pendingStory && !sessionStorage.getItem('ps_rot')) { sessionStorage.setItem('ps_rot', '1'); setTimeout(() => feed('Tip: turn your phone sideways for a wider view'), 1500); }
   if (ac() && AC.state === 'suspended') AC.resume();
-  syncAutoBtn(); syncInv();
+  syncAutoBtn(); syncInv(); storyBegin();
 }
 
 /* ---------------- HUD helpers ---------------- */
@@ -255,7 +255,7 @@ function useAbility(e) {
 
 /* ---------------- pickups (auto-collect on contact) ---------------- */
 function spawnPickup() {
-  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'];
+  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'].concat(G.story ? G.story.extras || [] : []);
   for (let tries = 0; tries < 40; tries++) {
     const x = 260 + Math.random() * (WORLD.w - 520), y = 120 + Math.random() * (WORLD.h - 240);
     if (BLOCK[cellOf(x, y)[1] * GC + cellOf(x, y)[0]]) continue;
@@ -268,8 +268,15 @@ function applyPickup(e, kind) {
   if (kind === 'rapid') e.rapid = Math.max(e.rapid, 4);
   if (kind === 'speed') e.fast = 4;
   if (kind === 'charge') e.abilityCd = 0;
+  if (kind === 'kush') {   // story only, Perci only
+    G.slow = 5; G.slowTeam = e.team === 'P' ? 'B' : 'P'; e.shield = Math.max(e.shield, 1.5); e.rapid = Math.max(e.rapid, 3); G.haze = 6;
+    for (let i = 0; i < 14; i++) G.parts.push({ x: e.x + (Math.random() - 0.5) * 30, y: e.y - 20, vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 60, life: 1.2, col: '#d8d4e0' });
+    setTimeout(() => banner(KUSH_LINES[Math.floor(Math.random() * KUSH_LINES.length)]), 900);
+  }
+  if (kind === 'burger') { e.hp = e.maxhp; e.fast = Math.max(e.fast, 3); }
 }
 function collect(e, pk) {
+  if (PICKUPS[pk.kind].adult && e !== G.player) return false;   // only you can grab story items
   if (e === G.player && e.inv) {
     const slot = e.inv.indexOf(null);
     if (slot < 0) return false;                          // slots full: leave it on the floor
@@ -441,6 +448,7 @@ function controlLocal(e, dt, shoot, ability) {
 function update(dt) {
   if (!G || state !== 'play') return;
   G.t += dt; G.time -= dt; G.slow = Math.max(0, G.slow - dt); G.shake = Math.max(0, G.shake - dt);
+  if (G.story) { G.haze = Math.max(0, (G.haze || 0) - dt); const r = G.time <= 0 ? storyTimeUp() : storyCheck(); if (r) return storyFinish(r); }
   if (G.time <= 0) return endMatch();
   const p = G.player;
   for (const e of G.ents) {
@@ -615,6 +623,11 @@ function drawPickupIcon(pk, t) {
   ctx.globalCompositeOperation = 'lighter'; const gs = glowSprite(col); const s = 90 + Math.sin(pk.t * 5) * 10; ctx.drawImage(gs, x - s / 2, y - s / 2, s, s); ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(pk.x, pk.y * TILT, 16 - bob, 6, 0, 0, Math.PI * 2); ctx.fill();
   if (pk.kind === 'shield' && IMG.aplus.complete) { ctx.drawImage(IMG.aplus, x - 24, y - 24, 48, 48); return; }
+  if (pk.kind === 'kush' || pk.kind === 'burger') {
+    ctx.fillStyle = '#120a1c'; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 19, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (pk.kind === 'kush') drawLeaf(ctx, x, y + 2, 14, col); else drawBurger(ctx, x, y + 1, 16);
+    return;
+  }
   ctx.save(); ctx.translate(x, y); ctx.rotate(pk.kind === 'charge' ? pk.t * 1.5 : 0);
   ctx.fillStyle = '#120a1c'; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.fillStyle = col; ctx.beginPath();
@@ -684,7 +697,8 @@ function drawEnt(e, t) {
   if (e.fast > 0) { ctx.strokeStyle = 'rgba(124,255,107,0.75)'; ctx.lineWidth = 3; for (let k = 0; k < 3; k++) { const yy = -18 * s - k * 16 * s; ctx.beginPath(); ctx.moveTo(-e.vx * 0.05, yy - e.vy * 0.05 * TILT); ctx.lineTo(-e.vx * 0.13, yy - e.vy * 0.13 * TILT); ctx.stroke(); } }
   // shield pips above the head, name under the feet
   const pw = 8 * s, gap = 2.5 * s, tot = e.maxhp * pw + (e.maxhp - 1) * gap;
-  for (let i = 0; i < e.maxhp; i++) { ctx.fillStyle = i < e.hp ? (e.team === 'P' ? '#00e6ff' : '#ffd60a') : 'rgba(255,255,255,0.18)'; rr(ctx, -tot / 2 + i * (pw + gap), headY - 10 * s, pw, 5 * s, 2 * s); ctx.fill(); }
+  if (e.maxhp > 6) { const bw = 70 * s; ctx.fillStyle = 'rgba(0,0,0,0.6)'; rr(ctx, -bw / 2 - 2, headY - 14 * s - 2, bw + 4, 6 * s + 4, 4); ctx.fill(); ctx.fillStyle = '#ff3040'; rr(ctx, -bw / 2, headY - 14 * s, bw * Math.max(0, e.hp) / e.maxhp, 6 * s, 3); ctx.fill(); }
+  else for (let i = 0; i < e.maxhp; i++) { ctx.fillStyle = i < e.hp ? (e.team === 'P' ? '#00e6ff' : '#ffd60a') : 'rgba(255,255,255,0.18)'; rr(ctx, -tot / 2 + i * (pw + gap), headY - 10 * s, pw, 5 * s, 2 * s); ctx.fill(); }
   ctx.font = (e.isPlayer ? '700 13px' : '600 11px') + ' Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
   const lab = e.isPlayer ? 'YOU' : e.human ? '★ ' + e.name : e.name; ctx.strokeText(lab, 0, 22 * s); ctx.fillStyle = e.isPlayer ? '#ffd60a' : 'rgba(255,255,255,0.88)'; ctx.fillText(lab, 0, 22 * s);
   ctx.restore();
@@ -738,6 +752,7 @@ function drawWorld(t) {
   // screen-space: vignette, slow tint, off-screen enemy arrows, minimap, sticks
   if (VIGN) ctx.drawImage(VIGN, 0, 0, VW, VH);
   if (G.slow > 0) { ctx.fillStyle = `rgba(255,140,40,${0.06 + 0.03 * Math.sin(t * 6)})`; ctx.fillRect(0, 0, VW, VH); }
+  if (G.haze > 0) { const a = Math.min(1, G.haze / 1.5); ctx.fillStyle = `rgba(${130 + Math.sin(t * 1.3) * 30},60,210,${0.13 * a})`; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = `rgba(70,230,120,${0.07 * a})`; ctx.fillRect(0, 0, VW, VH); }
   if (G.player.hurt > 0) { ctx.fillStyle = `rgba(255,40,60,${G.player.hurt * 1.6})`; ctx.fillRect(0, 0, VW, VH); }
   drawArrows(); drawMinimap();
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
@@ -774,6 +789,7 @@ function hud() {
   $('tp').textContent = 'PERCI ' + G.score.P; $('tb').textContent = G.score.B + ' BROKE';
   const s = Math.max(0, Math.ceil(G.time)); $('clock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   $('clock').classList.toggle('hurry', G.time < 15);
+  const gl = $('goal'); if (gl) { gl.style.display = G.story ? '' : 'none'; if (G.story) gl.textContent = goalText(); }
   $('me').textContent = `${c.name} • ${p.tags} tags`;
   const ready = p.abilityCd <= 0;
   $('abil').textContent = ready ? `${c.ability} READY${TOUCH ? '' : ' (SPACE)'}` : `${c.ability}: ${Math.ceil(p.abilityCd)}s`;
@@ -1220,6 +1236,446 @@ $('bInvite').onclick = async () => {
 };
 addEventListener('pagehide', () => { if (MP.on && MP.net) { try { MP.net.send(MP.host ? 'lobby' : 'bye', MP.host ? lobbyMsg({ closed: true }) : { pid: MP.pid }); } catch (e) {} } });
 
+/* ---------------- story mode: 6 chapters that follow the show ---------------- */
+// Adult humor and cursing throughout. Weed content stays with the adults (Perci, ChatGPT): it only appears
+// in scenes and chapters where Miracle, Jessica and Mixi (kids) are not present.
+const STORY_KEY = 'ps_story_v1';
+let storyProg = (() => { try { return Object.assign({ unlocked: 1, stars: {} }, JSON.parse(localStorage.getItem(STORY_KEY) || '{}')); } catch (e) { return { unlocked: 1, stars: {} }; } })();
+const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(storyProg)); } catch (e) {} };
+let pendingStory = null, storyCh = null, storyDiffSave = null, storyLast = null;
+
+const CHAPTERS = [
+  { id: 1, title: 'WTF', place: 'CHICAGO • 1987 • BUILDING 8', style: 'BUILDING 8 HALLS', diff: 'easy', crew: [], bots: 3, time: 120,
+    goal: { type: 'tags', n: 6, text: 'TAG 6 BOTS' }, extras: ['kush'],
+    intro: [
+      { bg: 'skyline', cap: 'CHAPTER 1', sub: '"WTF" • CHICAGO 1987', dur: 3 },
+      { bg: 'apartment', actors: [{ k: 'perci', x: 300, y: 380, s: 1.5 }], lines: [['perci', 'Saturday. Mama at work. Crib to myself.'], ['perci', "A PS5 in 1987? ...Don't worry about it."]] },
+      { bg: 'apartment', actors: [{ k: 'perci', x: 300, y: 380, s: 1.5, smoke: true }], fx: { haze: 1 }, lines: [['perci', 'Lemme spark this real quick. High times on the 14th floor.']] },
+      { bg: 'door', fx: { eyes: 1, shake: 1 }, lines: [['phone', '...open the door.'], ['perci', 'Hell nah. WTF??']] },
+      { bg: 'door', fx: { flash: 1 }, cap: "BROKE-PILOT'S BOTS ARE IN THE BUILDING", sub: 'GOAL: TAG 6 BOTS', dur: 2.6 },
+    ],
+    outro: [
+      { bg: 'apartment', actors: [{ k: 'perci', x: 400, y: 380, s: 1.5 }], lines: [['perci', 'Six bots. In MY crib. On a Saturday.'], ['phone', 'Good question.'], ['perci', "I ain't even ask nothin'!"]] },
+    ] },
+  { id: 2, title: 'LOG OUT', place: 'BUILDING 8 • THE STAIRWELL', style: 'DREAM GRID', diff: 'easy', crew: ['chatgpt'], bots: 5, time: 90,
+    goal: { type: 'survive', lives: 4, text: "SURVIVE 1:30 • DON'T GET TAGGED 4 TIMES" }, extras: ['kush'],
+    intro: [
+      { bg: 'skyline', cap: 'CHAPTER 2', sub: '"LOG OUT" • BUILDING 8', dur: 2.6 },
+      { bg: 'door', actors: [{ k: 'chatgpt', x: 400, y: 400, s: 1.7 }], lines: [['chatgpt', "Relax, Perci. You're dreaming."], ['perci', 'Then why my heart beating like a subwoofer?']] },
+      { bg: 'stairwell', actors: [{ k: 'perci', x: 280, y: 390, s: 1.5 }, { k: 'chatgpt', x: 520, y: 390, s: 1.5, f: -1 }], lines: [['chatgpt', 'BROKE-pilot wants this building. Hold the stairwell with me.'], ['perci', "Bet. But if I wake up broke, that's on you."]] },
+      { bg: 'stairwell', cap: 'HOLD THE STAIRWELL', sub: "SURVIVE 1:30 • DON'T GET TAGGED 4 TIMES", dur: 2.6 },
+    ],
+    outro: [
+      { bg: 'stairwell', actors: [{ k: 'chatgpt', x: 400, y: 390, s: 1.6 }], lines: [['chatgpt', "I'm not the bad guy, Perci."], ['chatgpt', 'Log out.']] },
+      { bg: 'white', fx: { flash: 1 }, lines: [['perci', '...Log out of WHAT?']] },
+    ] },
+  { id: 3, title: 'WAKE UP', place: 'NEBRASKA • PRESENT DAY', style: 'MIGHT BE CASTLE LOT', diff: 'normal', crew: [], bots: 4, time: 120,
+    goal: { type: 'tags', n: 10, text: 'TAG 10 BOTS • GRAB THE MUNCHIES' }, extras: ['kush', 'burger'],
+    intro: [
+      { bg: 'bedroom', cap: 'CHAPTER 3', sub: '"WAKE UP" • NEBRASKA • PRESENT DAY', dur: 2.8 },
+      { bg: 'bedroom', actors: [{ k: 'perci', x: 380, y: 390, s: 1.5 }], lines: [['perci', 'Phone on my face. Leg in a cast. Nebraska. ...WTF.'], ['phone', 'So... about that cartoon idea.']] },
+      { bg: 'bedroom', actors: [{ k: 'perci', x: 380, y: 390, s: 1.5, smoke: true }], fx: { haze: 1 }, lines: [['perci', 'Fridge empty. Munchies loud. Might Be Castle it is.']] },
+      { bg: 'castle', fx: { shake: 1 }, lines: [['perci', 'Why the drive-thru got lasers??'], ['phone', 'BROKE-pilot followed you out of the dream.'], ['perci', "In the dream my leg works. Don't ask."]] },
+      { bg: 'castle', cap: 'MIGHT BE CASTLE LOT', sub: 'TAG 10 BOTS • GRAB THE MUNCHIES', dur: 2.6 },
+    ],
+    outro: [
+      { bg: 'castle', actors: [{ k: 'perci', x: 400, y: 400, s: 1.5 }], lines: [['perci', 'Ten bots and a double cheeseburger. Productive night.'], ['phone', 'Check on your daughter.']] },
+    ] },
+  { id: 4, title: '5150', place: 'LINCOLN • BUILDING 8', style: 'BUILDING 8 HALLS', diff: 'normal', crew: ['miracle', 'jessica', 'chatgpt'], bots: 5, time: 120,
+    goal: { type: 'win', text: "OUT-TAG BROKE-PILOT'S CREW" }, extras: ['burger'],
+    intro: [
+      { bg: 'party', cap: 'CHAPTER 4', sub: '"5150" • LINCOLN', dur: 2.6 },
+      { bg: 'car', lines: [['perci', "Damn, I fell asleep after that greasy-ass Might Be Castle. What's this about?"], ['phone', 'Move fast. Your daughter is in trouble.']] },
+      { bg: 'party', actors: [{ k: 'miracle', x: 320, y: 400, s: 1.5 }, { k: 'jessica', x: 480, y: 400, s: 1.5, f: -1 }], lines: [['miracle', "Dad! The party got hacked. BROKE-pilot's in the building!"], ['jessica', "I'm Jessica. I code. Let's get it."]] },
+      { bg: 'party', cap: 'BUILDING 8 • APT 5150', sub: "OUT-TAG BROKE-PILOT'S CREW", dur: 2.6 },
+    ],
+    outro: [
+      { bg: 'party', actors: [{ k: 'perci', x: 330, y: 400, s: 1.5 }, { k: 'miracle', x: 470, y: 400, s: 1.35, f: -1 }], lines: [['miracle', 'You actually came!'], ['perci', "Always, baby girl. Now let's get you home."]] },
+    ] },
+  { id: 5, title: 'PICK UP', place: 'HIGHWAY 30 • NIGHT', style: 'CORN MAZE', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 5, time: 150,
+    goal: { type: 'tags', n: 15, text: 'TAG 15 BOTS' }, extras: ['burger'],
+    intro: [
+      { bg: 'car', cap: 'CHAPTER 5', sub: '"PICK UP" • HIGHWAY 30', dur: 2.6 },
+      { bg: 'car', fx: { radio: 1 }, lines: [['mixi', 'Dad, play hip-hop!'], ['miracle', 'No! Country!'], ['perci', "Y'all gonna make me turn this car around."]] },
+      { bg: 'car', fx: { alert: 1, shake: 1 }, lines: [['chatgpt', "All four devices. Same alert. They're coming."], ['mixi', 'Have you guys seen Inception?']] },
+      { bg: 'car', cap: 'THE CORNFIELD', sub: 'TAG 15 BOTS', dur: 2.4 },
+    ],
+    outro: [
+      { bg: 'car', lines: [['perci', 'Everybody good? ...Who said Inception?'], ['chatgpt', 'Iowa. A barn. Trust me.']] },
+    ] },
+  { id: 6, title: 'DEEPER', place: 'IOWA • THE BARN', style: 'THE BARN', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 3, boss: true, time: 180,
+    goal: { type: 'boss', text: 'TAG BROKE-PILOT PRIME' }, extras: ['burger'],
+    intro: [
+      { bg: 'barn', cap: 'CHAPTER 6', sub: '"DEEPER" • IOWA', dur: 2.6 },
+      { bg: 'barn', actors: [{ k: 'chatgpt', x: 400, y: 400, s: 1.6 }], lines: [['chatgpt', 'Five helmets. One dream. We beat him in there before he takes over the world.'], ['perci', "OH SHYT HE'S REAL!?"]] },
+      { bg: 'dream', cap: 'SIT DOWN. GO DEEPER.', dur: 2.4 },
+      { bg: 'dream', fx: { shake: 1 }, cap: 'BOSS: BROKE-PILOT PRIME', sub: 'TAG HIM BEFORE TIME RUNS OUT', dur: 2.6 },
+    ],
+    outro: [
+      { bg: 'dream', actors: [{ k: 'perci', x: 330, y: 400, s: 1.5 }, { k: 'chatgpt', x: 480, y: 400, s: 1.5, f: -1 }], lines: [['chatgpt', "He's offline. For now."], ['perci', 'So we good? ...We good??']] },
+      { bg: 'tbc', cap: 'TO BE CONTINUED...', sub: 'PERCI SHORTI • NEW EPISODES THURSDAYS', dur: 4 },
+    ] },
+];
+
+// adult items (story only, Perci only): Dream Kush and Might Be Castle munchies
+PICKUPS.kush = { col: '#5dff7a', label: 'DREAM KUSH: EVERYTHING SLOWED DOWN', adult: true };
+PICKUPS.burger = { col: '#ff9f40', label: 'MUNCHIES! FULL SHIELDS', adult: true };
+INV_ICON.kush = '🌿'; INV_ICON.burger = '🍔';
+const KUSH_LINES = ['PUFF PUFF... FOCUS.', 'HIGH TIMES ON THE 14TH FLOOR', 'WHY IS EVERYTHING SO SLOW? PERFECT.'];
+function drawLeaf(g, x, y, s, col) {
+  g.save(); g.translate(x, y); g.fillStyle = col;
+  const parts = [[-90, 1], [-55, 0.82], [-125, 0.82], [-22, 0.6], [-158, 0.6], [10, 0.38], [-190, 0.38]];
+  for (const [deg, len] of parts) { g.save(); g.rotate(deg * Math.PI / 180); g.beginPath(); g.ellipse(s * len * 0.55, 0, s * len * 0.55, s * 0.16, 0, 0, Math.PI * 2); g.fill(); g.restore(); }
+  g.strokeStyle = col; g.lineWidth = Math.max(1.5, s * 0.12); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, s * 0.55); g.stroke();
+  g.restore();
+}
+function drawBurger(g, x, y, s) {
+  g.save(); g.translate(x, y);
+  g.fillStyle = '#e8a04a'; g.beginPath(); g.ellipse(0, -s * 0.25, s * 0.75, s * 0.42, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#5fd35a'; g.fillRect(-s * 0.78, -s * 0.22, s * 1.56, s * 0.14);
+  g.fillStyle = '#ffd60a'; g.fillRect(-s * 0.72, -s * 0.1, s * 1.44, s * 0.12);
+  g.fillStyle = '#6b3a1e'; g.fillRect(-s * 0.74, 0.02 * s, s * 1.48, s * 0.22);
+  g.fillStyle = '#e8a04a'; g.beginPath(); g.ellipse(0, s * 0.26, s * 0.72, s * 0.16, 0, 0, Math.PI); g.fill();
+  g.fillStyle = '#fff6'; for (const sx of [-0.3, 0, 0.3]) g.fillRect(sx * s, -s * 0.5, s * 0.08, s * 0.05);
+  g.restore();
+}
+
+function makeBoss() {
+  const e = newEntity('B', 'bot', 2, false);
+  Object.assign(e, { boss: true, name: 'BROKE-PILOT PRIME', r: 34, hp: 30, maxhp: 30,
+    stats: { speed: 150, rate: 0.2, dmg: 1, range: 680, spread: 0.13, shot: '#ff3040', body: '#ff3040' } });
+  return e;
+}
+
+function startStoryLevel(ch) {
+  storyDiffSave = diff; diff = ch.diff;
+  buildArena(ch.id * 1000 + 7, ch.style);
+  const P = [newEntity('P', 'perci', 2, true)].concat(ch.crew.map((k, i) => newEntity('P', k, [1, 3, 0, 4][i], false)));
+  const order = [2, 1, 3, 0, 4], B = [];
+  for (let i = 0; i < ch.bots; i++) B.push(newEntity('B', 'bot', order[i], false));
+  if (ch.boss) B.push(makeBoss());
+  pendingStory = ch;
+  beginMatch(P.concat(B), P[0]);
+}
+function storyBegin() {           // called by beginMatch once G exists
+  G.story = pendingStory; pendingStory = null; document.body.classList.remove('story');
+  if (!G.story) return;
+  G.time = G.story.time; G.boss = G.ents.find((e) => e.boss) || null; G.haze = 0;
+  document.body.classList.add('story');
+  $('feed').innerHTML = '';
+  feed(`Chapter ${G.story.id}: ${G.story.place}`); feed('Goal: ' + G.story.goal.text);
+  banner('CHAPTER ' + G.story.id);
+}
+function storyCheck() {
+  const ch = G.story, p = G.player;
+  if (ch.goal.type === 'tags' && G.score.P >= ch.goal.n) return 'win';
+  if (ch.goal.type === 'boss' && G.boss && G.boss.dead > 0) return 'win';
+  if (ch.goal.lives && p.tagged >= ch.goal.lives) return 'lose';
+  return null;
+}
+function storyTimeUp() {
+  const ch = G.story;
+  if (ch.goal.type === 'survive') return 'win';
+  if (ch.goal.type === 'win') return G.score.P > G.score.B ? 'win' : 'lose';
+  return 'lose';
+}
+function goalText() {
+  const ch = G.story, p = G.player, s = Math.max(0, Math.ceil(G.time)), clock = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  if (ch.goal.type === 'tags') return `🎯 ${G.score.P}/${ch.goal.n} TAGS`;
+  if (ch.goal.type === 'survive') return `⏱ SURVIVE ${clock} • ❤ ${Math.max(0, ch.goal.lives - p.tagged)}`;
+  if (ch.goal.type === 'boss') return `👑 PRIME ${G.boss ? Math.max(0, G.boss.hp) : 0}/${G.boss ? G.boss.maxhp : 30}`;
+  return `⚔ OUT-TAG THEM • ${G.score.P}-${G.score.B}`;
+}
+function storyFinish(r) {
+  const ch = G.story, p = G.player, won = r === 'win';
+  state = 'storyend'; $('hud').classList.remove('on'); document.body.classList.remove('playing', 'story');
+  if (storyDiffSave) { diff = storyDiffSave; storyDiffSave = null; }
+  let stars = 0;
+  if (won) {
+    stars = 1; if (p.tagged <= 2) stars++;
+    if (ch.goal.type === 'survive' ? p.tagged === 0 : G.time >= 30) stars++;
+    storyProg.stars[ch.id] = Math.max(storyProg.stars[ch.id] || 0, stars);
+    storyProg.unlocked = Math.max(storyProg.unlocked, Math.min(CHAPTERS.length, ch.id + 1));
+    if (ch.id === CHAPTERS.length) storyProg.done = true;
+    saveStory();
+  }
+  storyLast = { ch, won, stars, tags: p.tags, tagged: p.tagged, time: Math.ceil(G.time) };
+  (won ? SFX.win : SFX.lose)();
+  if (won) wipe(() => playCut(ch.outro, () => wipe(showStoryEnd)));
+  else wipe(showStoryEnd);
+}
+function showStoryEnd() {
+  const r = storyLast, ch = r.ch;
+  $('seTitle').textContent = r.won ? 'CHAPTER CLEAR!' : (ch.goal.type === 'survive' ? 'TAGGED OUT' : "TIME'S UP");
+  $('seTitle').className = 'big ' + (r.won ? 'win' : 'lose');
+  $('seSub').textContent = `Chapter ${ch.id}: "${ch.title}" • ${ch.place}`;
+  $('seStars').innerHTML = [1, 2, 3].map((i) => `<span class="${i <= r.stars ? 'on' : ''}">★</span>`).join('');
+  $('seKV').innerHTML = `<span>Goal</span><b>${ch.goal.text}</b><span>Your tags</span><b>${r.tags}</b><span>Times tagged</span><b>${r.tagged}</b>` + (r.won ? `<span>Time left</span><b>${Math.floor(r.time / 60)}:${String(r.time % 60).padStart(2, '0')}</b>` : '');
+  $('seTip').textContent = r.won ? (r.stars < 3 ? 'Stars: clear it • get tagged 2 times or less • ' + (ch.goal.type === 'survive' ? 'never get tagged' : 'finish with 30+ seconds left') : 'Perfect run. Three stars.') : 'Tip: save your item slots for when it gets hot.';
+  const next = CHAPTERS[ch.id];
+  $('bSeNext').style.display = r.won && next ? '' : 'none';
+  $('bSeNext').textContent = next ? `NEXT: CHAPTER ${next.id}` : '';
+  $('bSeRetry').textContent = r.won ? 'REPLAY' : 'TRY AGAIN';
+  showScreen('sStoryEnd'); state = 'storyend';
+}
+function playChapter(id) {
+  const ch = CHAPTERS[id - 1]; if (!ch) return;
+  storyCh = ch; ac();
+  wipe(() => playCut(ch.intro, () => wipe(() => startStoryLevel(ch))));
+}
+
+/* ----- cutscene player ("epic shorts") ----- */
+const CUT = { shots: null, i: 0, li: 0, chars: 0, hold: 0, t: 0, done: null, smoke: [], flash: 0 };
+const SPEAKER = {
+  perci: { name: 'PERCI', img: 'perci', col: '#ffd60a' }, chatgpt: { name: 'CHATGPT', img: 'chatgpt', col: '#00e6ff' },
+  miracle: { name: 'MIRACLE', img: 'miracle', col: '#3fe0d8' }, jessica: { name: 'JESSICA', img: 'jessica', col: '#7cff6b' },
+  mixi: { name: 'MIXI', img: 'mixi', col: '#ff78c8' }, phone: { name: 'CHATGPT (TEXT)', img: 'chatgpt', col: '#00e6ff' },
+};
+function playCut(shots, done) {
+  Object.assign(CUT, { shots, i: 0, li: 0, chars: 0, hold: 0, t: 0, done, smoke: [], flash: 0 });
+  showScreen(null); state = 'cut';
+  document.body.classList.add('playing', 'cutting'); $('hud').classList.remove('on');
+  cutEnterShot();
+}
+function cutEnterShot() {
+  const s = CUT.shots[CUT.i]; CUT.li = 0; CUT.chars = 0; CUT.hold = 0; CUT.t = 0;
+  if (s && s.fx && s.fx.flash) CUT.flash = 1;
+  if (s && s.fx && (s.fx.shake || s.fx.alert)) buzz(40);
+  if (s && s.cap) SFX.power();
+}
+function cutNext() {
+  CUT.i++;
+  if (CUT.i >= CUT.shots.length) { const d = CUT.done; CUT.shots = null; document.body.classList.remove('cutting'); state = 'menu'; if (d) d(); return; }
+  cutEnterShot();
+}
+function cutTap() {
+  if (state !== 'cut' || !CUT.shots) return;
+  const s = CUT.shots[CUT.i], line = s.lines && s.lines[CUT.li];
+  if (line && CUT.chars < line[1].length) { CUT.chars = line[1].length; return; }
+  if (s.lines && CUT.li < s.lines.length - 1) { CUT.li++; CUT.chars = 0; CUT.hold = 0; SFX.pick(); return; }
+  cutNext();
+}
+function cutSkip() { if (state !== 'cut' || !CUT.shots) return; CUT.i = CUT.shots.length - 1; cutNext(); }
+function cutStep(dt) {
+  if (!CUT.shots) return;
+  const s = CUT.shots[CUT.i]; CUT.t += dt; CUT.flash = Math.max(0, CUT.flash - dt * 1.6);
+  if (s.lines && s.lines.length) {
+    const line = s.lines[CUT.li];
+    if (CUT.chars < line[1].length) { const before = Math.floor(CUT.chars); CUT.chars = Math.min(line[1].length, CUT.chars + dt * 38); if (Math.floor(CUT.chars) !== before && Math.floor(CUT.chars) % 3 === 0) beep(900 + Math.random() * 300, 700, 0.025, 'square', 0.012); }
+    else { CUT.hold += dt; if (CUT.hold > 2.6) { if (CUT.li < s.lines.length - 1) { CUT.li++; CUT.chars = 0; CUT.hold = 0; } else cutNext(); } }
+  } else if (CUT.t > (s.dur || 2.5)) cutNext();
+  // smoke puffs drift up from the smoker
+  for (const a of s.actors || []) if (a.smoke && Math.random() < dt * 9) CUT.smoke.push({ x: a.x + 18 * a.s, y: a.y - 112 * a.s, r: 6 + Math.random() * 6, vx: 6 + Math.random() * 14, vy: -18 - Math.random() * 16, life: 2.4 });
+  for (const p of CUT.smoke) { p.x += p.vx * dt; p.y += p.vy * dt; p.r += dt * 9; p.life -= dt; }
+  CUT.smoke = CUT.smoke.filter((p) => p.life > 0);
+}
+
+// stage backgrounds, 800x450
+function cutBg(name, t, g) {
+  const W = 800, H = 450;
+  const grad = (a, b) => { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, a); gr.addColorStop(1, b); return gr; };
+  if (name === 'skyline' || name === 'party') {
+    g.fillStyle = grad('#07061a', '#2a1650'); g.fillRect(0, 0, W, H);
+    const R = rng(name === 'party' ? 5 : 3);
+    for (let i = 0; i < 14; i++) {
+      const bw = 50 + R() * 60, bh = 120 + R() * 220, bx = i * 60 - 20 + R() * 20;
+      g.fillStyle = '#120c24'; g.fillRect(bx, H - bh - 60, bw, bh + 60);
+      for (let wy = H - bh - 50; wy < H - 70; wy += 16) for (let wx = bx + 6; wx < bx + bw - 8; wx += 12) if (R() < 0.45) { g.fillStyle = R() < 0.8 ? '#ffd38a' : '#8ad8ff'; g.fillRect(wx, wy, 5, 7); }
+    }
+    if (name === 'skyline') {
+      const tx = ((t * 160) % 1400) - 500;
+      g.fillStyle = '#2b2b3a'; g.fillRect(0, 330, W, 8);
+      for (let c = 0; c < 4; c++) { g.fillStyle = '#4a4a5c'; g.fillRect(tx + c * 112, 296, 104, 34); g.fillStyle = '#ffe9a8'; for (let w = 0; w < 5; w++) g.fillRect(tx + c * 112 + 10 + w * 19, 304, 11, 10); }
+      g.fillStyle = '#fff'; const R2 = rng(9); for (let i = 0; i < 70; i++) { const x = (R2() * W + t * 12) % W, y = (R2() * H + t * (30 + R2() * 30)) % H; g.globalAlpha = 0.7; g.fillRect(x, y, 2, 2); } g.globalAlpha = 1;
+    } else {
+      g.fillStyle = '#16102a'; g.fillRect(250, 60, 300, 330);
+      g.fillStyle = '#12061a'; g.strokeStyle = '#ff3cc8'; g.lineWidth = 5; rr(g, 290, 120, 220, 70, 12); g.fill(); g.stroke();
+      g.font = '54px Anton, Impact'; g.textAlign = 'center'; g.fillStyle = (Math.floor(t * 3) % 2) ? '#ff3cc8' : '#fff0f8'; g.fillText('5150', 400, 175);
+      if (t % 0.5 < 0.06) { g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(0, 0, W, H); }
+    }
+    g.fillStyle = '#0b0814'; g.fillRect(0, H - 60, W, 60);
+  } else if (name === 'apartment') {
+    g.fillStyle = '#5a3a22'; g.fillRect(0, 0, W, H);
+    for (let x = 0; x < W; x += 26) { g.fillStyle = x % 52 ? '#6a4628' : '#563620'; g.fillRect(x, 0, 24, H * 0.7); }
+    g.fillStyle = '#c4621e'; g.fillRect(0, H * 0.7, W, H * 0.3);
+    g.fillStyle = 'rgba(0,0,0,0.12)'; for (let i = 0; i < 300; i++) g.fillRect((i * 53) % W, H * 0.7 + ((i * 29) % 130), 3, 6);
+    g.fillStyle = '#0d0a22'; g.fillRect(520, 70, 200, 140); g.fillStyle = '#ffd38a'; for (let i = 0; i < 30; i++) g.fillRect(530 + (i * 37) % 180, 120 + (i * 13) % 80, 4, 6);
+    g.strokeStyle = '#3a2412'; g.lineWidth = 8; g.strokeRect(520, 70, 200, 140);
+    g.fillStyle = '#f4f4f4'; g.fillRect(70, 60, 110, 70); g.fillStyle = '#7fc6ff'; g.fillRect(70, 77, 110, 10); g.fillRect(70, 103, 110, 10);
+    g.fillStyle = '#e03030'; for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(88 + i * 25, 95, 4, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#3a2a1a'; g.fillRect(600, 250, 150, 80);
+    g.fillStyle = '#222'; rr(g, 612, 196, 126, 60, 10); g.fill();
+    g.fillStyle = `rgba(${120 + Math.sin(t * 9) * 40},${160 + Math.sin(t * 7) * 40},255,0.9)`; rr(g, 622, 204, 106, 44, 8); g.fill();
+    g.fillStyle = 'rgba(140,180,255,0.10)'; g.beginPath(); g.moveTo(622, 230); g.lineTo(420, 450); g.lineTo(800, 450); g.closePath(); g.fill();
+    g.fillStyle = '#7a3428'; rr(g, 150, 300, 300, 90, 16); g.fill();
+    g.strokeStyle = 'rgba(255,214,10,0.35)'; g.lineWidth = 3; for (let x = 165; x < 450; x += 28) { g.beginPath(); g.moveTo(x, 300); g.lineTo(x, 390); g.stroke(); } for (let y = 312; y < 390; y += 24) { g.beginPath(); g.moveTo(150, y); g.lineTo(450, y); g.stroke(); }
+  } else if (name === 'door') {
+    g.fillStyle = grad('#141018', '#05040a'); g.fillRect(0, 0, W, H);
+    g.fillStyle = '#2b2430'; g.fillRect(280, 40, 240, 380); g.strokeStyle = '#4a4050'; g.lineWidth = 8; g.strokeRect(280, 40, 240, 380);
+    g.fillStyle = '#888'; g.beginPath(); g.arc(400, 140, 6, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c9a040'; g.beginPath(); g.arc(495, 240, 9, 0, Math.PI * 2); g.fill();
+    const crack = 6 + Math.sin(t * 3) * 3; g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(516, 44, crack, 372);
+    g.fillStyle = 'rgba(180,230,255,0.10)'; g.beginPath(); g.moveTo(520, 44); g.lineTo(800, 0); g.lineTo(800, 450); g.lineTo(520, 416); g.closePath(); g.fill();
+  } else if (name === 'stairwell') {
+    g.fillStyle = grad('#3a3d44', '#1c1e22'); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#4c5058' : '#43464e'; g.fillRect(i * 70 - 40, 450 - i * 30, 120, 30 + i * 30); }
+    const on = Math.sin(t * 13) > -0.6; g.fillStyle = on ? '#ff3030' : '#661010'; rr(g, 610, 40, 110, 44, 6); g.fill(); g.fillStyle = '#fff'; g.font = '30px Anton, Impact'; g.textAlign = 'center'; g.fillText('EXIT', 665, 74);
+    g.fillStyle = 'rgba(255,40,40,0.06)'; g.fillRect(0, 0, W, H);
+  } else if (name === 'bedroom') {
+    g.fillStyle = grad('#a8c8e2', '#f8e4c8'); g.fillRect(0, 0, W, H);
+    const sy = 330 - Math.min(1, t / 4) * 120; const sk = g.createLinearGradient(0, 70, 0, 300); sk.addColorStop(0, '#3e2a60'); sk.addColorStop(1, '#ffa660');
+    g.fillStyle = sk; g.fillRect(470, 70, 260, 230); g.fillStyle = '#ffe896'; g.beginPath(); g.arc(600, sy, 40, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#607830'; g.fillRect(470, 250, 260, 50); g.strokeStyle = '#fff'; g.lineWidth = 10; g.strokeRect(470, 70, 260, 230); g.beginPath(); g.moveTo(600, 70); g.lineTo(600, 300); g.stroke();
+    g.fillStyle = '#2e3c6e'; rr(g, -20, 330, 520, 160, 30); g.fill(); g.fillStyle = '#f0f0f8'; rr(g, 30, 300, 180, 60, 24); g.fill();
+    g.fillStyle = '#1c1c26'; rr(g, 640, 330, 90, 70, 10); g.fill(); g.fillStyle = (Math.floor(t * 2) % 2) ? '#ff4646' : '#7a2020'; g.font = '34px Anton, Impact'; g.textAlign = 'center'; g.fillText('7:00', 685, 378);
+  } else if (name === 'castle') {
+    g.fillStyle = grad('#0a0a24', '#3a2050'); g.fillRect(0, 0, W, H);
+    g.fillStyle = '#f2f0ea'; g.fillRect(200, 150, 400, 200);
+    for (let x = 200; x < 600; x += 40) g.fillRect(x, 128, 24, 24);
+    g.fillRect(170, 110, 70, 240); g.fillRect(560, 110, 70, 240); for (const bx of [170, 560]) for (let x = bx; x < bx + 70; x += 24) g.fillRect(x, 92, 14, 20);
+    g.fillStyle = '#2a3a6a'; for (let x = 240; x < 560; x += 80) g.fillRect(x, 220, 50, 60);
+    g.fillStyle = '#1a1a26'; g.fillRect(360, 270, 80, 80);
+    g.font = '40px Anton, Impact'; g.textAlign = 'center'; const on = Math.sin(t * 6) > -0.7;
+    g.fillStyle = on ? '#ffd60a' : '#6a5a10'; g.fillText('MIGHT BE CASTLE', 400, 205);
+    g.fillStyle = '#1c1c24'; g.fillRect(0, 350, W, 100); g.fillStyle = '#ffd60a'; for (let x = 20; x < W; x += 90) g.fillRect(x, 395, 50, 6);
+  } else if (name === 'car') {
+    g.fillStyle = grad('#06081e', '#241a40'); g.fillRect(0, 0, W, H);
+    g.fillStyle = '#fff'; const R = rng(4); for (let i = 0; i < 60; i++) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + i); g.fillRect(R() * W, R() * 180, 2, 2); } g.globalAlpha = 1;
+    g.fillStyle = '#10101a'; g.fillRect(0, 200, W, 120); g.fillStyle = '#22222e'; g.beginPath(); g.moveTo(385, 200); g.lineTo(415, 200); g.lineTo(700, 320); g.lineTo(100, 320); g.closePath(); g.fill();
+    g.fillStyle = '#ffd60a'; for (let k = 0; k < 6; k++) { const z = ((k / 6) + t * 0.9) % 1, y = 200 + z * z * 120, sw = 2 + z * 6; g.fillRect(400 - sw / 2, y, sw, 4 + z * 12); }
+    g.fillStyle = '#181420'; g.beginPath(); g.ellipse(400, 470, 560, 170, 0, Math.PI, 0); g.fill(); g.fillRect(0, 380, W, 70);
+    g.fillStyle = '#0c0a10'; rr(g, 300, 330, 200, 70, 12); g.fill(); g.strokeStyle = '#5a5070'; g.lineWidth = 3; g.stroke();
+    const radio = CUT.shots && CUT.shots[CUT.i] && CUT.shots[CUT.i].fx || {}, seg = radio.alert ? 2 : Math.floor(t / 0.9) % 2;
+    g.font = '20px Poppins, sans-serif'; g.textAlign = 'center'; g.fillStyle = ['#ffbe50', '#50e6ff', '#ff4646'][radio.radio || radio.alert ? seg : 0];
+    g.fillText(radio.alert ? '!! SIGNAL !!' : (radio.radio ? ['COUNTRY 98.1', 'HIP-HOP 104.5'][seg] : 'HWY 30 • NIGHT'), 400, 372);
+    if (radio.alert) { for (const [i, cx] of [[0, 110], [1, 230], [2, 570], [3, 690]]) { g.fillStyle = (Math.floor(t * 6) % 2) ? '#e62832' : '#781418'; rr(g, cx - 34, 280, 68, 110, 10); g.fill(); g.fillStyle = '#fff'; g.font = '40px Anton, Impact'; g.fillText('!', cx, 350); } }
+  } else if (name === 'barn') {
+    g.fillStyle = '#5a1c18'; g.fillRect(0, 0, W, H);
+    for (let x = 0; x < W; x += 34) { g.fillStyle = x % 68 ? '#6e2420' : '#62201c'; g.fillRect(x, 0, 32, 340); }
+    g.fillStyle = '#3a2a1a'; g.beginPath(); g.moveTo(0, 0); g.lineTo(400, -60); g.lineTo(800, 0); g.lineTo(800, 30); g.lineTo(400, -30); g.lineTo(0, 30); g.closePath(); g.fill();
+    g.fillStyle = '#c8a050'; g.fillRect(0, 340, W, 110); g.fillStyle = 'rgba(120,80,30,0.4)'; for (let i = 0; i < 200; i++) g.fillRect((i * 41) % W, 340 + (i * 17) % 110, 6, 2);
+    g.fillStyle = '#2a2a34'; rr(g, 250, 230, 300, 110, 14); g.fill(); g.strokeStyle = '#00e6ff'; g.lineWidth = 3; g.stroke();
+    for (let i = 0; i < 5; i++) { const hx = 280 + i * 60; g.fillStyle = '#d8dde4'; g.beginPath(); g.arc(hx, 220, 22, Math.PI, 0); g.fill(); g.fillStyle = `rgba(0,230,255,${0.5 + 0.5 * Math.sin(t * 4 + i)})`; g.fillRect(hx - 16, 210, 32, 6); }
+  } else if (name === 'dream') {
+    g.fillStyle = '#06040c'; g.fillRect(0, 0, W, H);
+    const cols = ['#00e6ff', '#8232dc', '#ffd60a'];
+    for (let k = 0; k < 14; k++) { const ph = ((k + t * 0.9) % 14) / 14, s = 20 * Math.pow(1.3, ph * 14); g.globalAlpha = Math.max(0, Math.min(1, (1 - ph) * 2)); g.strokeStyle = cols[k % 3]; g.lineWidth = 3; g.strokeRect(400 - s * 1.6, 225 - s, s * 3.2, s * 2); }
+    g.globalAlpha = 1;
+  } else if (name === 'white') {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  } else {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  }
+}
+const CUTG = { slow: 0, slowTeam: 'none', player: null };
+function cutActor(a, t) {
+  const e = { team: 'P', kind: a.k, r: CHARS[a.k] && CHARS[a.k].small ? 17 : 21, x: 0, y: 0, vx: 0, vy: 0, bob: (a.x || 0) * 0.01, hurt: 0,
+    a: (a.f || 1) < 0 ? Math.PI : 0, isPlayer: false, frozen: 0, shield: 0, fast: 0, dead: 0, hp: 0, maxhp: 0, name: '', human: false,
+    stats: CHARS[a.k] || { shot: '#ff8c28' }, flash: 0 };
+  const saveG = G; G = CUTG;
+  ctx.save(); ctx.translate(a.x, a.y); ctx.scale(a.s || 1.5, a.s || 1.5);
+  try { drawEnt(e, t); } finally { ctx.restore(); G = saveG; }
+  if (a.smoke) {   // the joint: a small white stick with an ember at his hand
+    const s = (a.s || 1.5) * CHAR_SCALE, hx = a.x + 9 * s, hy = a.y - 70 * s;   // at his mouth
+    ctx.strokeStyle = '#f4f0e6'; ctx.lineWidth = 3 * (a.s || 1.5) * 0.6; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 12 * s * 0.6, hy - 3); ctx.stroke();
+    ctx.fillStyle = `rgba(255,${120 + Math.sin(t * 8) * 60},40,1)`; ctx.beginPath(); ctx.arc(hx + 12 * s * 0.6, hy - 3, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function wrapText(g, text, maxW) {
+  const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words) { const test = cur ? cur + ' ' + w : w; if (g.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else cur = test; }
+  if (cur) lines.push(cur); return lines;
+}
+function drawCut(t) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
+  if (!CUT.shots) return;
+  const s = CUT.shots[CUT.i], fx = s.fx || {};
+  const portrait = VH > VW * 1.05;
+  const boxH = portrait ? Math.min(180, VH * 0.24) : Math.min(118, VH * 0.3);
+  const availH = portrait ? VH - boxH - 90 : VH;
+  // phones held upright: crop the stage around its center so the scene fills the screen
+  const sc = portrait ? Math.max(VW / 800, (availH * 0.8) / 450) : Math.max(VW / 800, VH / 450);
+  const ox = (VW - 800 * sc) / 2, oy = portrait ? 50 + (availH - 450 * sc) / 2 : (VH - 450 * sc) / 2;
+  const zoom = 1 + Math.min(1, CUT.t / 6) * 0.06;
+  const shake = (fx.shake || fx.alert) && CUT.t < 0.8 ? (Math.random() - 0.5) * 10 : 0;
+  ctx.save(); ctx.translate(ox + shake, oy); ctx.scale(sc, sc);
+  ctx.beginPath(); ctx.rect(0, 0, 800, 450); ctx.clip();
+  ctx.translate(400, 225); ctx.scale(zoom, zoom); ctx.translate(-400, -225);
+  cutBg(s.bg, CUT.t + CUT.i * 3, ctx);
+  for (const a of s.actors || []) cutActor(a, CUT.t);
+  for (const p of CUT.smoke) { ctx.globalAlpha = Math.max(0, Math.min(0.55, p.life / 3)); ctx.fillStyle = '#d8d4e0'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  if (fx.haze) { ctx.fillStyle = `rgba(${120 + Math.sin(CUT.t) * 20},60,200,0.16)`; ctx.fillRect(0, 0, 800, 450); ctx.fillStyle = 'rgba(80,220,120,0.08)'; ctx.fillRect(0, 0, 800, 450); }
+  if (fx.eyes) { const o = Math.min(1, CUT.t / 1.2); ctx.globalCompositeOperation = 'lighter'; for (const ex of [506, 538]) { const gs = glowSprite('#00e6ff'); ctx.globalAlpha = o; ctx.drawImage(gs, ex - 22, 170 - 22, 44, 44); } ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+  ctx.restore();
+  if (CUT.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${CUT.flash})`; ctx.fillRect(0, 0, VW, VH); }
+  // title card: slash band like the show
+  if (s.cap) {
+    const p = Math.min(1, CUT.t / 0.35), cy = portrait ? oy + 450 * sc / 2 : VH * 0.42, bandH = Math.max(90, Math.min(150, VW * 0.2));
+    ctx.save(); ctx.translate(VW / 2, cy); ctx.rotate(-0.05); ctx.globalAlpha = p;
+    ctx.fillStyle = 'rgba(110,36,200,0.92)'; ctx.fillRect(-VW, -bandH / 2, VW * 2 * p, bandH);
+    ctx.fillStyle = '#ffd60a'; ctx.fillRect(-VW, -bandH / 2 - 6, VW * 2 * p, 6); ctx.fillRect(-VW, bandH / 2, VW * 2 * p, 6);
+    const big = Math.min(64, VW / (s.cap.length * 0.5 + 2));
+    ctx.font = `${big}px Anton, Impact`; ctx.textAlign = 'center'; ctx.lineWidth = 6; ctx.strokeStyle = '#140a1e'; ctx.strokeText(s.cap, 0, s.sub ? 6 : big * 0.35); ctx.fillStyle = '#ffd60a'; ctx.fillText(s.cap, 0, s.sub ? 6 : big * 0.35);
+    if (s.sub) { const f = Math.min(22, VW / (s.sub.length * 0.62 + 2)); ctx.font = `700 ${f}px Poppins, sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText(s.sub, 0, 6 + f + 14); }
+    ctx.restore();
+  }
+  // dialogue box with the speaker's face
+  if (s.lines && s.lines.length) {
+    const [who, text] = s.lines[CUT.li], sp = SPEAKER[who] || SPEAKER.perci;
+    const bx = 12, bw = VW - 24, by = portrait ? VH - boxH - 20 : VH - boxH - 12;
+    ctx.fillStyle = 'rgba(16,10,26,0.92)'; rr(ctx, bx, by, bw, boxH, 16); ctx.fill(); ctx.strokeStyle = sp.col; ctx.lineWidth = 3; ctx.stroke();
+    const fr = Math.min(36, boxH * 0.26), fx0 = bx + 18 + fr, fy0 = by + 18 + fr, img = IMG[sp.img];
+    ctx.save(); ctx.beginPath(); ctx.arc(fx0, fy0, fr, 0, Math.PI * 2); ctx.clip(); ctx.fillStyle = '#2a1a22'; ctx.fillRect(fx0 - fr, fy0 - fr, fr * 2, fr * 2);
+    if (img && img.complete && img.naturalWidth) ctx.drawImage(img, fx0 - fr * 1.35, fy0 - fr * 1.27, fr * 2.7, fr * 2.7); ctx.restore();
+    ctx.strokeStyle = sp.col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(fx0, fy0, fr, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = '24px Anton, Impact'; ctx.textAlign = 'left'; ctx.fillStyle = sp.col; ctx.fillText(sp.name, fx0 + fr + 14, by + 34);
+    const fs = Math.max(15, Math.min(21, VW / 30)); ctx.font = `600 ${fs}px Poppins, sans-serif`; ctx.fillStyle = '#fff';
+    const shown = text.slice(0, Math.floor(CUT.chars)), lines = wrapText(ctx, shown, bw - (fr * 2 + 60));
+    lines.slice(0, 5).forEach((ln, i) => ctx.fillText(ln, fx0 + fr + 14, by + 64 + i * (fs + 7)));
+    if (CUT.chars >= text.length) { ctx.font = '700 13px Poppins, sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = `rgba(255,214,10,${0.5 + 0.5 * Math.sin(t * 6)})`; ctx.fillText('TAP ▶', bx + bw - 16, by + boxH - 14); }
+  }
+}
+
+/* ----- slash-wipe transition between screens and levels ----- */
+let wiping = false;
+function wipe(mid) {
+  const w = $('wipe'); if (!w) { mid && mid(); return; }
+  if (wiping) { mid && mid(); return; }
+  wiping = true; w.className = 'in'; beep(180, 1400, 0.32, 'sawtooth', 0.02);
+  setTimeout(() => { try { mid && mid(); } catch (e) { console.error(e); } w.className = 'out'; setTimeout(() => { w.className = ''; wiping = false; }, 460); }, 460);
+}
+
+/* ----- chapter select + 18+ check ----- */
+function renderChapters() {
+  const list = $('chList'); if (!list) return;
+  list.innerHTML = CHAPTERS.map((ch) => {
+    const locked = ch.id > storyProg.unlocked, st = storyProg.stars[ch.id] || 0;
+    return `<button class="ch ${locked ? 'locked' : ''}" data-id="${ch.id}" ${locked ? 'disabled' : ''}>
+      <span class="num">${ch.id}</span><span class="body"><b>"${ch.title}"</b><small>${ch.place}</small><em>${locked ? '🔒 Clear chapter ' + (ch.id - 1) + ' to unlock' : ch.goal.text}</em></span>
+      <span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= st ? 'on' : ''}">★</i>`).join('')}</span></button>`;
+  }).join('');
+  list.querySelectorAll('.ch:not(.locked)').forEach((b) => (b.onclick = () => playChapter(+b.dataset.id)));
+  const total = Object.values(storyProg.stars).reduce((a, b) => a + b, 0);
+  $('chStars').textContent = `★ ${total} / ${CHAPTERS.length * 3}`;
+}
+function openStory() {
+  ac(); renderChapters();
+  const ok = localStorage.getItem('ps_adult') === '1';
+  $('ageGate').style.display = ok ? 'none' : ''; $('chWrap').style.display = ok ? '' : 'none';
+  wipe(() => showScreen('sStory'));
+}
+$('bStory').onclick = openStory;
+$('bAgeYes').onclick = () => { localStorage.setItem('ps_adult', '1'); $('ageGate').style.display = 'none'; $('chWrap').style.display = ''; renderChapters(); };
+$('bAgeNo').onclick = () => wipe(() => showScreen('sTitle'));
+$('bStoryBack').onclick = () => wipe(() => showScreen('sTitle'));
+$('bSeNext').onclick = () => { const n = CHAPTERS[storyLast.ch.id]; if (n) playChapter(n.id); };
+$('bSeRetry').onclick = () => { const ch = storyLast.ch; storyCh = ch; wipe(() => startStoryLevel(ch)); };
+$('bSeMenu').onclick = () => { renderChapters(); wipe(() => showScreen('sStory')); };
+$('cutSkip').onclick = (e) => { e.stopPropagation(); cutSkip(); };
+$('cutTap').addEventListener('pointerdown', (e) => { e.preventDefault(); cutTap(); });
+addEventListener('keydown', (e) => { if (state !== 'cut') return; if (e.code === 'Escape') cutSkip(); else if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); cutTap(); } });
+
 /* ---------------- loop ---------------- */
 resize();
 let last = performance.now();
@@ -1227,6 +1683,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = now / 1000;
   if (state === 'play') { if (MP.on && !MP.host) updateClient(dt); else { update(dt); if (MP.on && MP.host && G && state === 'play') mpHostTick(dt); } if (G) drawWorld(t); }
   else if (state === 'paused' && G) { drawWorld(t); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '52px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('PAUSED', VW / 2, VH / 2); ctx.font = '600 16px Poppins, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(TOUCH ? 'Tap the screen to resume' : 'Press P or click to resume', VW / 2, VH / 2 + 34); }
+  else if (state === 'cut') { cutStep(dt); drawCut(t); }
   else drawMenuBg(t);
   requestAnimationFrame(loop);
 }
@@ -1245,5 +1702,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { playChapter, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();

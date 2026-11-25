@@ -94,6 +94,44 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
   #covL{right:calc(202px + env(safe-area-inset-right));bottom:calc(161px + env(safe-area-inset-bottom))}
 }
 #sSettings{padding-top:calc(70px + env(safe-area-inset-top))}
+/* story mode */
+.btn.story{background:linear-gradient(90deg,#ffd60a,#ff8c28);color:var(--ink);position:relative}
+.btn.story small{font-family:Poppins;font-size:11px;background:var(--ink);color:#fff;border-radius:6px;padding:1px 6px;vertical-align:middle;margin-left:6px}
+#sStory,#sStoryEnd{padding-top:calc(70px + env(safe-area-inset-top))}
+#chList{display:flex;flex-direction:column;gap:10px;width:min(560px,100%)}
+.ch{display:flex;align-items:center;gap:12px;text-align:left;background:var(--panel);border:3px solid #3a3150;border-radius:16px;padding:10px 12px;color:#fff;cursor:pointer;touch-action:manipulation;width:100%}
+.ch:not(.locked):active{transform:scale(.98)}.ch:not(.locked){border-color:#6a4fa0}
+.ch .num{font-family:Anton;font-size:34px;color:var(--gold);min-width:34px;text-align:center}
+.ch .body{flex:1;display:flex;flex-direction:column;gap:1px}.ch b{font-family:Anton;font-weight:400;font-size:22px;letter-spacing:.5px}
+.ch small{color:var(--muted);font-size:12px}.ch em{font-style:normal;font-size:12px;color:#c070ff;font-weight:700}
+.ch .stars i{font-style:normal;color:#ffffff30;font-size:18px}.ch .stars i.on{color:var(--gold)}
+.ch.locked{opacity:.5;cursor:default}
+#seStars{font-size:46px;letter-spacing:6px;margin:4px 0}#seStars span{color:#ffffff25}#seStars span.on{color:var(--gold);text-shadow:0 0 18px rgba(255,214,10,.6)}
+#goal{position:absolute;top:calc(52px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-family:Anton;font-size:17px;background:rgba(110,36,200,.88);border:2px solid var(--gold);padding:3px 14px;border-radius:12px;white-space:nowrap}
+@media (max-width:720px){#goal{top:calc(84px + env(safe-area-inset-top));font-size:14px}#feed{top:calc(116px + env(safe-area-inset-top))}}
+@media (max-height:460px){#goal{top:calc(46px + env(safe-area-inset-top))}}
+body.story #feed{top:calc(124px + env(safe-area-inset-top))}
+@media (max-height:460px){body.story #feed{top:calc(80px + env(safe-area-inset-top))}}
+/* cutscenes */
+#cutUI{display:none;position:fixed;inset:0;z-index:30}
+body.cutting #cutUI{display:block}
+#cutTap{position:absolute;inset:0}
+#cutSkip{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));font-family:Anton;font-size:16px;background:#000a;color:#fff;border:2px solid #fff5;border-radius:10px;padding:6px 14px;touch-action:manipulation}
+body.cutting .previewTag{display:none}
+/* slash-wipe transition */
+#wipe{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden;display:none}
+#wipe.in,#wipe.out{display:block}
+#wipe .w1,#wipe .w2{position:absolute;top:-20%;bottom:-20%;width:140%;left:-20%;transform:skewX(-18deg) translateX(-130%)}
+#wipe .w1{background:#6e24c8}#wipe .w2{background:#ffd60a;width:150%;border-right:10px solid #141217}
+#wipe img{position:absolute;left:50%;top:50%;width:min(60vw,360px);transform:translate(-50%,-50%) scale(.6);opacity:0}
+#wipe.in .w2{animation:wIn .42s cubic-bezier(.7,0,.3,1) forwards}#wipe.in .w1{animation:wIn .42s .05s cubic-bezier(.7,0,.3,1) forwards}
+#wipe.in img{animation:wLogo .42s .12s forwards}
+#wipe.out .w1,#wipe.out .w2{transform:skewX(-18deg) translateX(0)}#wipe.out .w1{animation:wOut .44s cubic-bezier(.7,0,.3,1) forwards}#wipe.out .w2{animation:wOut .44s .06s cubic-bezier(.7,0,.3,1) forwards}
+#wipe.out img{opacity:1;transform:translate(-50%,-50%) scale(1);animation:wLogoOut .3s forwards}
+@keyframes wIn{to{transform:skewX(-18deg) translateX(0)}}
+@keyframes wOut{to{transform:skewX(-18deg) translateX(130%)}}
+@keyframes wLogo{to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes wLogoOut{to{opacity:0;transform:translate(-50%,-50%) scale(1.3)}}
 #sLobby,#sOnline{padding-top:calc(70px + env(safe-area-inset-top))}
 body.mp #autoBtn{right:calc(114px + env(safe-area-inset-right))}
 .how{font-size:14px;line-height:1.55}.how b{color:var(--gold)}
@@ -128,6 +166,8 @@ body.playing .previewTag{display:none}
 </style>
 </head>
 <body>
+<div id="wipe"><div class="w1"></div><div class="w2"></div><img src="assets/title.png" alt=""></div>
+<div id="cutUI"><div id="cutTap"></div><button id="cutSkip">SKIP &#9654;&#9654;</button></div>
 <div id="app">
 <canvas id="game"></canvas>
 
@@ -138,6 +178,7 @@ body.playing .previewTag{display:none}
   <div id="feed"></div>
   <div id="abil"></div>
   <div id="banner"></div>
+  <div id="goal" style="display:none"></div>
   <div class="ab" id="abBtn">POWER</div>
   <div id="inv"><button class="slot"></button><button class="slot"></button><button class="slot"></button><button class="slot"></button></div>
   <button class="cov" id="covL">&#9664;<br><small>COVER</small></button><button class="cov" id="covR">&#9654;<br><small>COVER</small></button>
@@ -161,7 +202,8 @@ body.playing .previewTag{display:none}
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
-  <button class="btn" id="bPlay">PLAY SOLO</button>
+  <button class="btn story" id="bStory">STORY MODE <small>18+</small></button>
+  <button class="btn" id="bPlay">QUICK MATCH</button>
   <button class="btn purple" id="bOnline">PLAY ONLINE</button>
   <button class="btn alt" id="bBoard">LEADERBOARD</button>
   <button class="btn alt small" id="bHow">HOW TO PLAY</button>
@@ -212,6 +254,33 @@ body.playing .previewTag{display:none}
   <button class="btn alt small" id="bLeave">LEAVE ROOM</button>
 </section>
 
+<!-- STORY: chapter select -->
+<section class="screen" id="sStory">
+  <h2>STORY MODE</h2>
+  <div id="ageGate" class="panel" style="text-align:center;max-width:480px">
+    <p style="font-family:Anton;font-size:26px;color:var(--gold);margin:4px 0">18+ ONLY</p>
+    <p>Story Mode has adult humor, cursing and cartoon weed use (Perci being Perci).</p>
+    <p class="muted">Are you 18 or older?</p>
+    <div class="row"><button class="btn" id="bAgeYes">I'M 18+</button><button class="btn alt" id="bAgeNo">NO, GO BACK</button></div>
+  </div>
+  <div id="chWrap">
+    <p class="muted" style="text-align:center;margin:0 0 8px">Play through Episodes 1-6. Clear a chapter to unlock the next. <b id="chStars" style="color:var(--gold)"></b></p>
+    <div id="chList"></div>
+  </div>
+  <button class="btn alt small" id="bStoryBack">BACK</button>
+</section>
+
+<!-- STORY: chapter results -->
+<section class="screen" id="sStoryEnd">
+  <div class="big" id="seTitle">CHAPTER CLEAR!</div>
+  <p class="muted" id="seSub"></p>
+  <div id="seStars"></div>
+  <div class="panel kv" id="seKV"></div>
+  <p class="muted" id="seTip" style="text-align:center;max-width:460px"></p>
+  <button class="btn" id="bSeNext">NEXT</button>
+  <div class="row"><button class="btn alt" id="bSeRetry">TRY AGAIN</button><button class="btn alt" id="bSeMenu">CHAPTERS</button></div>
+</section>
+
 <!-- SETTINGS -->
 <section class="screen" id="sSettings">
   <h2>SETTINGS</h2>
@@ -241,6 +310,7 @@ body.playing .previewTag{display:none}
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
     <p><b>Power-ups</b> (run over them to grab): they go into your <b>4 item slots</b> so you can use them when you need them. <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each. Slots full? Use one to grab more. (Online matches use power-ups right away.)</p>
     <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
+    <p><b>Story Mode (18+):</b> 6 chapters that follow Episodes 1-6, with short animated scenes between levels. Each chapter has its own goal (tag a number of bots, survive the clock, out-tag them, or beat the boss). Clear a chapter to unlock the next; earn up to 3 stars. Watch for <b style="color:#5dff7a">Dream Kush</b> (slows everything down) and <b style="color:#ff9f40">Might Be Castle munchies</b> (full shields).</p>
     <p><b>Online:</b> tap PLAY ONLINE, create a room and share the 4-letter code. The host picks <b>Team up vs bots</b> or <b>Team vs team</b>. Players marked with a star are real people. Tap the X twice to leave.</p>
     <p><b>Leaderboard:</b> post your score under your name and show it off. Top 50 all-time and today's best.</p>
   </div>

@@ -21,6 +21,13 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   green brackets show the bot it's helping you hit. Phone auto-fire is off by default (toggle in SETTINGS).
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
+- **Story Mode (18+):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
+  "DEEPER"). Each has an animated opening/closing scene (dialogue with character faces, title cards, skippable), its own
+  map and goal (tag N bots / survive / out-tag / boss: BROKE-PILOT PRIME), 3 stars, and unlocks the next chapter.
+  Slash-wipe transitions between screens. An 18+ check runs the first time. Adult humor and cursing; weed content
+  (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in chapters/scenes without the kids
+  (Miracle, Jessica, Mixi). Progress is saved on the device (localStorage `ps_story_v1`). Story scores don't go to
+  the leaderboard.
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.
