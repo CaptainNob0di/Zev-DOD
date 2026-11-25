@@ -23,7 +23,12 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   cargo crates and tall dividers.
 - **Story Mode (18+):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
   "DEEPER"). Each has an animated opening/closing scene (dialogue with character faces, title cards, skippable), its own
-  map and goal (tag N bots / survive / out-tag / boss: BROKE-PILOT PRIME), 3 stars, and unlocks the next chapter.
+  goal (tag N bots / survive / out-tag / boss: BROKE-PILOT PRIME), 3 stars, and unlocks the next chapter.
+  Each chapter is played in its episode's location, hand-built and mirrored so both sides are fair:
+  1 Building 8, 14th floor (shag carpet, plaid couch, CRT, 1987 kitchens) · 2 Building 8 stairwell & lobby (lights out,
+  EXIT signs, mailboxes) · 3 Might Be Castle lot (the castle, drive-thru, parked cars) · 4 Apt 5150 party (dance floor,
+  DJ booth, pool table, red cups) · 5 Highway 30 at night (corn rows, the family car with hazards on) · 6 the barn in
+  Iowa (stalls, hay, tractor, the 5-helmet dream rig).
   Slash-wipe transitions between screens. An 18+ check runs the first time. Adult humor and cursing; weed content
   (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in chapters/scenes without the kids
   (Miracle, Jessica, Mixi). Progress is saved on the device (localStorage `ps_story_v1`). Story scores don't go to
@@ -43,7 +48,8 @@ The public sees a "Coming soon" countdown until **Thu Dec 31, 2026, 6:00 PM CT**
 
 ## 1. Put it on the site
 1. Upload this whole folder to your site as `perci-game/` (so the game lives at `zevsocialconnect.com/perci-game/`).
-   Keep `index.html`, `game.js` and the `assets/` folder together.
+   Keep `index.html`, `game.js`, `arenas.js` and the `assets/` folder together.
+   (`arenas.js` is made by `tools/gen_arenas.py`; edit that script, not the .js, then run it again. It also writes the handheld's `src/arenas.lua`, so both games stay the same.)
 2. Add a button to `perci.html` (and the Perci Shorti section on the home page):
 
    ```html

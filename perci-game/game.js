@@ -80,7 +80,37 @@ function reachableShare() {
   for (const team of ['P', 'B']) for (let i = 0; i < 5; i++) { const p = spawnPoint(team, i), k = Math.floor(p.y / CELL) * GC + Math.floor(p.x / CELL); if (!seen[k]) return 0; }
   return n / Math.max(1, free);
 }
+// Story arenas: one hand-built location per chapter (data in arenas.js, made by arenas/gen.py, shared with the handheld)
+let ARENA = null;
+function loadArena(id) {
+  const a = (window.PS_ARENAS || []).find((x) => x.id === id);
+  if (!a) { buildArena(7); return; }
+  WORLD.w = a.w; WORLD.h = a.h;
+  const W = a.w, H = a.h, w = [];
+  w.push({ x: -60, y: -60, w: W + 120, h: 60, kind: 'edge' }, { x: -60, y: H, w: W + 120, h: 60, kind: 'edge' }, { x: -60, y: 0, w: 60, h: H, kind: 'edge' }, { x: W, y: 0, w: 60, h: H, kind: 'edge' });
+  for (const p of a.pieces) w.push({ x: p.x, y: p.y, w: p.w, h: p.h, kind: p.kind, z: p.z, ops: p.ops });
+  WALLS = w; SOLID = w.filter((o) => o.kind !== 'edge');
+  rebuildGrid();
+  ARENA = a; MAPNAME = a.name; MAPSEED = 0; STATIC = null;
+}
+// runs the paint ops written by arenas/gen.py
+function runOps(g, ops) {
+  for (const o of ops) {
+    const k = o[0];
+    if (k === 'r') { g.globalAlpha = o[6]; g.fillStyle = o[5]; g.fillRect(o[1], o[2], o[3], o[4]); }
+    else if (k === 'o') { g.globalAlpha = o[6]; g.strokeStyle = o[5]; g.lineWidth = o[7]; g.strokeRect(o[1], o[2], o[3], o[4]); }
+    else if (k === 'l') { g.globalAlpha = o[6]; g.strokeStyle = o[5]; g.lineWidth = o[7]; g.beginPath(); g.moveTo(o[1], o[2]); g.lineTo(o[3], o[4]); g.stroke(); }
+    else if (k === 'c') { g.globalAlpha = o[5]; g.fillStyle = o[4]; g.beginPath(); g.arc(o[1], o[2], o[3], 0, Math.PI * 2); g.fill(); }
+    else if (k === 'e') { g.globalAlpha = o[6]; g.fillStyle = o[5]; g.beginPath(); g.ellipse(o[1], o[2], Math.max(0.1, o[3]), Math.max(0.1, o[4]), 0, 0, Math.PI * 2); g.fill(); }
+    else if (k === 'p') { g.globalAlpha = o[3]; g.fillStyle = o[2]; const q = o[1]; g.beginPath(); g.moveTo(q[0], q[1]); for (let i = 2; i < q.length; i += 2) g.lineTo(q[i], q[i + 1]); g.closePath(); g.fill(); }
+    else if (k === 't') { g.globalAlpha = o[6]; g.fillStyle = o[5]; g.font = o[7] === 'A' ? `${o[4]}px Anton, Impact` : `bold ${o[4]}px Poppins, sans-serif`; g.textAlign = o[8] === 'c' ? 'center' : 'left'; g.textBaseline = 'top'; g.fillText(o[1], o[2], o[3]); }
+    else if (k === 'n') { const R = mulberry(o[11]); g.fillStyle = o[6]; for (let i = 0; i < o[5]; i++) { g.globalAlpha = o[7] + R() * (o[8] - o[7]); const s = o[9] + R() * (o[10] - o[9]); g.fillRect(o[1] + R() * o[3], o[2] + R() * o[4], s, s * 0.6); } }
+    else if (k === 'g') { g.globalAlpha = o[5]; g.globalCompositeOperation = 'lighter'; g.drawImage(glowSprite(o[4]), o[1] - o[3], o[2] - o[3], o[3] * 2, o[3] * 2); g.globalCompositeOperation = 'source-over'; }
+  }
+  g.globalAlpha = 1; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+}
 function buildArena(seed, forceStyle) {
+  ARENA = null;
   for (let attempt = 0; attempt < 30; attempt++) {
     const R = mulberry(seed + attempt * 7919);
     const pickS = R(), style = (forceStyle && MAP_STYLES.find((s) => s.name === forceStyle)) || MAP_STYLES[Math.floor(pickS * MAP_STYLES.length)];
@@ -514,6 +544,7 @@ function glowSprite(col, size = 128) {
 function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 2147483647); }
 function buildStatic() {
   const c = document.createElement('canvas'); c.width = WORLD.w; c.height = Math.ceil(WORLD.h * TILT); const g = c.getContext('2d'); const R = rng(7);
+  if (ARENA) return buildArenaStatic(c, g);
   g.save(); g.scale(1, TILT);
   // floor: concrete slabs with joints, scuffs, lane paint and safety stripes (tactical V10 look)
   const tint = MAPTINT;
@@ -548,6 +579,16 @@ function buildStatic() {
   g.restore();
   STATIC = c;
 }
+function buildArenaStatic(c, g) {
+  g.save(); g.scale(1, TILT);
+  runOps(g, ARENA.floor);
+  if (ARENA.dark) { g.fillStyle = `rgba(4,4,16,${ARENA.dark})`; g.fillRect(0, 0, WORLD.w, WORLD.h); }
+  g.restore();
+  g.fillStyle = 'rgba(0,0,0,0.32)';
+  for (const w of SOLID) { const z = w.z || 60; g.beginPath(); g.moveTo(w.x, (w.y + w.h) * TILT); g.lineTo(w.x + w.w, (w.y + w.h) * TILT); g.lineTo(w.x + w.w + z * 0.5, (w.y + w.h) * TILT + z * 0.16); g.lineTo(w.x + w.w + z * 0.5, w.y * TILT + z * 0.16); g.lineTo(w.x + w.w, w.y * TILT); g.closePath(); g.fill(); }
+  g.save(); g.scale(1, TILT); g.strokeStyle = '#8232dc'; g.lineWidth = 6; g.strokeRect(3, 3, WORLD.w - 6, WORLD.h - 6); g.restore();
+  STATIC = c;
+}
 function buildVignette() {
   const c = document.createElement('canvas'); c.width = Math.max(2, Math.round(VW / 2)); c.height = Math.max(2, Math.round(VH / 2)); const g = c.getContext('2d');
   const vg = g.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * 0.3, c.width / 2, c.height / 2, Math.max(c.width, c.height) * 0.72);
@@ -567,6 +608,13 @@ const OUTFIT = {
 function rr(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
 function wallSprite(w) {
   if (w.spr) return w.spr;
+  if (w.ops) {   // story arena prop: paint its ops once, with room above for antennas, towers and lamp glow
+    const top = Math.max(6, Math.round(w.h * TILT)), PX = 40, PT = 60, c = document.createElement('canvas');
+    c.width = w.w + PX * 2; c.height = top + w.z + PT + 20; const g = c.getContext('2d');
+    g.translate(PX, PT); runOps(g, w.ops);
+    w.spr = { c, z: w.z, top, ox: PX, oy: PT };
+    return w.spr;
+  }
   const z = WALL_Z[w.kind] || 60, top = Math.max(6, Math.round(w.h * TILT)), c = document.createElement('canvas');
   c.width = w.w + 6; c.height = top + z + 6; const g = c.getContext('2d'), R = rng(Math.abs(w.x * 7 + w.y * 13) + 1);
   g.translate(3, 3);
@@ -591,7 +639,7 @@ function drawWall(w, t) {
   const s = wallSprite(w);
   const hides = p && p.dead <= 0 && p.y < w.y + w.h && p.x > w.x - 26 && p.x < w.x + w.w + 26 && p.y * TILT > w.y * TILT - s.z - 4 && p.y * TILT - 125 < (w.y + w.h) * TILT;
   if (hides) ctx.globalAlpha = 0.42;
-  ctx.drawImage(s.c, w.x - 3, w.y * TILT - s.z - 3);
+  ctx.drawImage(s.c, w.x - (s.ox ?? 3), w.y * TILT - s.z - (s.oy ?? 3));
   ctx.globalAlpha = 1;
 }
 function drawGunArms(e, s, sa, shY, armCol, handCol, gunCol, F) {
@@ -1245,7 +1293,7 @@ const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(s
 let pendingStory = null, storyCh = null, storyDiffSave = null, storyLast = null;
 
 const CHAPTERS = [
-  { id: 1, title: 'WTF', place: 'CHICAGO • 1987 • BUILDING 8', style: 'BUILDING 8 HALLS', diff: 'easy', crew: [], bots: 3, time: 120,
+  { id: 1, title: 'WTF', place: 'CHICAGO • 1987 • BUILDING 8', arena: 'apt14', diff: 'easy', crew: [], bots: 3, time: 120,
     goal: { type: 'tags', n: 6, text: 'TAG 6 BOTS' }, extras: ['kush'],
     intro: [
       { bg: 'skyline', cap: 'CHAPTER 1', sub: '"WTF" • CHICAGO 1987', dur: 3 },
@@ -1257,7 +1305,7 @@ const CHAPTERS = [
     outro: [
       { bg: 'apartment', actors: [{ k: 'perci', x: 400, y: 380, s: 1.5 }], lines: [['perci', 'Six bots. In MY crib. On a Saturday.'], ['phone', 'Good question.'], ['perci', "I ain't even ask nothin'!"]] },
     ] },
-  { id: 2, title: 'LOG OUT', place: 'BUILDING 8 • THE STAIRWELL', style: 'DREAM GRID', diff: 'easy', crew: ['chatgpt'], bots: 5, time: 90,
+  { id: 2, title: 'LOG OUT', place: 'BUILDING 8 • THE STAIRWELL', arena: 'stair8', diff: 'easy', crew: ['chatgpt'], bots: 5, time: 90,
     goal: { type: 'survive', lives: 4, text: "SURVIVE 1:30 • DON'T GET TAGGED 4 TIMES" }, extras: ['kush'],
     intro: [
       { bg: 'skyline', cap: 'CHAPTER 2', sub: '"LOG OUT" • BUILDING 8', dur: 2.6 },
@@ -1269,7 +1317,7 @@ const CHAPTERS = [
       { bg: 'stairwell', actors: [{ k: 'chatgpt', x: 400, y: 390, s: 1.6 }], lines: [['chatgpt', "I'm not the bad guy, Perci."], ['chatgpt', 'Log out.']] },
       { bg: 'white', fx: { flash: 1 }, lines: [['perci', '...Log out of WHAT?']] },
     ] },
-  { id: 3, title: 'WAKE UP', place: 'NEBRASKA • PRESENT DAY', style: 'MIGHT BE CASTLE LOT', diff: 'normal', crew: [], bots: 4, time: 120,
+  { id: 3, title: 'WAKE UP', place: 'NEBRASKA • PRESENT DAY', arena: 'castle', diff: 'normal', crew: [], bots: 4, time: 120,
     goal: { type: 'tags', n: 10, text: 'TAG 10 BOTS • GRAB THE MUNCHIES' }, extras: ['kush', 'burger'],
     intro: [
       { bg: 'bedroom', cap: 'CHAPTER 3', sub: '"WAKE UP" • NEBRASKA • PRESENT DAY', dur: 2.8 },
@@ -1281,7 +1329,7 @@ const CHAPTERS = [
     outro: [
       { bg: 'castle', actors: [{ k: 'perci', x: 400, y: 400, s: 1.5 }], lines: [['perci', 'Ten bots and a double cheeseburger. Productive night.'], ['phone', 'Check on your daughter.']] },
     ] },
-  { id: 4, title: '5150', place: 'LINCOLN • BUILDING 8', style: 'BUILDING 8 HALLS', diff: 'normal', crew: ['miracle', 'jessica', 'chatgpt'], bots: 5, time: 120,
+  { id: 4, title: '5150', place: 'LINCOLN • BUILDING 8', arena: 'apt5150', diff: 'normal', crew: ['miracle', 'jessica', 'chatgpt'], bots: 5, time: 120,
     goal: { type: 'win', text: "OUT-TAG BROKE-PILOT'S CREW" }, extras: ['burger'],
     intro: [
       { bg: 'party', cap: 'CHAPTER 4', sub: '"5150" • LINCOLN', dur: 2.6 },
@@ -1292,7 +1340,7 @@ const CHAPTERS = [
     outro: [
       { bg: 'party', actors: [{ k: 'perci', x: 330, y: 400, s: 1.5 }, { k: 'miracle', x: 470, y: 400, s: 1.35, f: -1 }], lines: [['miracle', 'You actually came!'], ['perci', "Always, baby girl. Now let's get you home."]] },
     ] },
-  { id: 5, title: 'PICK UP', place: 'HIGHWAY 30 • NIGHT', style: 'CORN MAZE', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 5, time: 150,
+  { id: 5, title: 'PICK UP', place: 'HIGHWAY 30 • NIGHT', arena: 'hwy30', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 5, time: 150,
     goal: { type: 'tags', n: 15, text: 'TAG 15 BOTS' }, extras: ['burger'],
     intro: [
       { bg: 'car', cap: 'CHAPTER 5', sub: '"PICK UP" • HIGHWAY 30', dur: 2.6 },
@@ -1303,7 +1351,7 @@ const CHAPTERS = [
     outro: [
       { bg: 'car', lines: [['perci', 'Everybody good? ...Who said Inception?'], ['chatgpt', 'Iowa. A barn. Trust me.']] },
     ] },
-  { id: 6, title: 'DEEPER', place: 'IOWA • THE BARN', style: 'THE BARN', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 3, boss: true, time: 180,
+  { id: 6, title: 'DEEPER', place: 'IOWA • THE BARN', arena: 'barn', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 3, boss: true, time: 180,
     goal: { type: 'boss', text: 'TAG BROKE-PILOT PRIME' }, extras: ['burger'],
     intro: [
       { bg: 'barn', cap: 'CHAPTER 6', sub: '"DEEPER" • IOWA', dur: 2.6 },
@@ -1349,7 +1397,7 @@ function makeBoss() {
 
 function startStoryLevel(ch) {
   storyDiffSave = diff; diff = ch.diff;
-  buildArena(ch.id * 1000 + 7, ch.style);
+  loadArena(ch.arena);
   const P = [newEntity('P', 'perci', 2, true)].concat(ch.crew.map((k, i) => newEntity('P', k, [1, 3, 0, 4][i], false)));
   const order = [2, 1, 3, 0, 4], B = [];
   for (let i = 0; i < ch.bots; i++) B.push(newEntity('B', 'bot', order[i], false));
@@ -1702,5 +1750,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { playChapter, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { playChapter, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();
