@@ -40,6 +40,18 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
 - **Center line (all modes):** a laser line splits every map down the middle. Each team stays on its own half; lasers
   cross it. Bots hold their side instead of chasing over, power-ups alternate halves, and Story items spawn on Perci's
   side. Every map (random or story) is checked so each half is one connected area with all 5 of its spawns.
+- **Push the line:** every tag moves the center line about a body-length into the other team's half (the bar at the
+  bottom of the screen shows it). Push it all the way to their side and you win on the spot. Story chapters count it too:
+  get your line pushed all the way back and the chapter is lost.
+- **Dream / real flip:** every 45 seconds, after any 3-tag streak, or when someone grabs a spinning top, the arena flips
+  between the dream and the real world. Real world: no powers or power-ups, everyone slower (Perci on crutches even
+  slower), lasers bounce off walls once, washed-out look, texts from ChatGPT/Bae/Mixi. Story chapters 3-5 start awake.
+- **Arena events (one per map):** Lights Out (Building 8, both eras), Twister (Perci's house, Corn Maze), Rogue Vacuums
+  (Miracle's house, School Gym), Signal Strikes (Building 8 Lincoln, Might Be Castle Lot, Dream Grid), Dream Rig Pulse
+  (the barn). Events can tag people but never give a team a point.
+- **BROKE-pilot report card:** live grade on the HUD, A+ / A++ stamps on tags, F when you get tagged, and a report card
+  (Tagging, Aim, Staying Alive, Line Control, Hustle) at the end of every match and chapter. SAVE REPORT CARD makes a
+  1080x1350 image and opens the phone's share sheet (or downloads it on a computer).
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.
