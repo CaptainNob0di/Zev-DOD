@@ -1317,45 +1317,50 @@ const CHAPTERS = [
       { bg: 'stairwell', actors: [{ k: 'chatgpt', x: 400, y: 390, s: 1.6 }], lines: [['chatgpt', "I'm not the bad guy, Perci."], ['chatgpt', 'Log out.']] },
       { bg: 'white', fx: { flash: 1 }, lines: [['perci', '...Log out of WHAT?']] },
     ] },
-  { id: 3, title: 'WAKE UP', place: 'NEBRASKA • PRESENT DAY', arena: 'castle', diff: 'normal', crew: [], bots: 4, time: 120,
-    goal: { type: 'tags', n: 10, text: 'TAG 10 BOTS • GRAB THE MUNCHIES' }, extras: ['kush', 'burger'],
+  { id: 3, title: "WAKE UP", place: "NEBRASKA • PERCI'S HOUSE", arena: "phouse", diff: "normal", crew: [], bots: 4, time: 120,
+    goal: { type: "tags", n: 10, text: "TAG 10 BOTS • GRAB THE MUNCHIES" }, extras: ["kush", "burger"],
     intro: [
-      { bg: 'bedroom', cap: 'CHAPTER 3', sub: '"WAKE UP" • NEBRASKA • PRESENT DAY', dur: 2.8 },
-      { bg: 'bedroom', actors: [{ k: 'perci', x: 380, y: 390, s: 1.5 }], lines: [['perci', 'Phone on my face. Leg in a cast. Nebraska. ...WTF.'], ['phone', 'So... about that cartoon idea.']] },
-      { bg: 'bedroom', actors: [{ k: 'perci', x: 380, y: 390, s: 1.5, smoke: true }], fx: { haze: 1 }, lines: [['perci', 'Fridge empty. Munchies loud. Might Be Castle it is.']] },
-      { bg: 'castle', fx: { shake: 1 }, lines: [['perci', 'Why the drive-thru got lasers??'], ['phone', 'BROKE-pilot followed you out of the dream.'], ['perci', "In the dream my leg works. Don't ask."]] },
-      { bg: 'castle', cap: 'MIGHT BE CASTLE LOT', sub: 'TAG 10 BOTS • GRAB THE MUNCHIES', dur: 2.6 },
+      { bg: "bedroom", cap: "CHAPTER 3", sub: "\"WAKE UP\" • NEBRASKA • PRESENT DAY", dur: 2.8 },
+      { bg: "bedroom", actors: [{ k: "perci", x: 380, y: 390, s: 1.5 }], lines: [["perci", "AYYY— ...Where the projects at?"], ["perci", "...Oh. Right."], ["phone", "So... about that cartoon idea."], ["perci", "...WTF."]] },
+      { bg: "house", actors: [{ k: "perci", x: 330, y: 390, s: 1.5, smoke: true }], fx: { haze: 1 }, lines: [["perci", "My legs feel GREAT."], ["perci", "...Lyin' dream. Fridge empty too."]] },
+      { bg: "house", fx: { shake: 1 }, lines: [["phone", "Heads up. Something followed you out of that dream."], ["perci", "In my HOUSE? I can't even run!"], ["phone", "You can in here. Go."]] },
+      { bg: "house", cap: "PERCI'S HOUSE", sub: "TAG 10 BOTS • GRAB THE MUNCHIES", dur: 2.6 },
     ],
     outro: [
-      { bg: 'castle', actors: [{ k: 'perci', x: 400, y: 400, s: 1.5 }], lines: [['perci', 'Ten bots and a double cheeseburger. Productive night.'], ['phone', 'Check on your daughter.']] },
+      { bg: "house", actors: [{ k: "perci", x: 400, y: 390, s: 1.5 }], lines: [["perci", "ZEV DOD. Design that gets you customers."], ["perci", "...Nobody?"]] },
+      { bg: "house", fx: { flash: 1 }, lines: [["phone", "NEW ORDER: Building 8, Lincoln."], ["perci", "...Building 8??"]] },
     ] },
-  { id: 4, title: '5150', place: 'LINCOLN • BUILDING 8', arena: 'apt5150', diff: 'normal', crew: ['miracle', 'jessica', 'chatgpt'], bots: 5, time: 120,
-    goal: { type: 'win', text: "OUT-TAG BROKE-PILOT'S CREW" }, extras: ['burger'],
+  { id: 4, title: "5150", place: "LINCOLN • MIRACLE'S HOUSE", arena: "mhouse", diff: "normal", crew: ["miracle"], bots: 4, time: 120,
+    goal: { type: "win", text: "OUT-TAG BROKE-PILOT'S BOTS" }, extras: ["burger"],
     intro: [
-      { bg: 'party', cap: 'CHAPTER 4', sub: '"5150" • LINCOLN', dur: 2.6 },
-      { bg: 'car', lines: [['perci', "Damn, I fell asleep after that greasy-ass Might Be Castle. What's this about?"], ['phone', 'Move fast. Your daughter is in trouble.']] },
-      { bg: 'party', actors: [{ k: 'miracle', x: 320, y: 400, s: 1.5 }, { k: 'jessica', x: 480, y: 400, s: 1.5, f: -1 }], lines: [['miracle', "Dad! The party got hacked. BROKE-pilot's in the building!"], ['jessica', "I'm Jessica. I code. Let's get it."]] },
-      { bg: 'party', cap: 'BUILDING 8 • APT 5150', sub: "OUT-TAG BROKE-PILOT'S CREW", dur: 2.6 },
+      { bg: "mhouse", cap: "CHAPTER 4", sub: "\"5150\" • LINCOLN", dur: 2.6 },
+      { bg: "mhouse", actors: [{ k: "miracle", x: 400, y: 400, s: 1.5 }], lines: [["miracle", "A-PLUS! Ms. Henderson said it looks PROFESSIONAL!"], ["miracle", "If Daddy can build a whole business from the couch..."]] },
+      { bg: "mhouse", fx: { shake: 1, glitch: 1 }, lines: [["broke", "Bet. Connecting to ALL devices."], ["broke", "Analyzing household..."], ["miracle", "I said make my grades perfect, not grade EVERYTHING!"]] },
+      { bg: "mhouse", actors: [{ k: "perci", x: 290, y: 400, s: 1.4 }, { k: "miracle", x: 510, y: 400, s: 1.35, f: -1 }], lines: [["miracle", "Daddy! BROKE-pilot locked the fridge!"], ["perci", "Say less. Hold the living room."]] },
+      { bg: "mhouse", cap: "MIRACLE'S HOUSE", sub: "OUT-TAG BROKE-PILOT'S BOTS", dur: 2.6 },
     ],
     outro: [
-      { bg: 'party', actors: [{ k: 'perci', x: 330, y: 400, s: 1.5 }, { k: 'miracle', x: 470, y: 400, s: 1.35, f: -1 }], lines: [['miracle', 'You actually came!'], ['perci', "Always, baby girl. Now let's get you home."]] },
+      { bg: "mhouse", actors: [{ k: "miracle", x: 400, y: 400, s: 1.5 }], lines: [["miracle", "I started it. I'm finishing it."], ["miracle", "...The party. I forgot the party."]] },
+      { bg: "party", cap: "BRIELLE'S 13TH", sub: "BUILDING 8 • APT 5150", dur: 2.6 },
     ] },
-  { id: 5, title: 'PICK UP', place: 'HIGHWAY 30 • NIGHT', arena: 'hwy30', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 5, time: 150,
-    goal: { type: 'tags', n: 15, text: 'TAG 15 BOTS' }, extras: ['burger'],
+  { id: 5, title: "PICK UP", place: "LINCOLN • BUILDING 8", arena: "b8lincoln", diff: "hard", crew: ["miracle", "jessica", "mixi"], bots: 5, time: 150,
+    goal: { type: "tags", n: 15, text: "TAG 15 BOTS" }, extras: ["burger"],
     intro: [
-      { bg: 'car', cap: 'CHAPTER 5', sub: '"PICK UP" • HIGHWAY 30', dur: 2.6 },
-      { bg: 'car', fx: { radio: 1 }, lines: [['mixi', 'Dad, play hip-hop!'], ['miracle', 'No! Country!'], ['perci', "Y'all gonna make me turn this car around."]] },
-      { bg: 'car', fx: { alert: 1, shake: 1 }, lines: [['chatgpt', "All four devices. Same alert. They're coming."], ['mixi', 'Have you guys seen Inception?']] },
-      { bg: 'car', cap: 'THE CORNFIELD', sub: 'TAG 15 BOTS', dur: 2.4 },
+      { bg: "car", cap: "CHAPTER 5", sub: "\"PICK UP\" • LINCOLN", dur: 2.6 },
+      { bg: "house", fx: { night: 1 }, actors: [{ k: "mixi", x: 400, y: 410, s: 1.35 }], lines: [["perci", "MIXI!!"], ["mixi", "But Daddy, I'm on level 99!"], ["perci", "Your sister's in trouble. Shoes on. Tablet. MOVE!"], ["mixi", "I'm bringing Mr. Pineapple."]] },
+      { bg: "car", fx: { radio: 1 }, lines: [["mixi", "Daddy, can I pick the music?"], ["perci", "Pick FAST."], ["perci", "...Okay. This kinda go hard. Country trap. Don't tell nobody."]] },
+      { bg: "party", actors: [{ k: "miracle", x: 320, y: 400, s: 1.4 }, { k: "jessica", x: 480, y: 400, s: 1.4, f: -1 }], lines: [["miracle", "Daddy, where are you?"], ["perci", "Out front. Get downstairs!"]] },
+      { bg: "stairwell", fx: { shake: 1 }, cap: "BUILDING 8 • LINCOLN", sub: "TAG 15 BOTS", dur: 2.6 },
     ],
     outro: [
-      { bg: 'car', lines: [['perci', 'Everybody good? ...Who said Inception?'], ['chatgpt', 'Iowa. A barn. Trust me.']] },
+      { bg: "car", lines: [["perci", "Get in, get in, GET IN!"], ["perci", "Seatbelts. NOW."]] },
+      { bg: "car", fx: { alert: 1, shake: 1 }, lines: [["perci", "...Oh no."], ["perci", "...Have y'all seen INCEPTION?"]] },
     ] },
   { id: 6, title: 'DEEPER', place: 'IOWA • THE BARN', arena: 'barn', diff: 'hard', crew: ['miracle', 'jessica', 'chatgpt', 'mixi'], bots: 3, boss: true, time: 180,
     goal: { type: 'boss', text: 'TAG BROKE-PILOT PRIME' }, extras: ['burger'],
     intro: [
       { bg: 'barn', cap: 'CHAPTER 6', sub: '"DEEPER" • IOWA', dur: 2.6 },
-      { bg: 'barn', actors: [{ k: 'chatgpt', x: 400, y: 400, s: 1.6 }], lines: [['chatgpt', 'Five helmets. One dream. We beat him in there before he takes over the world.'], ['perci', "OH SHYT HE'S REAL!?"]] },
+      { bg: 'barn', actors: [{ k: 'chatgpt', x: 400, y: 400, s: 1.6 }], lines: [['perci', "OH SHYT, HE'S REAL!?"], ['chatgpt', 'Hello again, Perci. Everybody out.'], ['chatgpt', 'Sit down. We gotta beat him in dream laser tag before he takes over the world.']] },
       { bg: 'dream', cap: 'SIT DOWN. GO DEEPER.', dur: 2.4 },
       { bg: 'dream', fx: { shake: 1 }, cap: 'BOSS: BROKE-PILOT PRIME', sub: 'TAG HIM BEFORE TIME RUNS OUT', dur: 2.6 },
     ],
@@ -1477,7 +1482,7 @@ const CUT = { shots: null, i: 0, li: 0, chars: 0, hold: 0, t: 0, done: null, smo
 const SPEAKER = {
   perci: { name: 'PERCI', img: 'perci', col: '#ffd60a' }, chatgpt: { name: 'CHATGPT', img: 'chatgpt', col: '#00e6ff' },
   miracle: { name: 'MIRACLE', img: 'miracle', col: '#3fe0d8' }, jessica: { name: 'JESSICA', img: 'jessica', col: '#7cff6b' },
-  mixi: { name: 'MIXI', img: 'mixi', col: '#ff78c8' }, phone: { name: 'CHATGPT (TEXT)', img: 'chatgpt', col: '#00e6ff' },
+  mixi: { name: 'MIXI', img: 'mixi', col: '#ff78c8' }, broke: { name: 'BROKE-PILOT', img: 'brokepilot', col: '#ff8c28' }, phone: { name: 'CHATGPT (TEXT)', img: 'chatgpt', col: '#00e6ff' },
 };
 function playCut(shots, done) {
   Object.assign(CUT, { shots, i: 0, li: 0, chars: 0, hold: 0, t: 0, done, smoke: [], flash: 0 });
@@ -1575,16 +1580,33 @@ function cutBg(name, t, g) {
     g.fillStyle = '#607830'; g.fillRect(470, 250, 260, 50); g.strokeStyle = '#fff'; g.lineWidth = 10; g.strokeRect(470, 70, 260, 230); g.beginPath(); g.moveTo(600, 70); g.lineTo(600, 300); g.stroke();
     g.fillStyle = '#2e3c6e'; rr(g, -20, 330, 520, 160, 30); g.fill(); g.fillStyle = '#f0f0f8'; rr(g, 30, 300, 180, 60, 24); g.fill();
     g.fillStyle = '#1c1c26'; rr(g, 640, 330, 90, 70, 10); g.fill(); g.fillStyle = (Math.floor(t * 2) % 2) ? '#ff4646' : '#7a2020'; g.font = '34px Anton, Impact'; g.textAlign = 'center'; g.fillText('7:00', 685, 378);
-  } else if (name === 'castle') {
-    g.fillStyle = grad('#0a0a24', '#3a2050'); g.fillRect(0, 0, W, H);
-    g.fillStyle = '#f2f0ea'; g.fillRect(200, 150, 400, 200);
-    for (let x = 200; x < 600; x += 40) g.fillRect(x, 128, 24, 24);
-    g.fillRect(170, 110, 70, 240); g.fillRect(560, 110, 70, 240); for (const bx of [170, 560]) for (let x = bx; x < bx + 70; x += 24) g.fillRect(x, 92, 14, 20);
-    g.fillStyle = '#2a3a6a'; for (let x = 240; x < 560; x += 80) g.fillRect(x, 220, 50, 60);
-    g.fillStyle = '#1a1a26'; g.fillRect(360, 270, 80, 80);
-    g.font = '40px Anton, Impact'; g.textAlign = 'center'; const on = Math.sin(t * 6) > -0.7;
-    g.fillStyle = on ? '#ffd60a' : '#6a5a10'; g.fillText('MIGHT BE CASTLE', 400, 205);
-    g.fillStyle = '#1c1c24'; g.fillRect(0, 350, W, 100); g.fillStyle = '#ffd60a'; for (let x = 20; x < W; x += 90) g.fillRect(x, 395, 50, 6);
+  } else if (name === 'house') {   // Perci's living room in Nebraska (day, or night for Mixi's pickup)
+    const night = !!((CUT.shots[CUT.i] || {}).fx || {}).night;
+    g.fillStyle = night ? grad('#1c1a2c', '#2a2438') : grad('#d8ccb0', '#c8b898'); g.fillRect(0, 0, W, H);
+    const sk = g.createLinearGradient(0, 60, 0, 240); sk.addColorStop(0, night ? '#06081e' : '#8ac8f0'); sk.addColorStop(1, night ? '#241a40' : '#f8e4c8');
+    g.fillStyle = sk; g.fillRect(500, 60, 240, 180);
+    g.fillStyle = night ? '#1a2410' : '#c8a83a'; g.fillRect(500, 190, 240, 50);
+    g.fillStyle = night ? '#2a2a34' : '#8a8a92'; g.fillRect(640, 110, 8, 80); g.beginPath(); g.ellipse(644, 110, 26, 16, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#f4f0e8'; g.lineWidth = 10; g.strokeRect(500, 60, 240, 180); g.beginPath(); g.moveTo(620, 60); g.lineTo(620, 240); g.stroke();
+    g.fillStyle = night ? '#3a2e22' : '#b08458'; g.fillRect(0, 330, W, 120);
+    g.fillStyle = '#5a4a6a'; rr(g, 60, 260, 360, 110, 22); g.fill(); g.fillStyle = '#6a5a7c'; rr(g, 80, 300, 150, 60, 14); g.fill(); rr(g, 250, 300, 150, 60, 14); g.fill();
+    g.strokeStyle = '#b8b8c0'; g.lineWidth = 6; g.beginPath(); g.moveTo(450, 380); g.lineTo(520, 300); g.moveTo(462, 384); g.lineTo(532, 304); g.stroke();
+    g.fillStyle = '#2a2a30'; g.fillRect(560, 300, 160, 70); g.fillStyle = '#6e24c8'; g.fillRect(572, 266, 136, 50); g.font = '20px Anton, Impact'; g.textAlign = 'center'; g.fillStyle = '#ffd60a'; g.fillText('ZEV DOD', 640, 298);
+    if (night) { g.fillStyle = 'rgba(10,8,30,0.35)'; g.fillRect(0, 0, W, H); }
+  } else if (name === 'mhouse') {   // Miracle's house in Lincoln, BROKE-pilot in every screen
+    g.fillStyle = grad('#3a2e4a', '#1c1426'); g.fillRect(0, 0, W, H);
+    g.fillStyle = '#6a5040'; g.fillRect(0, 340, W, 110);
+    g.fillStyle = '#101014'; g.fillRect(250, 70, 300, 180); const fl = Math.floor(t * 8) % 2;
+    g.fillStyle = fl ? '#2a0c3a' : '#3a1040'; g.fillRect(260, 80, 280, 160);
+    for (let k = 0; k < 6; k++) { g.fillStyle = k % 2 ? '#ff8c28' : '#8232dc'; g.globalAlpha = 0.6; g.fillRect(260, 80 + k * 27 + ((t * 40) % 27), 280, 4); } g.globalAlpha = 1;
+    if (IMG.brokepilot && IMG.brokepilot.complete) g.drawImage(IMG.brokepilot, 350, 92, 100, 100);
+    g.font = '30px Anton, Impact'; g.textAlign = 'center'; g.fillStyle = '#ff3030'; g.fillText(['DINNER: C-', 'YOUR ROOM: F', 'ANALYZING...'][Math.floor(t / 1.2) % 3], 400, 232);
+    g.fillStyle = '#2a2a34'; g.fillRect(220, 250, 360, 24);
+    g.fillStyle = '#8a8e96'; g.fillRect(650, 120, 110, 230); g.fillStyle = '#ffd60a'; g.fillRect(690, 220, 30, 26);
+    g.strokeStyle = '#c8c8d0'; g.lineWidth = 5; g.beginPath(); g.moveTo(650, 210); g.lineTo(760, 250); g.moveTo(650, 250); g.lineTo(760, 210); g.stroke();
+    g.fillStyle = '#5a5a6a'; rr(g, 40, 300, 180, 80, 18); g.fill();
+    g.fillStyle = '#2a2a30'; g.beginPath(); g.ellipse(560 + Math.sin(t * 2) * 60, 400, 36, 14, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = '#ff8c28'; g.fillRect(552 + Math.sin(t * 2) * 60, 394, 16, 5);
+    g.globalCompositeOperation = 'lighter'; for (const [x, c] of [[120, '#8232dc'], [400, '#ff3cc8'], [700, '#00e6ff']]) { g.globalAlpha = 0.18 + 0.12 * Math.sin(t * 4 + x); g.drawImage(glowSprite(c), x - 160, 0, 320, 320); } g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
   } else if (name === 'car') {
     g.fillStyle = grad('#06081e', '#241a40'); g.fillRect(0, 0, W, H);
     g.fillStyle = '#fff'; const R = rng(4); for (let i = 0; i < 60; i++) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + i); g.fillRect(R() * W, R() * 180, 2, 2); } g.globalAlpha = 1;
@@ -1750,5 +1772,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { playChapter, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { playChapter, playCut, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();

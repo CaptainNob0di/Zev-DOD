@@ -24,15 +24,16 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
 - **Story Mode (18+):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
   "DEEPER"). Each has an animated opening/closing scene (dialogue with character faces, title cards, skippable), its own
   goal (tag N bots / survive / out-tag / boss: BROKE-PILOT PRIME), 3 stars, and unlocks the next chapter.
-  Each chapter is played in its episode's location, hand-built and mirrored so both sides are fair:
-  1 Building 8, 14th floor (shag carpet, plaid couch, CRT, 1987 kitchens) · 2 Building 8 stairwell & lobby (lights out,
-  EXIT signs, mailboxes) · 3 Might Be Castle lot (the castle, drive-thru, parked cars) · 4 Apt 5150 party (dance floor,
-  DJ booth, pool table, red cups) · 5 Highway 30 at night (corn rows, the family car with hazards on) · 6 the barn in
-  Iowa (stalls, hay, tractor, the 5-helmet dream rig).
-  Slash-wipe transitions between screens. An 18+ check runs the first time. Adult humor and cursing; weed content
-  (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in chapters/scenes without the kids
-  (Miracle, Jessica, Mixi). Progress is saved on the device (localStorage `ps_story_v1`). Story scores don't go to
-  the leaderboard.
+  Each chapter is played where its episode actually happens (checked against the episode scripts):
+  1 Building 8, 14th floor, Chicago 1987 (shag carpet, plaid couch, CRT) · 2 Building 8 stairwell & lobby, 1987 (lights out,
+  EXIT signs, mailboxes) · 3 Perci's house in Nebraska (bedroom with the 7:00 alarm, THE couch, empty fridge, ZEV DOD
+  laptop; bots come in from the backyard cornfield) · 4 Miracle's house in Lincoln after BROKE-pilot takes over (TV
+  grading everything, locked fridge, rogue vacuums, Monroe Realty office; bots pour out of the garage) · 5 Building 8 in
+  Lincoln at pickup (Perci's car at the curb, the lobby, the stairwell) · 6 the barn in Iowa (stalls, hay, tractor,
+  the 5-helmet dream rig). The scenes before and after each chapter use the episodes' own lines.
+  Adult humor and cursing; weed content (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in
+  chapters/scenes without the kids (Miracle, Jessica, Mixi). Progress is saved on the device (localStorage `ps_story_v1`).
+  Story scores don't go to the leaderboard.
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.

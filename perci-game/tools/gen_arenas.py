@@ -63,11 +63,6 @@ def p_wall(o, w, T, Z, R, a):            # 1987 wood paneling
     o.r(0, T, w, 6, '#7a5634')
     o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
 
-def p_pwall(o, w, T, Z, R, a):           # party apartment: purple paint + neon strip
-    box(o, w, T, Z, '#2a1d3e', '#4a2f70')
-    o.r(4, T + Z * 0.35, w - 8, 3, '#ff3cc8', 0.9)
-    o.g(w / 2, T + Z * 0.35, min(120, w / 2), '#ff3cc8', 0.12)
-    o.r(0, T + Z - 8, w, 8, '#1c1228')
 
 def p_brick(o, w, T, Z, R, a):           # cinder-block stairwell wall
     o.r(0, 0, w, T, '#55555c'); o.n(0, 0, w, T, w * T / 80, '#3a3a40', 0.5, 0.9, 2, 4, 5)
@@ -113,13 +108,6 @@ def p_counter(o, w, T, Z, R, a):         # kitchen counter, cabinets
         o.o(x, T + 8, 40, Z - 16, '#4a2c14', 1, 2); o.r(x + 18, T + 14, 4, 10, '#d0c090')
     o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
 
-def p_island(o, w, T, Z, R, a):          # party kitchen island with red cups
-    p_counter(o, w, T, Z, R, a)
-    rr = random.Random(int(w * 31 + T))
-    for _ in range(int(w // 18)):
-        x, y = rr.uniform(10, w - 10), rr.uniform(6, T - 6)
-        o.c(x, y, 5, '#d81e2a'); o.c(x, y, 3, '#f4f4f4', 0.8)
-    o.r(w * 0.7, 4, 8, T - 10, '#2a7a3a')
 
 def p_table(o, w, T, Z, R, a):           # wood table
     o.r(0, 0, w, T, '#8a5a30');
@@ -129,10 +117,15 @@ def p_table(o, w, T, Z, R, a):           # wood table
     for x in (4, w - 12): o.r(x, T + 8, 8, Z - 8, '#4a2c12')
     o.o(0, 0, w, T, OUT, 1, 3)
 
-def p_fridge(o, w, T, Z, R, a):          # avocado green fridge
-    box(o, w, T, Z, '#7c8a3a', '#8e9c44')
-    o.l(0, T + Z * 0.35, w, T + Z * 0.35, '#4a5420', 1, 2)
+def p_fridge(o, w, T, Z, R, a):          # fridge: 1987 avocado green, or stainless / white
+    top, front = {'steel': ('#8a8e96', '#b8bcc4'), 'white': ('#c8c8c0', '#ecece4')}.get(a.get('style'), ('#7c8a3a', '#8e9c44'))
+    box(o, w, T, Z, top, front)
+    o.l(0, T + Z * 0.35, w, T + Z * 0.35, hexc(front, 0.6), 1, 2)
     o.r(w - 12, T + 10, 5, Z * 0.2, '#e0e0d0'); o.r(w - 12, T + Z * 0.45, 5, Z * 0.3, '#e0e0d0')
+    if a.get('lock'):   # BROKE-pilot locked it
+        for k in range(6): o.c(w * 0.12 + k * w * 0.15, T + Z * 0.42 + (k % 2) * 4, 5, '#9a9aa2')
+        o.r(w / 2 - 9, T + Z * 0.48, 18, 16, '#ffd60a'); o.o(w / 2 - 9, T + Z * 0.48, 18, 16, OUT, 1, 2)
+        o.g(w / 2, T + Z * 0.5, 60, '#ff8c28', 0.4)
 
 def p_pillar(o, w, T, Z, R, a):          # concrete column
     box(o, w, T, Z, '#7a7a82', '#5e5e66')
@@ -166,20 +159,6 @@ def p_mailbox(o, w, T, Z, R, a):         # brass mailbox bank
         for x in range(6, int(w) - 18, 22):
             o.o(x, y, 18, 12, '#4a3a14', 1, 2); o.c(x + 14, y + 6, 2, '#e0c870')
 
-def p_castle(o, w, T, Z, R, a):          # Might Be Castle restaurant
-    o.r(0, 0, w, T, '#5a5a62'); o.n(0, 0, w, T, w * T / 120, '#44444c', 0.5, 0.9, 2, 6, 11)
-    o.r(w * 0.2, T * 0.25, 60, 40, '#8a8a92'); o.o(w * 0.2, T * 0.25, 60, 40, OUT, 1, 2)   # AC unit
-    o.r(w * 0.65, T * 0.4, 50, 34, '#8a8a92'); o.o(w * 0.65, T * 0.4, 50, 34, OUT, 1, 2)
-    o.r(0, T, w, Z, '#f2f0ea')
-    for x in range(0, int(w), 40): o.r(x, T - 14, 24, 16, '#f2f0ea'); o.o(x, T - 14, 24, 16, OUT, 1, 2)
-    for x in (0, w - 50):                                            # corner towers
-        o.r(x, T - 30, 50, Z + 30, '#e4e2dc'); o.o(x, T - 30, 50, Z + 30, OUT, 1, 3)
-        for k in range(3): o.r(x + 2 + k * 18, T - 42, 12, 14, '#e4e2dc')
-    o.t('MIGHT BE CASTLE', w / 2, T + 8, 30, '#ffd60a', 1, 'A', 'c')
-    for x in range(70, int(w) - 110, 70): o.r(x, T + Z * 0.48, 44, Z * 0.32, '#2a3a6a'); o.r(x, T + Z * 0.48, 44, 6, '#ffffff', 0.25)
-    o.r(w / 2 - 26, T + Z * 0.5, 52, Z * 0.5, '#1a1a26')
-    o.g(w / 2, T + 24, w * 0.5, '#ffd60a', 0.18)
-    o.o(0, T, w, Z, OUT, 1, 3)
 
 def p_car(o, w, T, Z, R, a):             # parked car
     col = a.get('col', '#3a6ac8')
@@ -199,49 +178,6 @@ def p_car(o, w, T, Z, R, a):             # parked car
     o.r(6, T + Z - 10, 18, 10, '#111111'); o.r(w - 24, T + Z - 10, 18, 10, '#111111')
     o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
 
-def p_dumpster(o, w, T, Z, R, a):
-    box(o, w, T, Z, '#2e5a34', '#3a6c40')
-    o.l(w / 2, 0, w / 2, T, '#1c3a20', 1, 2)
-    for x in range(8, int(w) - 4, 16): o.l(x, T + 6, x, T + Z - 6, '#2a5030', 1, 2)
-
-def p_menu(o, w, T, Z, R, a):            # drive-thru menu board
-    o.r(0, 0, w, T, '#2a2a30'); o.r(0, T, w, Z, '#1c1c22')
-    o.r(3, T + 4, w - 6, Z * 0.7, '#3a1a10')
-    for i in range(5): o.r(6, T + 8 + i * Z * 0.13, w - 12, Z * 0.08, ['#ffd60a', '#ff8c28', '#e8e0c8', '#ff8c28', '#ffd60a'][i], 0.8)
-    o.g(w / 2, T + Z * 0.35, 70, '#ffb040', 0.3)
-    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
-
-def p_pole(o, w, T, Z, R, a):            # parking-lot light pole
-    o.r(w / 2 - 4, T, 8, Z, '#5a5c64'); o.r(w / 2 - 4, T, 3, Z, '#8a8c94')
-    o.r(0, 0, w, T, '#3a3c44')
-    o.r(-10, -6, w + 20, 10, '#2a2c34'); o.r(-6, 2, w + 12, 4, '#fff4c0')
-    o.g(w / 2, 2, 110, '#fff0b0', 0.45)
-    o.r(w / 2 - 10, T + Z - 6, 20, 6, '#3a3c44')
-
-def p_speaker(o, w, T, Z, R, a):
-    box(o, w, T, Z, '#1a1a20', '#24242c')
-    o.c(w / 2, T + Z * 0.32, min(w, Z) * 0.2, '#0c0c10'); o.c(w / 2, T + Z * 0.32, min(w, Z) * 0.08, '#3a3a44')
-    o.c(w / 2, T + Z * 0.72, min(w, Z) * 0.14, '#0c0c10')
-    o.g(w / 2, T + Z * 0.5, 80, '#8232dc', 0.25)
-
-def p_dj(o, w, T, Z, R, a):              # DJ booth
-    o.r(0, 0, w, T, '#24242c')
-    for cx in (w * 0.22, w * 0.78):
-        o.c(cx, T / 2, T * 0.36, '#0c0c10'); o.c(cx, T / 2, T * 0.12, '#c8c8d0')
-    o.r(w * 0.4, T * 0.2, w * 0.2, T * 0.6, '#3a3a44')
-    for i in range(4): o.r(w * 0.42 + i * w * 0.045, T * 0.3, 4, T * 0.4, '#00e6ff')
-    o.r(0, T, w, Z, '#16101e')
-    o.r(6, T + Z * 0.4, w - 12, 6, '#00e6ff'); o.g(w / 2, T + Z * 0.42, w * 0.6, '#00e6ff', 0.3)
-    o.t('5150', w / 2, T + Z * 0.52, 22, '#ff3cc8', 1, 'A', 'c')
-    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
-
-def p_pool(o, w, T, Z, R, a):            # pool table
-    o.r(0, 0, w, T, '#5a3418'); o.r(10, 8, w - 20, T - 16, '#1e7a4a')
-    for x in (10, w / 2, w - 10):
-        for y in (8, T - 8): o.c(x, y, 5, '#0c0c10')
-    o.c(w * 0.3, T / 2, 4, '#ffffff'); o.c(w * 0.7, T * 0.4, 4, '#ffd60a'); o.c(w * 0.74, T * 0.55, 4, '#d81e2a')
-    o.r(0, T, w, Z, '#4a2a12'); o.r(10, T + Z - 6, w - 20, 6, '#000000', 0.4)
-    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
 
 def p_corn(o, w, T, Z, R, a):            # a row of corn
     seed = int(w * 7 + T * 3)
@@ -263,11 +199,6 @@ def p_bale(o, w, T, Z, R, a):            # round hay bale
     o.e(w / 2, T / 2 + Z, w / 2, T / 2, '#b08a40')
     for k in (0.85, 0.6, 0.35): o.e(w / 2, T / 2 + Z * 0.6, w / 2 * k, Z * 0.4 * k, '#8a6a28', 0.45)
 
-def p_sign(o, w, T, Z, R, a):            # US-30 route sign on posts
-    o.r(w * 0.25 - 2, T + Z * 0.5, 5, Z * 0.5, '#8a8c94'); o.r(w * 0.75 - 2, T + Z * 0.5, 5, Z * 0.5, '#8a8c94')
-    o.r(0, T, w, Z * 0.52, '#f4f4f4'); o.o(0, T, w, Z * 0.52, '#111111', 1, 3)
-    o.t('US 30', w / 2, T + 4, 22, '#111111', 1, 'A', 'c')
-    o.t('WEST', w / 2, T + Z * 0.3, 12, '#111111', 1, 'P', 'c')
 
 def p_hay(o, w, T, Z, R, a):             # square bale
     box(o, w, T, Z, '#d8b860', '#c0a048')
@@ -310,14 +241,119 @@ def p_glitch(o, w, T, Z, R, a):          # dream glitch pillar
     for y in range(int(T) + 4, int(T + Z), 9): o.r(2, y, w - 4, 3, '#00e6ff' if (y // 9) % 3 else '#8232dc', 0.55)
     o.g(w / 2, T + Z / 2, 90, '#8232dc', 0.3)
 
+
+# ---- props for the real Ep3-5 locations
+def p_hwall(o, w, T, Z, R, a):           # house drywall, painted, with baseboard
+    col = a.get('col', '#d8ccb0')
+    box(o, w, T, Z, hexc(col, 0.55), col)
+    o.r(0, T + Z - 10, w, 10, '#f4f0e8'); o.l(0, T + Z - 10, w, T + Z - 10, '#8a8070', 1, 2)
+    if a.get('frames') and w > 120:
+        for x in range(30, int(w) - 60, 150): o.r(x, T + Z * 0.2, 44, 34, '#3a2a1a'); o.r(x + 4, T + Z * 0.2 + 4, 36, 26, a['frames'])
+
+def p_bed(o, w, T, Z, R, a):
+    col = a.get('col', '#2e3c6e')
+    o.r(0, 0, w, T, '#5a3a22'); o.r(4, T * 0.22, w - 8, T * 0.76, col)
+    o.r(8, 6, w * 0.42, T * 0.16, '#f0f0f8'); o.r(w * 0.54, 6, w * 0.38, T * 0.16, '#f0f0f8')
+    o.l(4, T * 0.5, w - 4, T * 0.5, hexc(col, 0.75), 1, 3)
+    o.r(0, T, w, Z, hexc(col, 0.8)); o.r(0, T + Z - 8, w, 8, '#3a2412')
+    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
+
+def p_night(o, w, T, Z, R, a):           # nightstand with the 7:00 alarm clock
+    box(o, w, T, Z, '#6a4426', '#5a3820')
+    o.r(w * 0.2, T * 0.2, w * 0.6, T * 0.55, '#1c1c26'); o.t('7:00', w / 2, T * 0.18, 13, '#ff4646', 1, 'A', 'c')
+    o.g(w / 2, T * 0.45, 40, '#ff3030', 0.3)
+    o.r(w / 2 - 6, T + Z * 0.4, 12, 4, '#c8a050')
+
+def p_desk(o, w, T, Z, R, a):            # desk with an open laptop
+    o.r(0, 0, w, T, '#8a6a48'); o.r(0, T, w, 10, '#6a4a2c'); o.r(0, T + 10, w, Z - 10, '#000000', 0.35)
+    for x in (4, w - 14): o.r(x, T + 10, 10, Z - 10, '#4a3018')
+    lx = w * 0.3
+    o.r(lx, 4, w * 0.4, T * 0.45, '#2a2a30'); o.r(lx + 4, 7, w * 0.4 - 8, T * 0.45 - 6, a.get('screen', '#6e24c8'))
+    o.t(a.get('text', 'ZEV DOD'), lx + w * 0.2, 9, 11, '#ffd60a', 1, 'A', 'c')
+    o.g(lx + w * 0.2, T * 0.25, 70, a.get('screen', '#6e24c8'), 0.35)
+    o.r(lx, T * 0.5, w * 0.4, T * 0.28, '#3a3a42')
+    if a.get('mug'): o.c(w * 0.85, T * 0.5, 7, '#e8e8e8'); o.c(w * 0.85, T * 0.5, 4, '#4a2a12')
+    o.o(0, 0, w, T, OUT, 1, 3)
+
+def p_tv(o, w, T, Z, R, a):              # flat TV on a low console
+    box(o, w, T, Z * 0.45, '#2a1e16', '#3a2a1e')
+    o.r(w * 0.06, -Z * 0.55 + T, w * 0.88, Z * 0.9, '#101014'); o.o(w * 0.06, -Z * 0.55 + T, w * 0.88, Z * 0.9, OUT, 1, 3)
+    sx, sy, sw, sh = w * 0.09, -Z * 0.55 + T + 4, w * 0.82, Z * 0.9 - 8
+    if a.get('glitch'):
+        o.r(sx, sy, sw, sh, '#2a0c3a')
+        for k in range(6): o.r(sx, sy + k * sh / 6, sw, 3, '#ff8c28' if k % 2 else '#8232dc', 0.7)
+        o.t('F', sx + sw / 2, sy + 2, int(sh * 0.8), '#ff3030', 1, 'A', 'c')
+        o.g(w / 2, sy + sh / 2, w * 0.9, '#ff8c28', 0.35)
+    else:
+        o.r(sx, sy, sw, sh, '#3a6ac8'); o.r(sx, sy, sw, sh * 0.4, '#8ab4ff', 0.4)
+        o.g(w / 2, sy + sh / 2, w * 0.8, '#8ab4ff', 0.3)
+
+def p_shelf(o, w, T, Z, R, a):           # bookshelf / dresser
+    box(o, w, T, Z, '#5a3a22', '#6a4628')
+    rr = random.Random(int(w * 13 + Z))
+    for k in range(3):
+        y = T + 6 + k * (Z - 12) / 3
+        o.r(4, y + (Z - 12) / 3 - 4, w - 8, 4, '#3a2412')
+        x = 6
+        while x < w - 10:
+            bw = rr.uniform(6, 12)
+            o.r(x, y + 4, bw, (Z - 12) / 3 - 9, rr.choice(['#c83a3a', '#3a6ac8', '#e8c040', '#3a8a5a', '#8a3ac8', '#e8e0c8']))
+            x += bw + 2
+
+def p_shed(o, w, T, Z, R, a):            # backyard shed
+    o.r(0, 0, w, T, '#5a4a3a'); 
+    for x in range(0, int(w), 16): o.l(x, 0, x, T, '#3a2e22', 1, 2)
+    o.r(0, T, w, Z, '#8a3a2a')
+    for x in range(0, int(w), 18): o.l(x, T, x, T + Z, '#6a2a1e', 1, 2)
+    o.r(w * 0.35, T + Z * 0.25, w * 0.3, Z * 0.75, '#5a2418'); o.l(w * 0.35, T + Z * 0.25, w * 0.65, T + Z, '#e8e0c8', 1, 3); o.l(w * 0.65, T + Z * 0.25, w * 0.35, T + Z, '#e8e0c8', 1, 3)
+    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
+
+def p_grill(o, w, T, Z, R, a):
+    o.e(w / 2, T / 2, w / 2, T / 2, '#1a1a1e'); o.e(w / 2, T / 2, w / 2 - 5, T / 2 - 4, '#3a3a40')
+    for k in range(-2, 3): o.l(w / 2 + k * w / 7, 4, w / 2 + k * w / 7, T - 4, '#8a8a90', 1, 2)
+    o.r(w / 2 - 3, T / 2, 6, Z, '#2a2a30'); o.r(w * 0.2, T / 2 + Z - 4, w * 0.6, 4, '#2a2a30')
+
+def p_glass(o, w, T, Z, R, a):           # lobby glass front with steel mullions
+    o.r(0, 0, w, T, '#5a6a78')
+    o.r(0, T, w, Z, '#9ad0ff', 0.28)
+    for x in range(0, int(w) + 1, 60): o.r(min(x, w - 6), T, 6, Z, '#6a7480')
+    o.r(0, T, w, 6, '#6a7480'); o.r(0, T + Z - 8, w, 8, '#4a5460')
+    o.l(10, T + 10, 40, T + Z - 20, '#ffffff', 0.35, 3)
+
+def p_plant(o, w, T, Z, R, a):           # lobby planter
+    o.r(0, T * 0.35, w, T * 0.65, '#3a3a42'); o.r(0, T, w, Z * 0.55, '#4a4a52'); o.o(0, T * 0.35, w, T * 0.65 + Z * 0.55, OUT, 1, 3)
+    for k, (dx, dy, r) in enumerate([(0.5, -0.2, 0.42), (0.25, 0.1, 0.32), (0.75, 0.05, 0.32), (0.5, 0.3, 0.3)]):
+        o.c(w * dx, T * dy, w * r, '#2e6a2a' if k % 2 else '#3a8a34')
+
+def p_elevator(o, w, T, Z, R, a):        # two steel elevator doors
+    box(o, w, T, Z, '#4a4a52', '#7a7e86')
+    for k in range(2):
+        x = w * (0.08 + k * 0.5)
+        o.r(x, T + Z * 0.15, w * 0.36, Z * 0.85, '#a8acb4'); o.l(x + w * 0.18, T + Z * 0.15, x + w * 0.18, T + Z, '#5a5e66', 1, 2)
+        o.r(x + w * 0.12, T + 4, w * 0.12, Z * 0.09, '#1a1a1e'); o.t(str(8 if k else 1), x + w * 0.18, T + 3, 10, '#ff8c28', 1, 'P', 'c')
+
+def p_fdesk(o, w, T, Z, R, a):           # lobby front desk
+    box(o, w, T, Z, '#e8e4dc', '#3a3a44')
+    o.r(0, T + Z * 0.3, w, 6, '#ffd60a', 0.8)
+    o.t(a.get('text', 'BUILDING 8'), w / 2, T + Z * 0.42, 14, '#e8e4dc', 1, 'A', 'c')
+
+def p_bench(o, w, T, Z, R, a):           # garage workbench with tools
+    o.r(0, 0, w, T, '#8a6a40'); o.r(0, T, w, Z, '#5a5e66')
+    for x in range(6, int(w) - 30, 50): o.o(x, T + 6, 44, Z - 12, '#3a3e46', 1, 2); o.r(x + 18, T + 10, 8, 4, '#c8c8c8')
+    o.r(w * 0.1, 4, 30, 8, '#c83a3a'); o.r(w * 0.5, 6, 40, 6, '#8a8a92'); o.c(w * 0.8, T / 2, 6, '#ffd60a')
+    o.o(0, 0, w, T, OUT, 1, 3); o.o(0, T, w, Z, OUT, 1, 3)
+
 PROPS = {
-    'wall': (p_wall, 100), 'pwall': (p_pwall, 100), 'brick': (p_brick, 104), 'couch': (p_couch, 44), 'crt': (p_crt, 70),
-    'counter': (p_counter, 60), 'island': (p_island, 60), 'table': (p_table, 36), 'fridge': (p_fridge, 112),
+    'wall': (p_wall, 100), 'brick': (p_brick, 104), 'couch': (p_couch, 44), 'crt': (p_crt, 70),
+    'counter': (p_counter, 60), 'table': (p_table, 36), 'fridge': (p_fridge, 112),
     'pillar': (p_pillar, 140), 'stairs': (p_stairs, 46), 'rail': (p_rail, 50), 'mailbox': (p_mailbox, 92),
-    'castle': (p_castle, 130), 'car': (p_car, 52), 'dumpster': (p_dumpster, 62), 'menu': (p_menu, 96), 'pole': (p_pole, 170),
-    'speaker': (p_speaker, 112), 'dj': (p_dj, 62), 'pool': (p_pool, 40), 'corn': (p_corn, 104), 'bale': (p_bale, 58),
-    'sign': (p_sign, 120), 'hay': (p_hay, 54), 'stall': (p_stall, 64), 'tractor': (p_tractor, 84), 'rig': (p_rig, 70),
+    'car': (p_car, 52),
+    'corn': (p_corn, 104), 'bale': (p_bale, 58),
+    'hay': (p_hay, 54), 'stall': (p_stall, 64), 'tractor': (p_tractor, 84), 'rig': (p_rig, 70),
     'glitch': (p_glitch, 130),
+    'hwall': (p_hwall, 100), 'bed': (p_bed, 40), 'night': (p_night, 50), 'desk': (p_desk, 56), 'tv': (p_tv, 74), 'shelf': (p_shelf, 116),
+    'shed': (p_shed, 110), 'grill': (p_grill, 60), 'glass': (p_glass, 120), 'plant': (p_plant, 70), 'elevator': (p_elevator, 130),
+    'fdesk': (p_fdesk, 64), 'bench': (p_bench, 62),
 }
 
 # ---------------------------------------------------------------- floors
@@ -353,35 +389,12 @@ def f_asphalt(o, x, y, w, h, seed=5):
     o.r(x, y, w, h, '#2a2a30')
     o.n(x, y, w, h, w * h / 220, '#3a3a42', 0.4, 0.8, 1, 3, seed); o.n(x, y, w, h, w * h / 900, '#18181c', 0.4, 0.8, 3, 9, seed + 1)
 
-def f_parquet(o, x, y, w, h):
-    o.r(x, y, w, h, '#7a4e2a')
-    for yy in range(int(y), int(y + h), 80):
-        for xx in range(int(x), int(x + w), 80):
-            horiz = ((xx - x) // 80 + (yy - y) // 80) % 2
-            for k in range(4):
-                c = ['#8a5a32', '#7a4e2a', '#6a4222', '#845630'][(k + xx // 80) % 4]
-                if horiz: o.r(xx, yy + k * 20, 80, 19, c)
-                else: o.r(xx + k * 20, yy, 19, 80, c)
-
-def f_dance(o, x, y, w, h):
-    cols = ['#6e24c8', '#00a8c8', '#c8288c', '#2a1648']
-    for yy in range(int(y), int(y + h), 80):
-        for xx in range(int(x), int(x + w), 80):
-            o.r(xx, yy, 80, 80, cols[((xx - int(x)) // 80 * 3 + (yy - int(y)) // 80) % 4])
-            o.o(xx + 2, yy + 2, 76, 76, '#0c0614', 0.8, 3)
-    o.g(x + w / 2, y + h / 2, max(w, h) * 0.6, '#ff3cc8', 0.35)
 
 def f_field(o, x, y, w, h):
     o.r(x, y, w, h, '#2e2418')
     for yy in range(int(y), int(y + h), 26): o.l(x, yy, x + w, yy, '#20180e', 0.8, 4)
     o.n(x, y, w, h, w * h / 500, '#4a3a22', 0.4, 0.8, 2, 5, 21)
 
-def f_road(o, x, y, w, h):
-    f_asphalt(o, x, y, w, h, 31)
-    o.r(x, y, w, 26, '#5a5448'); o.r(x, y + h - 26, w, 26, '#5a5448')     # gravel shoulders
-    o.n(x, y, w, 26, w * 26 / 60, '#7a7264', 0.5, 0.9, 1, 3, 32); o.n(x, y + h - 26, w, 26, w * 26 / 60, '#7a7264', 0.5, 0.9, 1, 3, 33)
-    o.r(x, y + 28, w, 5, '#e8e8e8', 0.85); o.r(x, y + h - 33, w, 5, '#e8e8e8', 0.85)
-    for xx in range(int(x) + 20, int(x + w), 120): o.r(xx, y + h / 2 - 4, 60, 8, '#ffd60a', 0.9)
 
 def f_planks(o, x, y, w, h):
     o.r(x, y, w, h, '#6a4a2a')
@@ -397,8 +410,21 @@ def f_planks(o, x, y, w, h):
 def f_grass(o, x, y, w, h):
     o.r(x, y, w, h, '#24401c'); o.n(x, y, w, h, w * h / 160, '#3a6a2a', 0.4, 0.9, 2, 5, 51)
 
-FLOORS = {'shag': f_shag, 'lino': f_lino, 'carpet': f_carpet, 'concrete': f_concrete, 'tile': f_tile, 'asphalt': f_asphalt,
-          'parquet': f_parquet, 'dance': f_dance, 'field': f_field, 'road': f_road, 'planks': f_planks, 'grass': f_grass}
+def f_wood(o, x, y, w, h, col='#b08458', seed=61):
+    o.r(x, y, w, h, col)
+    rr = random.Random(seed)
+    for yy in range(int(y), int(y + h), 20):
+        o.r(x, yy, w, 19, hexc(col, rr.uniform(0.86, 1.06))); o.l(x, yy, x + w, yy, hexc(col, 0.6), 0.6, 1)
+        xx = x + rr.uniform(0, 160)
+        while xx < x + w: o.l(xx, yy, xx, yy + 19, hexc(col, 0.6), 0.6, 1); xx += rr.uniform(140, 260)
+
+def f_sidewalk(o, x, y, w, h):
+    o.r(x, y, w, h, '#8a8a86')
+    for yy in range(int(y), int(y + h), 90): o.l(x, yy, x + w, yy, '#5e5e5a', 0.8, 2)
+    o.n(x, y, w, h, w * h / 500, '#6e6e6a', 0.4, 0.8, 2, 5, 71)
+
+FLOORS = {'wood': f_wood, 'sidewalk': f_sidewalk, 'shag': f_shag, 'lino': f_lino, 'carpet': f_carpet, 'concrete': f_concrete, 'tile': f_tile, 'asphalt': f_asphalt,
+          'field': f_field, 'planks': f_planks, 'grass': f_grass}
 
 
 # ---------------------------------------------------------------- arena building
@@ -521,69 +547,106 @@ def stairs():   # Ch2 "LOG OUT": Building 8 stairwell, lobby, lights out
     d.t('LOBBY', 1200, 1020, 50, '#e8d8a0', 0.10, 'A', 'c')
     return A
 
-def castle():   # Ch3 "WAKE UP": Might Be Castle parking lot, Nebraska
-    A = Arena('castle', 'MIGHT BE CASTLE LOT', ('asphalt',))
-    A.zone(0, 0, 1200, 70, 'grass')
-    A.zone(0, 1370, 1200, 70, 'grass')
-    A.piece(1020, 560, 360, 300, 'castle', mirror=False)
-    A.piece(900, 450, 40, 80, 'menu')
-    cars = [('#3a6ac8', '#c83a3a'), ('#e8e8e8', '#2a2a2a'), ('#c8a030', '#3a8a5a'), ('#6a3a8a', '#8a8a92')]
-    A.piece(420, 140, 76, 150, 'car', col=cars[0][0], mcol=cars[0][1]); A.piece(600, 140, 76, 150, 'car', col=cars[1][0], mcol=cars[1][1])
-    A.piece(480, 1150, 76, 150, 'car', col=cars[2][0], mcol=cars[2][1]); A.piece(660, 1150, 76, 150, 'car', col=cars[3][0], mcol=cars[3][1])
-    A.piece(300, 640, 90, 60, 'dumpster')
-    A.piece(780, 700, 24, 24, 'pole'); A.piece(1188, 220, 24, 24, 'pole', mirror=False); A.piece(1188, 1200, 24, 24, 'pole', mirror=False)
+def phouse():   # Ch3 "WAKE UP": Perci's house in small-town Nebraska, bots come in from the backyard cornfield
+    A = Arena('phouse', "PERCI'S HOUSE " + '\u2022' + ' NEBRASKA', ('grass',))
+    A.zone(0, 0, 1500, 1440, 'wood', mirror=False)
+    A.zone(0, 0, 620, 820, 'shag', mirror=False, col='#a8987a', seed=8)            # bedroom carpet
+    A.zone(650, 0, 850, 820, 'lino', mirror=False, a='#e8e4dc', b='#b8c0c8')         # kitchen
+    A.zone(1530, 560, 260, 320, 'wood', mirror=False, col='#8a6a48', seed=62)       # back porch deck
+    A.zone(1990, 0, 410, 1440, 'field', mirror=False)                                # cornfield edge
+    hw = dict(mirror=False, col='#d8ccb0')
+    A.piece(620, 0, 30, 220, 'hwall', **hw); A.piece(620, 360, 30, 460, 'hwall', **hw)            # bedroom | kitchen
+    for x0, x1 in ((0, 240), (380, 900), (1040, 1500)): A.piece(x0, 820, x1 - x0, 30, 'hwall', frames='#7fa8c8', **hw)
+    for y0, y1 in ((0, 180), (320, 640), (800, 1080), (1220, 1440)): A.piece(1500, y0, 30, y1 - y0, 'hwall', **hw)   # back wall + doors
+    # bedroom: the bed he woke up in, the 7:00 alarm, dresser
+    A.piece(300, 60, 170, 210, 'bed', mirror=False); A.piece(490, 60, 50, 50, 'night', mirror=False)
+    A.piece(260, 640, 200, 50, 'shelf', mirror=False)
+    # kitchen: the empty fridge, counter, table
+    A.piece(700, 30, 420, 50, 'counter', mirror=False); A.piece(1160, 30, 70, 60, 'fridge', mirror=False, style='white')
+    A.piece(900, 420, 160, 100, 'table', mirror=False)
+    # living room: THE couch, TV, coffee table, the ZEV DOD laptop desk
+    A.piece(300, 1060, 230, 74, 'couch', mirror=False, col='#5a4a6a')
+    A.piece(340, 1350, 160, 40, 'tv', mirror=False)
+    A.piece(350, 1210, 120, 50, 'table', mirror=False)
+    A.piece(900, 1180, 180, 70, 'desk', mirror=False, mug=True)
+    A.piece(1200, 900, 200, 50, 'shelf', mirror=False)
+    # backyard
+    A.piece(1640, 200, 170, 120, 'shed', mirror=False); A.piece(1640, 980, 50, 50, 'grill', mirror=False)
+    for y in (100, 340, 580, 820, 1060, 1300): A.piece(2020, y, 220, 40, 'corn', mirror=False)
     d = A.decals
-    for row_y in (110, 1120):
-        for x in range(380, 800, 90):
-            d.r(x, row_y, 5, 210, '#e8e8e8', 0.7); d.r(W - x - 5, row_y, 5, 210, '#e8e8e8', 0.7)
-    # drive-thru lane around the castle, with arrows
-    d.o(940, 470, 520, 500, '#ffd60a', 0.5, 5)
-    for x, y, ang in ((1200, 1010, 0), (1500, 720, -90), (1200, 430, 180), (900, 720, 90)):
-        rad = math.radians(ang); cx, cy = math.cos(rad), math.sin(rad)
-        pts = [x + cx * 26, y + cy * 26, x - cx * 14 - cy * 18, y - cy * 14 + cx * 18, x - cx * 14 + cy * 18, y - cy * 14 - cx * 18]
-        d.p(pts, '#e8e8e8', 0.6)
-    d.t('DRIVE THRU', 1200, 1040, 34, '#e8e8e8', 0.35, 'A', 'c')
-    for x, y in ((792, 712), (1200, 232), (1200, 1212), (1608, 712)): d.g(x, y, 300, '#fff0b0', 0.16)
+    d.l(560, 1180, 620, 1100, '#b8b8c0', 0.9, 6); d.l(575, 1185, 635, 1105, '#b8b8c0', 0.9, 6)      # crutches on the floor
+    d.r(260, 300, 120, 70, '#c8a060', 0.35)                                                           # rug by the bed
+    d.g(420, 1300, 260, '#8ab4ff', 0.12); d.g(990, 1200, 200, '#8232dc', 0.18)
+    d.t('NEBRASKA', 1800, 1340, 40, '#e8e0c8', 0.12, 'A', 'c')
     return A
 
-def party():    # Ch4 "5150": the party, Apt 5150, Lincoln
-    A = Arena('apt5150', 'APT 5150 ' + '•' + ' THE PARTY', ('parquet',))
-    A.zone(0, 0, 700, 420, 'lino', a='#e8e8e0', b='#2a2a30')
-    A.zone(880, 460, 640, 520, 'dance', mirror=False)
-    A.piece(0, 420, 260, 30, 'pwall'); A.piece(400, 420, 330, 30, 'pwall')
-    A.piece(700, 0, 30, 150, 'pwall'); A.piece(700, 270, 30, 150, 'pwall')
-    A.piece(300, 170, 230, 70, 'island'); A.piece(40, 30, 70, 60, 'fridge', z=110)
-    A.piece(250, 1170, 220, 70, 'couch', col='#4a2a6a', mcol='#2a4a6a')
-    A.piece(520, 860, 210, 120, 'pool')
-    A.piece(560, 1300, 220, 50, 'counter')
-    A.piece(1110, 330, 180, 64, 'dj', mirror=False)
-    A.piece(960, 320, 60, 80, 'speaker')
-    A.piece(1100, 1200, 200, 70, 'couch', mirror=False, col='#6a2a4a')
-    A.piece(860, 1060, 60, 60, 'table', z=40)
+def mhouse():   # Ch4 "5150": Miracle's house in Lincoln after BROKE-pilot takes it over; bots pour out of the garage
+    A = Arena('mhouse', "MIRACLE'S HOUSE " + '\u2022' + ' LINCOLN', ('wood', '#9a7048', 63), shade=0.95)
+    A.zone(900, 0, 800, 820, 'lino', mirror=False, a='#f0f0ec', b='#d8d8d4')      # kitchen
+    A.zone(0, 850, 700, 590, 'shag', mirror=False, col='#7a5aa8', seed=14)         # Miracle's room, purple carpet
+    A.zone(730, 850, 970, 590, 'shag', mirror=False, col='#7a7a72', seed=15)       # mom's office
+    A.zone(1730, 0, 670, 1440, 'concrete', mirror=False)                           # garage
+    hw = dict(mirror=False, col='#e4dccc')
+    for x0, x1 in ((0, 300), (440, 1100), (1240, 1700)): A.piece(x0, 820, x1 - x0, 30, 'hwall', frames='#c8a0e8', **hw)
+    A.piece(700, 850, 30, 140, 'hwall', **hw); A.piece(700, 1110, 30, 330, 'hwall', **hw)
+    A.piece(900, 0, 30, 240, 'hwall', **hw); A.piece(900, 400, 30, 420, 'hwall', **hw)
+    for y0, y1 in ((0, 300), (420, 1000), (1120, 1440)): A.piece(1700, y0, 30, y1 - y0, 'hwall', **hw)
+    # living room: the TV grading everything, couch
+    A.piece(340, 40, 200, 40, 'tv', mirror=False, glitch=True)
+    A.piece(300, 330, 260, 80, 'couch', mirror=False, col='#5a5a6a')
+    A.piece(370, 200, 120, 50, 'table', mirror=False)
+    # kitchen: the locked fridge, island, counter
+    A.piece(1500, 30, 80, 70, 'fridge', mirror=False, style='steel', lock=True)
+    A.piece(1000, 30, 440, 50, 'counter', mirror=False)
+    A.piece(1100, 380, 300, 80, 'counter', mirror=False)
+    # Miracle's room: bed, desk with the BROKE-pilot app
+    A.piece(300, 1200, 160, 200, 'bed', mirror=False, col='#6e24c8')
+    A.piece(300, 920, 200, 70, 'desk', mirror=False, screen='#ff8c28', text='BROKE-PILOT')
+    # mom's office: Monroe Realty desk, shelves
+    A.piece(1100, 1050, 220, 80, 'desk', mirror=False, screen='#3a6ac8', text='MONROE REALTY', mug=True)
+    A.piece(1300, 1370, 300, 50, 'shelf', mirror=False); A.piece(800, 1370, 220, 50, 'shelf', mirror=False)
+    # garage: Tod's car, workbench
+    A.piece(1950, 380, 120, 230, 'car', mirror=False, col='#e8e8e8'); A.piece(1950, 860, 120, 230, 'car', mirror=False, col='#3a3a44')
+    A.piece(1800, 30, 360, 50, 'bench', mirror=False)
     d = A.decals
-    d.t('5150', 1200, 820, 90, '#ffffff', 0.16, 'A', 'c')
-    for x, y, c in ((300, 700, '#8232dc'), (600, 1100, '#00e6ff'), (1200, 220, '#ff3cc8'), (1200, 1110, '#8232dc')):
-        d.g(x, y, 320, c, 0.2); d.g(W - x, y, 320, c, 0.2)
-    rr = random.Random(5150)
-    for _ in range(40):
-        x, y = rr.uniform(60, W - 60), rr.uniform(500, 1400)
-        d.c(x, y, 5, '#d81e2a', 0.85)            # dropped red cups
+    rr = random.Random(4)
+    for x, y in ((600, 600), (1300, 650), (500, 1100), (1500, 1250), (250, 700)):    # robot vacuums gone rogue
+        d.c(x, y, 22, '#2a2a30', 0.9); d.c(x, y, 8, '#ff8c28', 0.9); d.g(x, y, 70, '#ff8c28', 0.3)
+    for x, y, c in ((450, 450, '#8232dc'), (300, 650, '#ff3cc8'), (650, 300, '#00e6ff')):  # BROKE-pilot disco lights
+        d.g(x, y, 260, c, 0.18)
+    d.g(440, 100, 300, '#ff8c28', 0.2)
+    d.t('A+', 1280, 1180, 60, '#3fe0d8', 0.15, 'A', 'c')
+    d.r(1730, 1300, 670, 20, '#ffd60a', 0.4)
     return A
 
-def highway():  # Ch5 "PICK UP": Highway 30 through the corn, night
-    A = Arena('hwy30', 'HIGHWAY 30 ' + '•' + ' CORNFIELD', ('field',), shade=0.8, dark=0.22)
-    A.zone(0, 620, 2400, 200, 'road', mirror=False)
-    def row(y, segs):
-        for x0, x1 in segs: A.piece(x0, y, x1 - x0, 40, 'corn')
-    row(60, [(260, 640), (760, 1150)]); row(200, [(260, 520), (640, 1060)]); row(340, [(380, 900), (1020, 1150)]); row(480, [(260, 560), (680, 1000)])
-    row(920, [(260, 560), (680, 1000)]); row(1060, [(380, 900), (1020, 1150)]); row(1200, [(260, 520), (640, 1060)]); row(1340, [(260, 640), (760, 1150)])
-    A.piece(470, 680, 170, 76, 'car', col='#2a4a6a', mcol='#5a5a62', lights=True)   # the family car, hazards on
-    A.piece(1140, 410, 120, 120, 'bale', mirror=False); A.piece(1140, 910, 120, 120, 'bale', mirror=False)
-    A.piece(900, 580, 60, 20, 'sign')
+def b8lincoln(): # Ch5 "PICK UP": Building 8 in Lincoln at night: the car at the curb, the lobby, the stairs
+    A = Arena('b8lincoln', 'BUILDING 8 ' + '\u2022' + ' LINCOLN', ('asphalt',), shade=0.9)
+    A.zone(420, 0, 220, 1440, 'sidewalk', mirror=False)
+    A.zone(670, 0, 1030, 1440, 'tile', mirror=False)
+    A.zone(1730, 0, 670, 1440, 'concrete', mirror=False)
+    for y0, y1 in ((0, 300), (460, 980), (1140, 1440)): A.piece(640, y0, 30, y1 - y0, 'glass', mirror=False)
+    for y0, y1 in ((0, 220), (340, 660), (780, 1100), (1220, 1440)): A.piece(1700, y0, 30, y1 - y0, 'brick', mirror=False)
+    # Perci's car at the curb, hazards on
+    A.piece(230, 620, 100, 190, 'car', mirror=False, col='#2a4a6a', lights=True)
+    # lobby
+    A.piece(900, 30, 300, 50, 'mailbox', mirror=False); A.piece(1300, 30, 300, 70, 'elevator', mirror=False)
+    A.piece(1080, 560, 80, 300, 'fdesk', mirror=False)
+    A.piece(740, 160, 60, 60, 'plant', mirror=False); A.piece(740, 1220, 60, 60, 'plant', mirror=False)
+    A.piece(1400, 520, 60, 60, 'pillar', mirror=False); A.piece(1400, 860, 60, 60, 'pillar', mirror=False)
+    A.piece(1250, 1250, 220, 70, 'couch', mirror=False, col='#3a3a4a')
+    # stairwell
+    A.piece(1850, 120, 260, 90, 'stairs', mirror=False); A.piece(1850, 1230, 260, 90, 'stairs', mirror=False)
+    A.piece(1850, 250, 260, 16, 'rail', mirror=False); A.piece(1850, 1190, 260, 16, 'rail', mirror=False)
+    A.piece(1960, 620, 60, 200, 'pillar', mirror=False, exit=True)
     d = A.decals
-    for x in (555, W - 555): d.g(x, 720, 340, '#fff4c0', 0.18)
-    d.g(1200, 120, 500, '#c8d0ff', 0.08)                                     # moonlight
-    for x, y in ((470, 640), (640, 640)): d.g(x, y, 60, '#ff8c28', 0.5)    # hazard lights
+    d.r(410, 0, 10, 1440, '#c8c8c0', 0.8)                                       # curb
+    for y in range(40, 1440, 140): d.r(150, y, 8, 70, '#e8e8e8', 0.5)
+    for x, y in ((230, 610), (330, 610)): d.g(x, y, 70, '#ff8c28', 0.5)          # hazard lights
+    d.g(280, 830, 260, '#fff4c0', 0.15)
+    d.t('BUILDING 8', 1190, 640, 64, '#e8e0c8', 0.12, 'A', 'c'); d.t('LINCOLN', 1190, 720, 36, '#e8e0c8', 0.12, 'A', 'c')
+    for x, y in ((900, 300), (900, 1100), (1450, 300), (1450, 1100)): d.g(x, y, 240, '#fff0c8', 0.14)
+    for y in (280, 720, 1160): d.g(2250, y, 160, '#ff2020', 0.18)
+    d.t('EXIT', 2250, 690, 40, '#ff3030', 0.3, 'A', 'c')
     return A
 
 def barn():     # Ch6 "DEEPER": the barn in Iowa, dream rig in the middle
@@ -602,7 +665,7 @@ def barn():     # Ch6 "DEEPER": the barn in Iowa, dream rig in the middle
     return A
 
 
-ARENAS = [apt, stairs, castle, party, highway, barn]
+ARENAS = [apt, stairs, phouse, mhouse, b8lincoln, barn]
 
 def preview(A, path):
     from PIL import Image, ImageDraw
@@ -638,10 +701,12 @@ if __name__ == '__main__':
     if not ok: sys.exit('layout problem')
     web = sys.argv[1] if len(sys.argv) > 1 else None
     lua = sys.argv[2] if len(sys.argv) > 2 else None
-    head = 'Generated by arenas/gen.py. Do not edit by hand: change gen.py and run it again.'
+    head = 'Generated by perci-game/tools/gen_arenas.py. Do not edit by hand: change that script and run it again.'
     if web:
         open(web, 'w').write('/* ' + head + ' */\nwindow.PS_ARENAS = ' + json.dumps(out, separators=(',', ':'), ensure_ascii=False) + ';\n')
         print('web', web, os.path.getsize(web), 'bytes')
     if lua:
-        open(lua, 'w').write('-- ' + head + '\nreturn ' + to_lua(out) + '\n')
+        # one function per arena keeps each chunk well under LuaJIT's per-function constant limit
+        body = ''.join('A[%d] = (function() return %s end)()\n' % (i + 1, to_lua(x)) for i, x in enumerate(out))
+        open(lua, 'w').write('-- ' + head + '\nlocal A = {}\n' + body + 'return A\n')
         print('lua', lua, os.path.getsize(lua), 'bytes')
