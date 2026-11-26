@@ -9,6 +9,7 @@ create table if not exists public.zev_items (
   once boolean not null default false, per_char boolean not null default false, max_qty int
 );
 insert into public.zev_items (id, coins, usd_cents, once, per_char, max_qty) values
+  ('pack',    3000, 499, true,  false, 1),   -- Supporter Pack: also grants core + over + starter (see zev_spend / zev_grant)
   ('gold',    2500, 499, true,  false, 1),
   ('armor',   1200, 249, false, true,  2),
   ('core',    1500, 299, true,  false, 1),
@@ -135,6 +136,9 @@ begin
     insert into zev_owned (user_id, item, char, qty) values (uid, it.id, case when it.per_char then ch else '' end, 1)
     on conflict (user_id, item, char) do update set qty = zev_owned.qty + 1;
   end if;
+  if it.id = 'pack' then   -- the Supporter Pack unlocks three upgrades
+    insert into zev_owned (user_id, item, char, qty) select uid, x, '', 1 from unnest(array['core','over','starter']) x on conflict do nothing;
+  end if;
   return json_build_object('coins', bal);
 end $$;
 
@@ -156,6 +160,9 @@ begin
   else
     insert into zev_owned (user_id, item, char, qty) values (p_user, it.id, case when it.per_char then ch else '' end, 1)
     on conflict (user_id, item, char) do update set qty = least(coalesce(it.max_qty, 99), zev_owned.qty + 1);
+  end if;
+  if it.id = 'pack' then   -- the Supporter Pack unlocks three upgrades
+    insert into zev_owned (user_id, item, char, qty) select p_user, x, '', 1 from unnest(array['core','over','starter']) x on conflict do nothing;
   end if;
 end $$;
 

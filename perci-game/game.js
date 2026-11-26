@@ -1814,6 +1814,7 @@ const WEAPONS = {
 const WEAPON_ORDER = ['blaster', 'buzz', 'scatter', 'bounce', 'beam', 'gold'];
 const STORE_OPEN_AT = '2027-01-07T18:00:00-06:00';    // one week after the official release
 const STORE_ITEMS = {
+  pack:    { name: 'SUPPORTER PACK', desc: 'Power Core + Overclock Shoes + Spawn Shield+ in one. Save 38%.', cost: 3000, usd: '4.99', icon: '🎁', once: true },
   gold:    { name: "PERCI'S GOLD BLASTER", desc: '2 damage, fast and accurate. Every fighter can use it.', cost: 2500, usd: '4.99', icon: '🔫', once: true },
   armor:   { name: 'ARMOR PLATING', desc: '+1 max shield for your fighter. Up to 2 per fighter.', cost: 1200, usd: '2.49', icon: '🛡️', perChar: true, max: 2 },
   core:    { name: 'POWER CORE', desc: 'Powers recharge 25% faster. All fighters.', cost: 1500, usd: '2.99', icon: '⚡', once: true },
@@ -1822,7 +1823,7 @@ const STORE_ITEMS = {
   xp2:     { name: 'DOUBLE XP', desc: 'Double XP for your next 5 matches or chapters.', cost: 400, usd: '0.99', icon: '⏫', uses: 5 },
   lvl:     { name: 'LEVEL SKIP', desc: 'Your fighter jumps up 1 level right now.', cost: 900, usd: '1.99', icon: '🆙', perChar: true },
 };
-const STORE_ORDER = ['gold', 'armor', 'core', 'over', 'starter', 'xp2', 'lvl'];
+const STORE_ORDER = ['pack', 'gold', 'armor', 'core', 'over', 'starter', 'xp2', 'lvl'];
 const COIN_PACKS = [
   { id: 'c500', coins: 500, usd: '0.99' },
   { id: 'c2800', coins: 2800, usd: '4.99', tag: '+12%' },
@@ -1944,6 +1945,7 @@ function grantItem(id, kind) {
   else if (id === 'xp2') PROG.xp2 += STORE_ITEMS.xp2.uses;
   else if (id === 'lvl') { const c = PROG.chars[kind]; if (c.lvl < MAX_LVL) { c.lvl++; c.xp = 0; } }
   else PROG.owned[id] = true;
+  if (id === 'pack') { PROG.owned.core = true; PROG.owned.over = true; PROG.owned.starter = true; }   // the pack unlocks these three
   if (id === 'gold') PROG.weapon = 'gold';
 }
 function storeMsg(t) { $('storeMsg').textContent = t; clearTimeout(storeMsg.t); storeMsg.t = setTimeout(() => ($('storeMsg').textContent = ''), 3500); }
