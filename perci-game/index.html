@@ -163,6 +163,8 @@ body.playing .previewTag{display:none}
 @media (max-height:460px){#scorebar{top:calc(6px + env(safe-area-inset-top));font-size:17px}#feed{top:calc(46px + env(safe-area-inset-top))}.ab{bottom:calc(150px + env(safe-area-inset-bottom))}}
 .card{touch-action:manipulation}.btn{touch-action:manipulation}
 @media (max-width:520px){.wm{display:none}.cards{grid-template-columns:repeat(2,1fr)}.card{padding:8px}.card img{width:72px;height:72px}.card h3{font-size:19px}.card .role{font-size:11px;min-height:28px}.btn{min-width:180px;font-size:20px}}
+.rating{max-width:520px;text-align:center;font-size:12px;line-height:1.35;color:#d8d0e8;border:1px solid #6a4fa0;border-radius:10px;padding:6px 10px;margin:6px auto 2px;background:rgba(20,12,32,.6)}
+.rating b{color:var(--gold);font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.5px;margin-right:4px}
 </style>
 </head>
 <body>
@@ -202,12 +204,13 @@ body.playing .previewTag{display:none}
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
-  <button class="btn story" id="bStory">STORY MODE <small>18+</small></button>
+  <button class="btn story" id="bStory">STORY MODE</button>
   <button class="btn" id="bPlay">QUICK MATCH</button>
   <button class="btn purple" id="bOnline">PLAY ONLINE</button>
   <button class="btn alt" id="bBoard">LEADERBOARD</button>
   <button class="btn alt small" id="bHow">HOW TO PLAY</button>
   <button class="btn alt small" id="bSettings">SETTINGS</button>
+  <p class="rating"><b>MATURE CONTENT</b> Strong language &bull; crude humor &bull; cartoon weed use &bull; cartoon laser action. You can turn it down in SETTINGS.</p>
   <p class="muted">Watch the show: <a href="../perci.html" style="color:var(--gold)">Perci Shorti</a> &bull; @perci.shorti &bull; @ZevDOD</p>
 </section>
 
@@ -257,11 +260,14 @@ body.playing .previewTag{display:none}
 <!-- STORY: chapter select -->
 <section class="screen" id="sStory">
   <h2>STORY MODE</h2>
-  <div id="ageGate" class="panel" style="text-align:center;max-width:480px">
-    <p style="font-family:Anton;font-size:26px;color:var(--gold);margin:4px 0">18+ ONLY</p>
-    <p>Story Mode has adult humor, cursing and cartoon weed use (Perci being Perci).</p>
-    <p class="muted">Are you 18 or older?</p>
-    <div class="row"><button class="btn" id="bAgeYes">I'M 18+</button><button class="btn alt" id="bAgeNo">NO, GO BACK</button></div>
+  <div id="matNote" class="panel" style="text-align:center;max-width:500px">
+    <p style="font-family:Anton;font-size:26px;color:var(--gold);margin:4px 0">MATURE CONTENT</p>
+    <p>Story Mode follows the show, so it's made for grown folks:</p>
+    <p class="muted" style="margin:4px 0 10px">Strong language &bull; crude humor &bull; cartoon marijuana use (Perci only, never around the kids) &bull; cartoon laser-tag action, no blood</p>
+    <div class="lab">MATURE CONTENT</div>
+    <div class="row diff matSet"><button data-v="1">ON</button><button data-v="0">OFF</button></div>
+    <p class="muted" style="margin:6px 0 10px">OFF takes out the weed item and smoke scenes and cleans up the language. Change it any time in SETTINGS.</p>
+    <div class="row"><button class="btn" id="bMatOk">CONTINUE</button><button class="btn alt" id="bMatBack">BACK</button></div>
   </div>
   <div id="chWrap">
     <p class="muted" style="text-align:center;margin:0 0 8px">Play through Episodes 1-6. Clear a chapter to unlock the next. <b id="chStars" style="color:var(--gold)"></b></p>
@@ -290,7 +296,10 @@ body.playing .previewTag{display:none}
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
     <div class="lab">AUTO FIRE (PHONES)</div>
     <div class="row diff" id="setAuto"><button data-v="0">OFF</button><button data-v="1">ON</button></div>
-    <p class="muted" style="margin:6px 0 0">When on, you shoot the closest bot while you're only moving.</p>
+    <p class="muted" style="margin:6px 0 14px">When on, you shoot the closest bot while you're only moving.</p>
+    <div class="lab">MATURE CONTENT (STORY MODE)</div>
+    <div class="row diff matSet"><button data-v="1">ON</button><button data-v="0">OFF</button></div>
+    <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
   </div>
   <div class="panel how">
     <p><b>Phone:</b> left thumb moves &bull; right thumb aims and fires &bull; tap an <b>item slot</b> to use it &bull; <b>&#9664; &#9654; COVER</b> dashes to the nearest box on that side &bull; yellow button = your power.</p>
@@ -310,7 +319,7 @@ body.playing .previewTag{display:none}
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
     <p><b>Power-ups</b> (run over them to grab): they go into your <b>4 item slots</b> so you can use them when you need them. <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each. Slots full? Use one to grab more. (Online matches use power-ups right away.)</p>
     <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
-    <p><b>Story Mode (18+):</b> 6 chapters that follow Episodes 1-6, with short animated scenes between levels. Each chapter has its own goal (tag a number of bots, survive the clock, out-tag them, or beat the boss). Clear a chapter to unlock the next; earn up to 3 stars. Watch for <b style="color:#5dff7a">Dream Kush</b> (slows everything down) and <b style="color:#ff9f40">Might Be Castle munchies</b> (full shields).</p>
+    <p><b>Story Mode (mature content):</b> 6 chapters that follow Episodes 1-6, with short animated scenes between levels. Each chapter has its own goal (tag a number of bots, survive the clock, out-tag them, or beat the boss). Clear a chapter to unlock the next; earn up to 3 stars. Watch for <b style="color:#5dff7a">Dream Kush</b> (slows everything down) and <b style="color:#ff9f40">Might Be Castle munchies</b> (full shields).</p>
     <p><b>Online:</b> tap PLAY ONLINE, create a room and share the 4-letter code. The host picks <b>Team up vs bots</b> or <b>Team vs team</b>. Players marked with a star are real people. Tap the X twice to leave.</p>
     <p><b>Leaderboard:</b> post your score under your name and show it off. Top 50 all-time and today's best.</p>
   </div>

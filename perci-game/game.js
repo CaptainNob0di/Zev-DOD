@@ -72,12 +72,17 @@ function rebuildGrid() {
     for (const w of SOLID) if (x > w.x - INFL && x < w.x + w.w + INFL && y > w.y - INFL && y < w.y + w.h + INFL) { BLOCK[r * GC + c] = 1; break; }
   }
 }
+// each team's half must be one connected area holding all 5 of its spawns (teams can't cross the center line)
 function reachableShare() {
-  const s = spawnPoint('P', 2), sc = Math.floor(s.x / CELL), sr = Math.floor(s.y / CELL), seen = new Uint8Array(GC * GR), q = [sr * GC + sc];
-  if (BLOCK[q[0]]) return 0; seen[q[0]] = 1; let n = 0;
-  while (q.length) { const m = q.pop(); n++; const c = m % GC, r = (m / GC) | 0; for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const cc = c + dc, rr = r + dr; if (cc < 0 || rr < 0 || cc >= GC || rr >= GR) continue; const k = rr * GC + cc; if (!seen[k] && !BLOCK[k]) { seen[k] = 1; q.push(k); } } }
-  let free = 0; for (let i = 0; i < BLOCK.length; i++) if (!BLOCK[i]) free++;
-  for (const team of ['P', 'B']) for (let i = 0; i < 5; i++) { const p = spawnPoint(team, i), k = Math.floor(p.y / CELL) * GC + Math.floor(p.x / CELL); if (!seen[k]) return 0; }
+  const m0 = WORLD.w / 2, seen = new Uint8Array(GC * GR); let n = 0, free = 0;
+  const inHalf = (team, c) => team === 'P' ? c * CELL + CELL / 2 < m0 - 28 : c * CELL + CELL / 2 > m0 + 28;
+  for (let i = 0; i < BLOCK.length; i++) if (!BLOCK[i] && (inHalf('P', i % GC) || inHalf('B', i % GC))) free++;
+  for (const team of ['P', 'B']) {
+    const s = spawnPoint(team, 2), st = Math.floor(s.y / CELL) * GC + Math.floor(s.x / CELL), q = [st];
+    if (BLOCK[st]) return 0; seen[st] = 1;
+    while (q.length) { const m = q.pop(); n++; const c = m % GC, r = (m / GC) | 0; for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const cc = c + dc, rr = r + dr; if (cc < 0 || rr < 0 || cc >= GC || rr >= GR || !inHalf(team, cc)) continue; const k = rr * GC + cc; if (!seen[k] && !BLOCK[k]) { seen[k] = 1; q.push(k); } } }
+    for (let i = 0; i < 5; i++) { const p = spawnPoint(team, i), k = Math.floor(p.y / CELL) * GC + Math.floor(p.x / CELL); if (!seen[k]) return 0; }
+  }
   return n / Math.max(1, free);
 }
 // Story arenas: one hand-built location per chapter (data in arenas.js, made by arenas/gen.py, shared with the handheld)
@@ -152,7 +157,9 @@ function nearestFree(c, r) {
   }
   return [c, r];
 }
-function astar(sx, sy, tx, ty) {
+function astar(sx, sy, tx, ty, team) {
+  if (team) tx = ownX(team, tx, 40);
+  const m0 = midX(), lim = MID_GAP + 20, offSide = (cc) => team === 'P' ? cc * CELL + CELL / 2 > m0 - lim : team === 'B' ? cc * CELL + CELL / 2 < m0 + lim : false;
   let [sc, sr] = nearestFree(...cellOf(sx, sy)); const [tc, tr] = nearestFree(...cellOf(tx, ty));
   const start = sr * GC + sc, goal = tr * GC + tc; if (start === goal) return [{ x: tx, y: ty }];
   stampN++; const heap = [];
@@ -166,7 +173,7 @@ function astar(sx, sy, tx, ty) {
     const c = n % GC, r = (n / GC) | 0;
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
       if (!dr && !dc) continue; const cc = c + dc, rr = r + dr; if (cc < 0 || rr < 0 || cc >= GC || rr >= GR) continue;
-      const m = rr * GC + cc; if (BLOCK[m]) continue;
+      const m = rr * GC + cc; if (BLOCK[m] || offSide(cc)) continue;
       if (dr && dc && (BLOCK[r * GC + cc] || BLOCK[rr * GC + c])) continue; // no corner cutting
       const g = G_SCORE[n] + (dr && dc ? Math.SQRT2 : 1);
       if (STAMP[m] !== stampN || g < G_SCORE[m]) { STAMP[m] = stampN; G_SCORE[m] = g; CAME[m] = n; push(m, g + h(m)); }
@@ -197,7 +204,34 @@ function pushOut(e) {
     else { const l = e.x - w.x, r = w.x + w.w - e.x, t = e.y - w.y, b = w.y + w.h - e.y, m = Math.min(l, r, t, b); if (m === l) e.x = w.x - e.r; else if (m === r) e.x = w.x + w.w + e.r; else if (m === t) e.y = w.y - e.r; else e.y = w.y + w.h + e.r; }
   }
 }
-function moveEnt(e, dx, dy) { const s = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 8)); for (let i = 0; i < s; i++) { e.x += dx / s; e.y += dy / s; pushOut(e); } }
+/* ----- center boundary: each team stays on its own half (lasers still cross) ----- */
+function drawMidLine(t) {
+  const m = midX(), H = WORLD.h * TILT, pulse = 0.75 + 0.25 * Math.sin(t * 4);
+  ctx.save();
+  ctx.fillStyle = 'rgba(16,4,28,0.45)'; ctx.fillRect(m - 12, 0, 24, H);                 // dark bed so it shows on light floors
+  ctx.globalAlpha = 0.95; ctx.fillStyle = '#ff3cc8'; ctx.fillRect(m - 5, 0, 10, H);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(m - 1.5, 0, 3, H);
+  ctx.fillStyle = '#ffd60a'; for (let y = ((t * 90) % 60) - 60; y < H; y += 60) ctx.fillRect(m - 5, y, 10, 18);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 * pulse; ctx.fillStyle = '#ff3cc8'; ctx.fillRect(m - 26, 0, 52, H);
+  if (G.lineHit && G.lineHit.t > 0) { ctx.globalAlpha = G.lineHit.t / 0.3; ctx.drawImage(glowSprite('#ff3cc8'), m - 80, G.lineHit.y * TILT - 80, 160, 160); G.lineHit.t -= 1 / 60; }
+  ctx.restore();
+  // laser posts along the line
+  for (let y = 0; y <= WORLD.h; y += 240) {
+    const py = y * TILT;
+    ctx.fillStyle = '#1c1228'; ctx.fillRect(m - 7, py - 46, 14, 46); ctx.fillStyle = '#4a2f70'; ctx.fillRect(m - 7, py - 46, 4, 46);
+    ctx.fillStyle = '#ff3cc8'; ctx.fillRect(m - 9, py - 52, 18, 8); ctx.fillStyle = '#ffffff'; ctx.fillRect(m - 3, py - 50, 6, 4);
+  }
+}
+const MID_GAP = 8;
+const midX = () => WORLD.w / 2;
+function ownX(team, x, pad = 0) { const m = midX(); return team === 'P' ? Math.min(x, m - MID_GAP - pad) : team === 'B' ? Math.max(x, m + MID_GAP + pad) : x; }
+function onOwnSide(team, x) { return team === 'P' ? x < midX() : x > midX(); }
+function keepSide(e) {
+  if (e.team !== 'P' && e.team !== 'B') return;
+  const nx = ownX(e.team, e.x, e.r);
+  if (nx !== e.x) { e.x = nx; if (e === G.player) G.lineHit = { y: e.y, t: 0.3 }; }
+}
+function moveEnt(e, dx, dy) { const s = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 8)); for (let i = 0; i < s; i++) { e.x += dx / s; e.y += dy / s; keepSide(e); pushOut(e); keepSide(e); } }
 
 /* ---------------- state ---------------- */
 let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = localStorage.getItem('ps_diff') || 'normal';
@@ -285,12 +319,15 @@ function useAbility(e) {
 
 /* ---------------- pickups (auto-collect on contact) ---------------- */
 function spawnPickup() {
-  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'].concat(G.story ? G.story.extras || [] : []);
+  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'].concat(G.story ? (G.story.extras || []).filter((k) => MATURE || k !== 'kush') : []);
+  const kind = kinds[Math.floor(Math.random() * kinds.length)];
+  // power-ups alternate sides so both teams can reach them; Perci's story items always land on his side
+  const side = PICKUPS[kind].perciOnly ? 'P' : (G.pkSide = G.pkSide === 'P' ? 'B' : 'P'), m = midX();
   for (let tries = 0; tries < 40; tries++) {
-    const x = 260 + Math.random() * (WORLD.w - 520), y = 120 + Math.random() * (WORLD.h - 240);
+    const x = side === 'P' ? 220 + Math.random() * (m - 320) : m + 100 + Math.random() * (m - 320), y = 120 + Math.random() * (WORLD.h - 240);
     if (BLOCK[cellOf(x, y)[1] * GC + cellOf(x, y)[0]]) continue;
     if (G.pickups.some((p) => Math.hypot(p.x - x, p.y - y) < 200)) continue;
-    G.pickups.push({ x, y, t: 0, id: ++G.pkId, kind: kinds[Math.floor(Math.random() * kinds.length)] }); G.rings.push({ x, y, r: 6, life: 0.5, col: '#ffffff' }); return;
+    G.pickups.push({ x, y, t: 0, id: ++G.pkId, kind }); G.rings.push({ x, y, r: 6, life: 0.5, col: '#ffffff' }); return;
   }
 }
 function applyPickup(e, kind) {
@@ -306,7 +343,7 @@ function applyPickup(e, kind) {
   if (kind === 'burger') { e.hp = e.maxhp; e.fast = Math.max(e.fast, 3); }
 }
 function collect(e, pk) {
-  if (PICKUPS[pk.kind].adult && e !== G.player) return false;   // only you can grab story items
+  if (PICKUPS[pk.kind].perciOnly && e !== G.player) return false;   // only you can grab story items
   if (e === G.player && e.inv) {
     const slot = e.inv.indexOf(null);
     if (slot < 0) return false;                          // slots full: leave it on the floor
@@ -342,7 +379,7 @@ function syncInv() {
 }
 
 /* ---------------- AI ---------------- */
-function nearestPickup(e, maxD) { let b = null, bd = maxD; for (const p of G.pickups) { const d = dist(p, e); if (d < bd) { bd = d; b = p; } } return b; }
+function nearestPickup(e, maxD) { let b = null, bd = maxD; for (const p of G.pickups) { if (!onOwnSide(e.team, p.x)) continue; if (PICKUPS[p.kind].perciOnly && e !== G.player) continue; const d = dist(p, e); if (d < bd) { bd = d; b = p; } } return b; }
 function aiThink(e, dt) {
   const d = DIFF[diff], ai = e.ai;
   ai.think -= dt; ai.repath -= dt;
@@ -357,7 +394,7 @@ function aiThink(e, dt) {
     const pk = nearestPickup(e, e.hp < e.maxhp ? 650 : 280);
     if (pk && (e.hp < e.maxhp || Math.random() < (e.kind !== 'bot' ? 0.5 : 0.3))) { ai.goal = pk; ai.goalKind = 'pick'; }
     else if (best) { ai.goal = best; ai.goalKind = 'foe'; }
-    else { ai.goal = { x: 300 + Math.random() * (WORLD.w - 600), y: 200 + Math.random() * (WORLD.h - 400) }; ai.goalKind = 'wander'; }
+    else { ai.goal = { x: ownX(e.team, 300 + Math.random() * (WORLD.w - 600), 120), y: 200 + Math.random() * (WORLD.h - 400) }; ai.goalKind = 'wander'; }
     if (e.kind !== 'bot' && e.abilityCd <= 0 && best && dist(e, best) < 480 && Math.random() < 0.25) useAbility(e);
   }
   if (ai.goal && ai.goal.gone) { ai.goal = ai.target; ai.goalKind = 'foe'; ai.path = []; }
@@ -399,7 +436,9 @@ function aiThink(e, dt) {
     if (ai.repath <= 0 || !ai.path.length || (ai.pg && Math.hypot(ai.pg.x - g.x, ai.pg.y - g.y) > 90)) {
       let gx = g.x, gy = g.y;
       if (ai.goalKind === 'foe' && !see) { const ang = Math.atan2(e.y - g.y, e.x - g.x) + ai.strafe * 0.9; gx = clamp(g.x + Math.cos(ang) * 220, 60, WORLD.w - 60); gy = clamp(g.y + Math.sin(ang) * 220, 60, WORLD.h - 60); }
-      ai.path = astar(e.x, e.y, gx, gy); ai.pg = { x: g.x, y: g.y }; ai.repath = 0.7 + Math.random() * 0.3;
+      // a target across the center line: hold a spot on our side near the line instead of chasing it
+      if (!onOwnSide(e.team, gx)) { gx = ownX(e.team, gx, 140 + Math.random() * 160); gy = clamp(gy + (Math.random() - 0.5) * 240, 60, WORLD.h - 60); }
+      ai.path = astar(e.x, e.y, gx, gy, e.team); ai.pg = { x: g.x, y: g.y }; ai.repath = 0.7 + Math.random() * 0.3;
     }
     while (ai.path.length > 1 && clear(e, ai.path[1], e.r - 4)) ai.path.shift();      // string-pull: skip visible waypoints
     if (ai.path.length && Math.hypot(ai.path[0].x - e.x, ai.path[0].y - e.y) < 14) ai.path.shift();
@@ -439,7 +478,7 @@ function seekCover(e, side) {
     const cands = [{ x: w.x - r, y: clamp(e.y, w.y, w.y + w.h) }, { x: w.x + w.w + r, y: clamp(e.y, w.y, w.y + w.h) }, { x: clamp(e.x, w.x, w.x + w.w), y: w.y - r }, { x: clamp(e.x, w.x, w.x + w.w), y: w.y + w.h + r }];
     for (const c of cands) {
       const d = dist(e, c);
-      if ((c.x - e.x) * side > 6 && d < bd) { const probe = { x: e.x, y: e.y, r: e.r }; moveEnt(probe, c.x - e.x, c.y - e.y); if (dist(probe, c) < 3) { best = c; bd = d; } }
+      if ((c.x - e.x) * side > 6 && d < bd && onOwnSide(e.team, c.x)) { const probe = { x: e.x, y: e.y, r: e.r }; moveEnt(probe, c.x - e.x, c.y - e.y); if (dist(probe, c) < 3) { best = c; bd = d; } }
     }
   }
   e.coverGoal = best;
@@ -762,6 +801,7 @@ function drawWorld(t) {
   ctx.fillStyle = bw; ctx.fillRect(-60, -110, WORLD.w + 120, 110);
   ctx.fillStyle = 'rgba(0,230,255,0.5)'; ctx.fillRect(-60, -8, WORLD.w + 120, 3); ctx.fillStyle = 'rgba(192,112,255,0.35)'; ctx.fillRect(-60, -60, WORLD.w + 120, 2);
   ctx.drawImage(STATIC, 0, 0);
+  drawMidLine(t);
   // front lip of the floor
   ctx.fillStyle = '#100818'; ctx.fillRect(-60, WORLD.h * TILT, WORLD.w + 120, 26); ctx.fillStyle = 'rgba(130,50,220,0.6)'; ctx.fillRect(-60, WORLD.h * TILT, WORLD.w + 120, 3);
   // floor effects: respawn timers + rings
@@ -820,6 +860,7 @@ function drawMinimap() {
   const w = TOUCH ? 108 : 150, h = w * WORLD.h / WORLD.w, x = 10, y = TOUCH ? 74 : VH - h - 12, k = w / WORLD.w;
   ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(x - 3, y - 3, w + 6, h + 6); ctx.strokeStyle = 'rgba(160,100,255,0.6)'; ctx.lineWidth = 1.5; ctx.strokeRect(x - 3, y - 3, w + 6, h + 6);
   ctx.fillStyle = 'rgba(220,190,120,0.55)'; for (const wl of SOLID) ctx.fillRect(x + wl.x * k, y + wl.y * k, Math.max(1.5, wl.w * k), Math.max(1.5, wl.h * k));
+  ctx.fillStyle = '#ff3cc8'; ctx.fillRect(x + midX() * k - 1, y, 2, h);
   for (const pk of G.pickups) { ctx.fillStyle = PICKUPS[pk.kind].col; ctx.fillRect(x + pk.x * k - 1.5, y + pk.y * k - 1.5, 3, 3); }
   for (const e of G.ents) { if (e.dead > 0) continue; ctx.fillStyle = e.isPlayer ? '#ffd60a' : e.team === 'P' ? '#ff4b65' : '#ff8c28'; ctx.beginPath(); ctx.arc(x + e.x * k, y + e.y * k, e.isPlayer ? 3.5 : 2.5, 0, Math.PI * 2); ctx.fill(); }
   ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + G.cam.x * k, y + (G.cam.y / TILT) * k, (VW / Z) * k, (VH / Z / TILT) * k);
@@ -1285,7 +1326,7 @@ $('bInvite').onclick = async () => {
 addEventListener('pagehide', () => { if (MP.on && MP.net) { try { MP.net.send(MP.host ? 'lobby' : 'bye', MP.host ? lobbyMsg({ closed: true }) : { pid: MP.pid }); } catch (e) {} } });
 
 /* ---------------- story mode: 6 chapters that follow the show ---------------- */
-// Adult humor and cursing throughout. Weed content stays with the adults (Perci, ChatGPT): it only appears
+// Mature content (strong language, crude humor, cartoon weed use) unless turned off in SETTINGS. Weed content stays with the adults (Perci, ChatGPT): it only appears
 // in scenes and chapters where Miracle, Jessica and Mixi (kids) are not present.
 const STORY_KEY = 'ps_story_v1';
 let storyProg = (() => { try { return Object.assign({ unlocked: 1, stars: {} }, JSON.parse(localStorage.getItem(STORY_KEY) || '{}')); } catch (e) { return { unlocked: 1, stars: {} }; } })();
@@ -1370,9 +1411,9 @@ const CHAPTERS = [
     ] },
 ];
 
-// adult items (story only, Perci only): Dream Kush and Might Be Castle munchies
-PICKUPS.kush = { col: '#5dff7a', label: 'DREAM KUSH: EVERYTHING SLOWED DOWN', adult: true };
-PICKUPS.burger = { col: '#ff9f40', label: 'MUNCHIES! FULL SHIELDS', adult: true };
+// story items (story only, Perci only): Dream Kush and Might Be Castle munchies
+PICKUPS.kush = { col: '#5dff7a', label: 'DREAM KUSH: EVERYTHING SLOWED DOWN', perciOnly: true };
+PICKUPS.burger = { col: '#ff9f40', label: 'MUNCHIES! FULL SHIELDS', perciOnly: true };
 INV_ICON.kush = '🌿'; INV_ICON.burger = '🍔';
 const KUSH_LINES = ['PUFF PUFF... FOCUS.', 'HIGH TIMES ON THE 14TH FLOOR', 'WHY IS EVERYTHING SO SLOW? PERFECT.'];
 function drawLeaf(g, x, y, s, col) {
@@ -1485,6 +1526,7 @@ const SPEAKER = {
   mixi: { name: 'MIXI', img: 'mixi', col: '#ff78c8' }, broke: { name: 'BROKE-PILOT', img: 'brokepilot', col: '#ff8c28' }, phone: { name: 'CHATGPT (TEXT)', img: 'chatgpt', col: '#00e6ff' },
 };
 function playCut(shots, done) {
+  shots = cleanShots(shots);
   Object.assign(CUT, { shots, i: 0, li: 0, chars: 0, hold: 0, t: 0, done, smoke: [], flash: 0 });
   showScreen(null); state = 'cut';
   document.body.classList.add('playing', 'cutting'); $('hud').classList.remove('on');
@@ -1716,7 +1758,32 @@ function wipe(mid) {
   setTimeout(() => { try { mid && mid(); } catch (e) { console.error(e); } w.className = 'out'; setTimeout(() => { w.className = ''; wiping = false; }, 460); }, 460);
 }
 
-/* ----- chapter select + 18+ check ----- */
+/* ----- mature content: on by default; off takes out the weed item and smoke scenes and cleans up the language ----- */
+let MATURE = localStorage.getItem('ps_mature') !== '0';
+const CLEAN_LINES = {
+  'Lemme spark this real quick. High times on the 14th floor.': 'Lemme chill real quick. Saturday on the 14th floor.',
+  'Hell nah. WTF??': 'Heck nah. What the...??',
+  '...WTF.': '...What the...?',
+  "OH SHYT, HE'S REAL!?": "OH SNAP, HE'S REAL!?",
+};
+const CLEAN_WORDS = [[/\bWTF\b/g, 'What the...'], [/\bSHYT\b/g, 'SNAP'], [/\bshyt\b/gi, 'snap'], [/\bHell\b/g, 'Heck'], [/\bhell\b/g, 'heck'], [/\bDamn\b/g, 'Dang'], [/\bdamn\b/g, 'dang'], [/-ass\b/g, '']];
+function cleanLine(t) { if (CLEAN_LINES[t]) return CLEAN_LINES[t]; for (const [re, w] of CLEAN_WORDS) t = t.replace(re, w); return t; }
+function cleanShots(shots) {
+  if (MATURE) return shots;
+  return shots.map((sh) => Object.assign({}, sh, {
+    fx: sh.fx ? Object.assign({}, sh.fx, { haze: 0 }) : sh.fx,
+    actors: sh.actors && sh.actors.map((a) => Object.assign({}, a, { smoke: false })),
+    lines: sh.lines && sh.lines.map(([who, t]) => [who, cleanLine(t)]),
+  }));
+}
+function setMature(on) {
+  MATURE = on; localStorage.setItem('ps_mature', on ? '1' : '0');
+  document.querySelectorAll('.matSet button').forEach((b) => b.classList.toggle('sel', (b.dataset.v === '1') === MATURE));
+}
+document.querySelectorAll('.matSet button').forEach((b) => (b.onclick = () => setMature(b.dataset.v === '1')));
+setMature(MATURE);
+
+/* ----- chapter select (mature-content notice the first time) ----- */
 function renderChapters() {
   const list = $('chList'); if (!list) return;
   list.innerHTML = CHAPTERS.map((ch) => {
@@ -1731,13 +1798,13 @@ function renderChapters() {
 }
 function openStory() {
   ac(); renderChapters();
-  const ok = localStorage.getItem('ps_adult') === '1';
-  $('ageGate').style.display = ok ? 'none' : ''; $('chWrap').style.display = ok ? '' : 'none';
+  const seen = localStorage.getItem('ps_note_seen') === '1' || localStorage.getItem('ps_adult') === '1';
+  $('matNote').style.display = seen ? 'none' : ''; $('chWrap').style.display = seen ? '' : 'none';
   wipe(() => showScreen('sStory'));
 }
 $('bStory').onclick = openStory;
-$('bAgeYes').onclick = () => { localStorage.setItem('ps_adult', '1'); $('ageGate').style.display = 'none'; $('chWrap').style.display = ''; renderChapters(); };
-$('bAgeNo').onclick = () => wipe(() => showScreen('sTitle'));
+$('bMatOk').onclick = () => { localStorage.setItem('ps_note_seen', '1'); $('matNote').style.display = 'none'; $('chWrap').style.display = ''; renderChapters(); };
+$('bMatBack').onclick = () => wipe(() => showScreen('sTitle'));
 $('bStoryBack').onclick = () => wipe(() => showScreen('sTitle'));
 $('bSeNext').onclick = () => { const n = CHAPTERS[storyLast.ch.id]; if (n) playChapter(n.id); };
 $('bSeRetry').onclick = () => { const ch = storyLast.ch; storyCh = ch; wipe(() => startStoryLevel(ch)); };
@@ -1772,5 +1839,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { playChapter, playCut, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();

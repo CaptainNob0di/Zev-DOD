@@ -456,24 +456,25 @@ class Arena:
                 for w in solid:
                     if w['x'] - INFL < x < w['x'] + w['w'] + INFL and w['y'] - INFL < y < w['y'] + w['h'] + INFL: block[r][c] = 1; break
         def sp(team, i): return (120 if team == 'P' else W - 120, int(H * (i + 1) / 6 + 0.5))
-        s = sp('P', 2); start = (s[1] // CELL, s[0] // CELL)
-        bad = []
+        # teams can't cross the center line, so each half must hold all 5 of its spawns in one connected area
+        def in_half(team, c): return (c * CELL + CELL / 2 < W / 2 - 28) if team == 'P' else (c * CELL + CELL / 2 > W / 2 + 28)
+        bad, seen = [], set()
         for team in 'PB':
             for i in range(5):
                 x, y = sp(team, i)
                 if block[y // CELL][x // CELL]: bad.append(('spawn blocked', team, i, x, y))
-        if block[start[0]][start[1]]: return 0, bad + ['start blocked']
-        seen = {start}; q = [start]
-        while q:
-            r, c = q.pop()
-            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                rr, cc = r + dr, c + dc
-                if 0 <= rr < GR and 0 <= cc < GC and not block[rr][cc] and (rr, cc) not in seen: seen.add((rr, cc)); q.append((rr, cc))
-        free = sum(1 for r in range(GR) for c in range(GC) if not block[r][c])
-        for team in 'PB':
+            s = sp(team, 2); start = (s[1] // CELL, s[0] // CELL)
+            if block[start[0]][start[1]]: return 0, bad + ['start blocked ' + team]
+            seen.add(start); q = [start]
+            while q:
+                r, c = q.pop()
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    rr, cc = r + dr, c + dc
+                    if 0 <= rr < GR and 0 <= cc < GC and in_half(team, cc) and not block[rr][cc] and (rr, cc) not in seen: seen.add((rr, cc)); q.append((rr, cc))
             for i in range(5):
                 x, y = sp(team, i)
                 if (y // CELL, x // CELL) not in seen: bad.append(('spawn cut off', team, i))
+        free = sum(1 for r in range(GR) for c in range(GC) if not block[r][c] and (in_half('P', c) or in_half('B', c)))
         self.block = block
         return len(seen) / max(1, free), bad
 

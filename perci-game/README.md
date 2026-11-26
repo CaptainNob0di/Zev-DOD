@@ -21,7 +21,7 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   green brackets show the bot it's helping you hit. Phone auto-fire is off by default (toggle in SETTINGS).
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
-- **Story Mode (18+):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
+- **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
   "DEEPER"). Each has an animated opening/closing scene (dialogue with character faces, title cards, skippable), its own
   goal (tag N bots / survive / out-tag / boss: BROKE-PILOT PRIME), 3 stars, and unlocks the next chapter.
   Each chapter is played where its episode actually happens (checked against the episode scripts):
@@ -31,9 +31,15 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   grading everything, locked fridge, rogue vacuums, Monroe Realty office; bots pour out of the garage) · 5 Building 8 in
   Lincoln at pickup (Perci's car at the curb, the lobby, the stairwell) · 6 the barn in Iowa (stalls, hay, tractor,
   the 5-helmet dream rig). The scenes before and after each chapter use the episodes' own lines.
-  Adult humor and cursing; weed content (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in
+  **Mature content:** a notice lists what's in it (strong language, crude humor, cartoon marijuana use, cartoon laser
+  action, no blood) the first time you open Story Mode, and the title screen shows the same line. MATURE CONTENT ON/OFF
+  is in SETTINGS (and on that notice); OFF takes out the Dream Kush item and the smoke scenes and cleans up the language.
+  There is no age gate. Weed content (Dream Kush item, smoke scenes) stays with Perci/ChatGPT and only appears in
   chapters/scenes without the kids (Miracle, Jessica, Mixi). Progress is saved on the device (localStorage `ps_story_v1`).
   Story scores don't go to the leaderboard.
+- **Center line (all modes):** a laser line splits every map down the middle. Each team stays on its own half; lasers
+  cross it. Bots hold their side instead of chasing over, power-ups alternate halves, and Story items spawn on Perci's
+  side. Every map (random or story) is checked so each half is one connected area with all 5 of its spawns.
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.
