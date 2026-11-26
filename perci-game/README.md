@@ -52,6 +52,19 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
 - **BROKE-pilot report card:** live grade on the HUD, A+ / A++ stamps on tags, F when you get tagged, and a report card
   (Tagging, Aim, Staying Alive, Line Control, Hustle) at the end of every match and chapter. SAVE REPORT CARD makes a
   1080x1350 image and opens the phone's share sheet (or downloads it on a computer).
+- **View:** SETTINGS > VIEW (NORMAL / WIDE / WIDEST). WIDE is the default and shows about 25% more of the arena.
+- **Weapons:** pick one before a match (also online): Own Blaster, Buzz SMG (LV 3), Scatter Gun (LV 6), Bounce
+  Launcher (LV 10), Beam Rifle (LV 15), and Perci's Gold Blaster (store only). The level that counts is your highest
+  fighter's level.
+- **Levels:** every match and chapter gives the fighter you played XP (double with a Double XP boost). Each level adds
+  +0.5% speed (up to 15%) and 1% faster powers (up to 25%), and every 10 levels adds a shield point. Max level 30.
+- **ZEV Coins:** earned every match and chapter (more on harder difficulty and for stars), and also sold in packs.
+- **Store:** opens **Jan 7, 2027, 6 PM CT** (a week after release; the preview link opens it early). Gold Blaster,
+  Armor Plating (+1 shield, 2 per fighter), Power Core, Overclock Shoes, Spawn Shield+, Double XP and Level Skip.
+  Upgrades work in every mode, online team-vs-team too. The checkout window offers **ZEV Coins** or **card / Apple Pay /
+  Google Pay / Cash App / PayPal** (Stripe). Money payments stay off until `window.ZEV_PAY` in index.html is filled in:
+  see `payments/PAYMENTS_SETUP.md`. Server code is in `payments/` (SQL plus two Supabase Edge Functions).
+  Progress is saved on the device (`ps_prog_v1`); once payments are on, coins and owned items also live in Supabase.
 - **Online play:** PLAY ONLINE, create a room, share the 4-letter code. Co-op vs bots or team vs team,
   up to 10 players, bots fill empty spots. Uses Supabase Realtime (same project as the leaderboard).
   The host's device runs the match, so the host should keep the screen on.
@@ -67,7 +80,7 @@ The public sees a "Coming soon" countdown until **Thu Dec 31, 2026, 6:00 PM CT**
 
 ## 1. Put it on the site
 1. Upload this whole folder to your site as `perci-game/` (so the game lives at `zevsocialconnect.com/perci-game/`).
-   Keep `index.html`, `game.js`, `arenas.js` and the `assets/` folder together.
+   Keep `index.html`, `game.js`, `arenas.js` and the `assets/` folder together (`payments/` is server code and the setup guide; the game doesn't load it).
    (`arenas.js` is made by `tools/gen_arenas.py`; edit that script, not the .js, then run it again. It also writes the handheld's `src/arenas.lua`, so both games stay the same.)
 2. Add a button to `perci.html` (and the Perci Shorti section on the home page):
 

@@ -10,6 +10,7 @@ function resize() {
   cvs.width = Math.round(VW * DPR); cvs.height = Math.round(VH * DPR);
   // zoom out on small screens so phones see enough of the arena
   Z = Math.min(1, Math.max(0.5, Math.max(VW, VH) / 1350, Math.min(VW, VH) / 760));
+  Z = Math.max(0.36, Z * ({ normal: 1, wide: 0.8, widest: 0.66 }[localStorage.getItem('ps_view') || 'wide'] || 0.8));   // VIEW setting: see more of the arena
   buildVignette();
 }
 addEventListener('resize', resize);
@@ -261,6 +262,7 @@ function startMatch() {
 }
 function beginMatch(ents, me) {
   for (const e of ents) e.dodgeCd = 0;
+  if (!MP.on) applyLoadout(me, myLoadout(me.kind));   // weapon, level perks and store upgrades
   me.inv = MP.on ? null : [null, null, null, null];   // item slots (solo); online keeps instant power-ups
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y * TILT - 40 - VH / Z / 2;
@@ -282,11 +284,14 @@ function fire(e, ang) {
   const s = e.stats;
   if (e.cool > 0 || e.dead > 0 || e.frozen > 0) return;
   e.cool = s.rate * (e.kind === 'bot' ? DIFF[diff].rate : 1) * (e.rapid > 0 ? 0.45 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 1.8 : 1);
-  const spread = (Math.random() - 0.5) * 2 * (s.spread + (e.human ? 0 : e.kind === 'bot' ? DIFF[diff].acc : DIFF[diff].mate));
-  const a = ang + spread, sp = e.kind === 'chatgpt' ? 1500 : 950;
-  G.bullets.push({ x: e.x + Math.cos(a) * (e.r + 14), y: e.y + Math.sin(a) * (e.r + 14), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, owner: e, team: e.team, dmg: s.dmg, col: s.shot, bounce: (s.bounce ? 1 : 0) + (isReal() ? 1 : 0), beam: e.kind === 'chatgpt', age: 0 });
+  const beam = s.beam !== undefined ? s.beam : e.kind === 'chatgpt', sp = beam ? 1500 : 950, n = s.pellets || 1;
+  for (let i = 0; i < n; i++) {   // the Scatter Gun fires a fan of lasers
+    const spread = (Math.random() - 0.5) * 2 * (s.spread + (e.human ? 0 : e.kind === 'bot' ? DIFF[diff].acc : DIFF[diff].mate));
+    const a = ang + spread + (n > 1 ? (i / (n - 1) - 0.5) * (s.cone || 0) : 0);
+    G.bullets.push({ x: e.x + Math.cos(a) * (e.r + 14), y: e.y + Math.sin(a) * (e.r + 14), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, owner: e, team: e.team, dmg: s.dmg, col: s.shot, bounce: (+s.bounce || 0) + (isReal() ? 1 : 0), beam, age: 0 });
+  }
   e.shots++; e.flash = 0.06;
-  if (e.isPlayer) (e.kind === 'chatgpt' ? SFX.beam : SFX.pew)();
+  if (e.isPlayer) (beam ? SFX.beam : SFX.pew)();
 }
 function hitEnt(t, b) {
   if (t.shield > 0) { spark(b.x, b.y, '#ffffff', 6, 160); if (MP.host) MP.ev.push(['h', Math.round(b.x), Math.round(b.y), -1, G.ents.indexOf(t)]); return; }
@@ -308,7 +313,7 @@ function spark(x, y, col, n, sp = 220) { if (G.parts.length > 340) return; for (
 function useAbility(e) {
   if (e.abilityCd > 0 || e.dead > 0) return;
   if (isReal()) { if (e.isPlayer) banner('NO POWERS IN THE REAL WORLD'); return; }
-  const c = CHARS[e.kind]; e.abilityCd = c.cd; e.powers = (e.powers || 0) + 1;
+  const c = CHARS[e.kind]; e.abilityCd = c.cd * (e.stats.cdMul || 1); e.powers = (e.powers || 0) + 1;
   if (e.isPlayer) { SFX.power(); banner(c.ability); buzz(60); }
   G.rings.push({ x: e.x, y: e.y, r: 10, life: 0.5, col: c.shot });
   if (MP.host) MP.ev.push(['a', G.ents.indexOf(e)]);
@@ -532,7 +537,7 @@ function update(dt) {
   const p = G.player;
   for (const e of G.ents) {
     e.cool = Math.max(0, e.cool - dt); e.abilityCd = Math.max(0, e.abilityCd - dt); e.rapid = Math.max(0, e.rapid - dt); e.shield = Math.max(0, e.shield - dt); e.frozen = Math.max(0, e.frozen - dt); e.fast = Math.max(0, e.fast - dt); e.flash = Math.max(0, e.flash - dt); e.hurt = Math.max(0, e.hurt - dt);
-    if (e.dead > 0) { e.dead -= dt; if (e.dead <= 0) { e.hp = e.maxhp; e.x = e.spawn.x; e.y = e.spawn.y; e.tx = undefined; e.coverGoal = null; e.life++; e.shield = 1.5; e.ai.path = []; G.rings.push({ x: e.x, y: e.y, r: 6, life: 0.4, col: '#ffffff' }); } continue; }
+    if (e.dead > 0) { e.dead -= dt; if (e.dead <= 0) { e.hp = e.maxhp; e.x = e.spawn.x; e.y = e.spawn.y; e.tx = undefined; e.coverGoal = null; e.life++; e.shield = 1.5 + (e.spawnShield || 0); e.ai.path = []; G.rings.push({ x: e.x, y: e.y, r: 6, life: 0.4, col: '#ffffff' }); } continue; }
     if (e.frozen > 0) continue;
     if (e === G.player) controlLocal(e, dt, fire, useAbility);
     else if (e.human) controlRemote(e, dt);
@@ -920,6 +925,7 @@ function endMatch() {
   const score = Math.max(0, Math.round(raw * DIFF[diff].mult));
   lastResult = { score, tags: p.tags, tagged: p.tagged, acc, won, tie, character: p.kind, difficulty: diff, team: G.score.P, enemy: G.score.B };
   lastCard = reportCard(p, (MATCH_TIME - G.time) / 60); renderReportCard($('endCard'), lastCard);
+  $('endRewards').innerHTML = rewardsHTML(award(p, { won, diffMul: MP.on ? 1 : DIFF[diff].mult }));
   $('endTitle').textContent = G.pushWin ? (won ? 'LINE PUSHED! YOU WIN' : 'THEY PUSHED THE LINE') : won ? 'YOU WIN!' : tie ? 'TIE GAME' : (MP.on && MP.mode === 'versus' ? (p.team === 'P' ? 'TEAM BROKE WINS' : 'TEAM PERCI WINS') : 'BROKE-PILOT WINS');
   $('endTitle').className = 'big ' + (won ? 'win' : 'lose');
   $('endSub').textContent = `Team Perci ${G.score.P} — ${G.score.B} ${MP.on && MP.mode === 'versus' ? 'Team BROKE' : 'BROKE-pilot'} • ${CHARS[p.kind].name} • ${diff.toUpperCase()}${MP.on ? ' • ONLINE' : ''}`;
@@ -977,13 +983,13 @@ async function share() {
 function showScreen(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); if (id) state = id === 'sEnd' ? 'end' : 'menu'; }
 function buildCards() {
   $('cards').innerHTML = ORDER.map((k) => { const c = CHARS[k]; const lab = ['SPEED', 'FIRE', 'RANGE', 'SKILL'];
-    return `<div class="card ${k === pick ? 'sel' : ''}" data-k="${k}"><img src="assets/${k}.png" alt="${c.name}"><h3>${c.name}</h3><div class="role">${c.role}</div>${c.stats.map((v, i) => `<div class="stat"><span>${lab[i]}</span><div class="bar"><i style="width:${v * 20}%"></i></div></div>`).join('')}<div class="ability">${c.ability}: ${c.abilityDesc}</div></div>`; }).join('');
+    return `<div class="card ${k === pick ? 'sel' : ''}" data-k="${k}"><img src="assets/${k}.png" alt="${c.name}"><h3>${c.name}</h3>${levelBadge(k)}<div class="role">${c.role}</div>${c.stats.map((v, i) => `<div class="stat"><span>${lab[i]}</span><div class="bar"><i style="width:${v * 20}%"></i></div></div>`).join('')}<div class="ability">${c.ability}: ${c.abilityDesc}</div></div>`; }).join('');
   document.querySelectorAll('.card').forEach((el) => el.onclick = () => { pick = el.dataset.k; localStorage.setItem('ps_pick', pick); buildCards(); SFX.pick(); });
 }
 document.querySelectorAll('#diff button').forEach((b) => { b.classList.toggle('sel', b.dataset.d === diff); b.onclick = () => { diff = b.dataset.d; localStorage.setItem('ps_diff', diff); document.querySelectorAll('#diff button').forEach((x) => x.classList.toggle('sel', x === b)); }; });
 document.querySelectorAll('#boardTabs button').forEach((b) => b.onclick = () => { document.querySelectorAll('#boardTabs button').forEach((x) => x.classList.toggle('sel', x === b)); loadBoard(b.dataset.b); });
 const openBoard = () => { showScreen('sBoard'); document.querySelectorAll('#boardTabs button').forEach((x, i) => x.classList.toggle('sel', i === 0)); loadBoard('all'); };
-$('bPlay').onclick = () => { ac(); buildCards(); showScreen('sSelect'); };
+$('bPlay').onclick = () => { ac(); buildCards(); weaponRow($('weapons')); showScreen('sSelect'); };
 $('bPlay2').onclick = $('bPlay').onclick;
 $('bHow').onclick = () => showScreen('sHow'); $('bBack2').onclick = () => showScreen('sTitle');
 $('bBoard').onclick = openBoard; $('bBoard2').onclick = openBoard; $('bBack3').onclick = () => showScreen('sTitle'); $('bBack1').onclick = () => showScreen('sTitle');
@@ -1096,7 +1102,7 @@ async function mpCreate() {
   localStorage.setItem('ps_name', name); mpMsg('Opening a room...');
   const code = newCode();
   try { MP.net = await mpConnect(code); } catch (e) { return mpMsg("Couldn't open a room. Check your connection and try again."); }
-  Object.assign(MP, { on: true, host: true, code, name, mode: 'coop', started: false, homeDiff: diff, roster: [{ pid: MP.pid, name, kind: pick, team: 'P', host: true }], heard: {} });
+  Object.assign(MP, { on: true, host: true, code, name, mode: 'coop', started: false, homeDiff: diff, roster: [{ pid: MP.pid, name, kind: pick, team: 'P', host: true, lo: myLoadout(pick) }], heard: {} });
   mpWire(); mpStartTick(); showScreen('sLobby'); pushLobby();
 }
 async function mpJoin(codeIn) {
@@ -1114,7 +1120,7 @@ async function mpJoin(codeIn) {
     else if (Date.now() - t0 > 9000) { clearInterval(wait); mpLeave(true); showScreen('sOnline'); mpMsg('No room called ' + code + '. Check the code with your friend.'); }
   }, 250);
 }
-const mpHello = () => MP.net && MP.net.send('hello', { pid: MP.pid, name: MP.name, kind: pick });
+const mpHello = () => MP.net && MP.net.send('hello', { pid: MP.pid, name: MP.name, kind: pick, lo: myLoadout(pick) });
 
 function mpWire() {
   const n = MP.net;
@@ -1123,10 +1129,10 @@ function mpWire() {
       MP.heard[p.pid] = performance.now();
       if (MP.roster.some((r) => r.pid === p.pid)) return;
       if (MP.roster.length >= mpMax()) { n.send('full', { pid: p.pid }); return; }
-      MP.roster.push({ pid: p.pid, name: cleanName(p.name) || 'PLAYER', kind: ORDER.includes(p.kind) ? p.kind : 'perci', team: teamFor() });
+      MP.roster.push({ pid: p.pid, name: cleanName(p.name) || 'PLAYER', kind: ORDER.includes(p.kind) ? p.kind : 'perci', team: teamFor(), lo: cleanLoadout(p.lo) });
       if (state !== 'play') feedLobby(p.name + ' joined'); pushLobby();
     });
-    n.on('pick', (p) => { const r = MP.roster.find((x) => x.pid === p.pid); if (r && ORDER.includes(p.kind) && !MP.started) { r.kind = p.kind; pushLobby(); } });
+    n.on('pick', (p) => { const r = MP.roster.find((x) => x.pid === p.pid); if (r && ORDER.includes(p.kind) && !MP.started) { r.kind = p.kind; if (p.lo) r.lo = cleanLoadout(p.lo); pushLobby(); } });
     n.on('team', (p) => { const r = MP.roster.find((x) => x.pid === p.pid); if (r && MP.mode === 'versus' && !MP.started) { const to = r.team === 'P' ? 'B' : 'P'; if (MP.roster.filter((x) => x.team === to).length < 5) { r.team = to; pushLobby(); } } });
     n.on('bye', (p) => { MP.roster = MP.roster.filter((x) => x.pid !== p.pid); if (G && MP.started) { const e = G.ents.find((x) => x.pid === p.pid); if (e && e.human) { e.human = false; feed(e.name + ' left, a bot took over'); } } pushLobby(); });
     n.on('in', (p) => { MP.inputs[p.pid] = p; MP.heard[p.pid] = performance.now(); });
@@ -1174,7 +1180,7 @@ function buildDefs() {
   const defs = [], slots = [2, 1, 3, 0, 4];
   for (const team of ['P', 'B']) {
     const hum = MP.roster.filter((r) => r.team === team).slice(0, 5);
-    hum.forEach((r, i) => defs.push({ team, kind: r.kind, slot: slots[i], pid: r.pid, name: r.name }));
+    hum.forEach((r, i) => defs.push({ team, kind: r.kind, slot: slots[i], pid: r.pid, name: r.name, lo: r.pid === MP.pid ? myLoadout(r.kind) : r.lo }));
     if (team === 'P') { const left = ORDER.filter((k) => !hum.some((h) => h.kind === k)); for (let i = hum.length; i < 5; i++) defs.push({ team, kind: left[i - hum.length], slot: slots[i] }); }
     else for (let i = hum.length; i < 5; i++) defs.push({ team, kind: 'bot', slot: slots[i] });
   }
@@ -1186,7 +1192,7 @@ function mpStartMatch() {
 }
 function mpBegin(defs, seed) {
   buildArena(seed || 1);
-  const ents = defs.map((d) => { const e = newEntity(d.team, d.kind, d.slot, d.pid === MP.pid); if (d.pid) { e.human = true; e.pid = d.pid; e.name = d.name; } return e; });
+  const ents = defs.map((d) => { const e = newEntity(d.team, d.kind, d.slot, d.pid === MP.pid); if (d.pid) { e.human = true; e.pid = d.pid; e.name = d.name; applyLoadout(e, d.pid === MP.pid ? myLoadout(d.kind) : d.lo); } return e; });
   const me = ents.find((e) => e.pid === MP.pid); if (!me) return;
   MP.started = true; MP.inputs = {}; MP.ev = []; MP.abN = 0; MP.sendT = 0; MP.lastSnap = performance.now();
   const now = performance.now(); for (const e of ents) if (e.pid) MP.heard[e.pid] = now;
@@ -1239,7 +1245,7 @@ function clientShoot(e, ang) {
 }
 function clientAbility(e) {
   if (e.abilityCd > 0 || e.dead > 0) return;
-  const c = CHARS[e.kind]; MP.abN++; e.abilityCd = c.cd;
+  const c = CHARS[e.kind]; MP.abN++; e.abilityCd = c.cd * (e.stats.cdMul || 1);
   SFX.power(); banner(c.ability); buzz(60); G.rings.push({ x: e.x, y: e.y, r: 10, life: 0.5, col: c.shot });
   if (e.kind === 'chatgpt') { const ox = e.x, oy = e.y, dd = e.moveAngle !== undefined ? e.moveAngle : e.a; moveEnt(e, Math.cos(dd) * 240, Math.sin(dd) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
 }
@@ -1329,7 +1335,7 @@ function renderLobby() {
   if (!MP.host) $('lbMsg').textContent = MP.playing ? "A match is running. You're in the next one." : 'Waiting for the host to start...';
   else if (!$('lbMsg').textContent) $('lbMsg').textContent = 'Share the code. Bots fill any empty spots.';
 }
-$('bOnline').onclick = () => { ac(); $('mpName').value = localStorage.getItem('ps_name') || ''; if (ROOM_Q) $('mpCode').value = ROOM_Q; const pk = (k) => { pick = k; localStorage.setItem('ps_pick', k); SFX.pick(); tokRow($('mpChars'), pick, pk); }; tokRow($('mpChars'), pick, pk); mpMsg(''); showScreen('sOnline'); };
+$('bOnline').onclick = () => { ac(); $('mpName').value = localStorage.getItem('ps_name') || ''; if (ROOM_Q) $('mpCode').value = ROOM_Q; const pk = (k) => { pick = k; localStorage.setItem('ps_pick', k); SFX.pick(); tokRow($('mpChars'), pick, pk); }; tokRow($('mpChars'), pick, pk); weaponRow($('mpWeapons')); mpMsg(''); showScreen('sOnline'); };
 $('bCreate').onclick = mpCreate;
 $('bJoin').onclick = () => mpJoin();
 $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') mpJoin(); });
@@ -1788,6 +1794,263 @@ async function shareReportCard(rc) {
 }
 let lastCard = null;
 
+/* =====================================================================================================
+   PROGRESSION: wider view, weapons, character levels, ZEV Coins, the store and the coin checkout.
+   Coins, levels and owned items live on the device (localStorage 'ps_prog_v1'). When payments are set up
+   (window.ZEV_PAY in index.html, see PAYMENTS_SETUP.md) the player gets a quiet sign-in and the coin balance
+   and owned items also live in Supabase, so bought coins are never lost and can't be faked.
+   ===================================================================================================== */
+const VIEW = { normal: 1, wide: 0.8, widest: 0.66 };
+let viewMode = localStorage.getItem('ps_view') || 'wide';
+
+const WEAPONS = {
+  blaster: { name: 'OWN BLASTER', desc: "Your fighter's own blaster. Balanced.", lvl: 1, mods: {} },
+  buzz:    { name: 'BUZZ SMG', desc: 'Sprays fast. Shorter reach.', lvl: 3, mods: { rate: 0.55, range: 0.75, spread: 0.07 } },
+  scatter: { name: 'SCATTER GUN', desc: '5 lasers at once. Up close.', lvl: 6, mods: { rate: 2.3, range: 0.55, pellets: 5, cone: 0.34 } },
+  bounce:  { name: 'BOUNCE LAUNCHER', desc: 'Shots bounce off 2 extra walls.', lvl: 10, mods: { rate: 1.15, bounce: 2 } },
+  beam:    { name: 'BEAM RIFLE', desc: 'Long range. 2 damage. Slow.', lvl: 15, mods: { rate: 2.5, range: 1.6, dmg: 2, spreadSet: 0, beam: true } },
+  gold:    { name: "PERCI'S GOLD BLASTER", desc: 'From Episode 2. 2 damage, fast, accurate.', store: true, mods: { rate: 0.75, range: 1.15, dmg: 2, spreadMul: 0.5, shot: '#ffd60a' } },
+};
+const WEAPON_ORDER = ['blaster', 'buzz', 'scatter', 'bounce', 'beam', 'gold'];
+const STORE_OPEN_AT = '2027-01-07T18:00:00-06:00';    // one week after the official release
+const STORE_ITEMS = {
+  gold:    { name: "PERCI'S GOLD BLASTER", desc: '2 damage, fast and accurate. Every fighter can use it.', cost: 2500, usd: '4.99', icon: '🔫', once: true },
+  armor:   { name: 'ARMOR PLATING', desc: '+1 max shield for your fighter. Up to 2 per fighter.', cost: 1200, usd: '2.49', icon: '🛡️', perChar: true, max: 2 },
+  core:    { name: 'POWER CORE', desc: 'Powers recharge 25% faster. All fighters.', cost: 1500, usd: '2.99', icon: '⚡', once: true },
+  over:    { name: 'OVERCLOCK SHOES', desc: 'Move 8% faster. All fighters.', cost: 1500, usd: '2.99', icon: '👟', once: true },
+  starter: { name: 'SPAWN SHIELD+', desc: 'Spawn with 2 extra seconds of shield. All fighters.', cost: 800, usd: '1.99', icon: '✨', once: true },
+  xp2:     { name: 'DOUBLE XP', desc: 'Double XP for your next 5 matches or chapters.', cost: 400, usd: '0.99', icon: '⏫', uses: 5 },
+  lvl:     { name: 'LEVEL SKIP', desc: 'Your fighter jumps up 1 level right now.', cost: 900, usd: '1.99', icon: '🆙', perChar: true },
+};
+const STORE_ORDER = ['gold', 'armor', 'core', 'over', 'starter', 'xp2', 'lvl'];
+const COIN_PACKS = [
+  { id: 'c500', coins: 500, usd: '0.99' },
+  { id: 'c2800', coins: 2800, usd: '4.99', tag: '+12%' },
+  { id: 'c6000', coins: 6000, usd: '9.99', tag: '+20%' },
+  { id: 'c13500', coins: 13500, usd: '19.99', tag: 'BEST +35%' },
+];
+const MAX_LVL = 30;
+const xpToNext = (lvl) => 150 + 50 * lvl;
+
+/* ----- saved progress ----- */
+function loadProg() {
+  let p = {}; try { p = JSON.parse(localStorage.getItem('ps_prog_v1') || '{}'); } catch (e) { p = {}; }
+  p.coins = p.coins | 0; p.chars = p.chars || {}; p.owned = p.owned || {}; p.weapon = WEAPONS[p.weapon] ? p.weapon : 'blaster'; p.xp2 = p.xp2 | 0;
+  for (const k of ORDER) p.chars[k] = Object.assign({ lvl: 1, xp: 0, armor: 0 }, p.chars[k]);
+  return p;
+}
+let PROG = loadProg();
+function saveProg() { localStorage.setItem('ps_prog_v1', JSON.stringify(PROG)); syncCoinChips(); }
+const topLevel = () => Math.max(...ORDER.map((k) => PROG.chars[k].lvl));
+const weaponOpen = (w) => WEAPONS[w].store ? !!PROG.owned[w] : topLevel() >= WEAPONS[w].lvl;
+function storeOpen() { const owner = localStorage.getItem('ps_preview') === PREVIEW_KEY; return owner || Date.now() >= new Date(STORE_OPEN_AT).getTime(); }
+
+/* ----- loadout: weapon + level perks + store upgrades, applied to a human player's fighter ----- */
+function myLoadout(kind) {
+  const c = PROG.chars[kind] || { lvl: 1, armor: 0 };
+  return { w: weaponOpen(PROG.weapon) ? PROG.weapon : 'blaster', lvl: c.lvl, armor: c.armor | 0, core: PROG.owned.core ? 1 : 0, over: PROG.owned.over ? 1 : 0, starter: PROG.owned.starter ? 1 : 0 };
+}
+function cleanLoadout(lo) {   // loadouts that come from other players online
+  lo = lo || {};
+  return { w: WEAPONS[lo.w] ? lo.w : 'blaster', lvl: clamp(lo.lvl | 0, 1, MAX_LVL), armor: clamp(lo.armor | 0, 0, 2), core: lo.core ? 1 : 0, over: lo.over ? 1 : 0, starter: lo.starter ? 1 : 0 };
+}
+function applyLoadout(e, lo) {
+  if (!e || e.kind === 'bot') return;
+  lo = cleanLoadout(lo);
+  const base = CHARS[e.kind], m = WEAPONS[lo.w].mods, s = Object.assign({}, base);
+  if (m.rate) s.rate = base.rate * m.rate;
+  if (m.range) s.range = base.range * m.range;
+  if (m.dmg) s.dmg = Math.max(base.dmg, m.dmg);
+  if (m.spread) s.spread = base.spread + m.spread;
+  if (m.spreadMul) s.spread = base.spread * m.spreadMul;
+  if (m.spreadSet !== undefined) s.spread = m.spreadSet;
+  if (m.shot) s.shot = m.shot;
+  s.pellets = m.pellets || 1; s.cone = m.cone || 0;
+  s.bounce = (base.bounce ? 1 : 0) + (m.bounce || 0);
+  s.beam = !!m.beam || e.kind === 'chatgpt';
+  s.speed = base.speed * (1 + Math.min(0.15, (lo.lvl - 1) * 0.005)) * (lo.over ? 1.08 : 1);
+  s.cdMul = (1 - Math.min(0.25, (lo.lvl - 1) * 0.01)) * (lo.core ? 0.75 : 1);
+  const hp = base.hp + Math.floor(lo.lvl / 10) + lo.armor;
+  e.stats = s; e.hp = e.maxhp = hp; e.weapon = lo.w; e.level = lo.lvl; e.spawnShield = lo.starter ? 2 : 0; e.lo = lo;
+}
+
+/* ----- rewards: XP and coins at the end of a match or chapter ----- */
+function award(p, o) {
+  const xpMul = PROG.xp2 > 0 ? 2 : 1;
+  const xp = Math.round((p.tags * 25 + (o.won ? 150 : 40) + (p.picks || 0) * 10 + (o.cleared ? 200 : 0) + (o.stars || 0) * 50) * xpMul * (o.diffMul || 1));
+  const coins = Math.round((p.tags * 5 + (o.won ? 40 : 10) + (o.cleared ? 60 : 0) + (o.stars || 0) * 20) * (o.diffMul || 1));
+  if (PROG.xp2 > 0) PROG.xp2--;
+  const c = PROG.chars[p.kind]; if (!c) return null;
+  const from = c.lvl; c.xp += xp;
+  while (c.lvl < MAX_LVL && c.xp >= xpToNext(c.lvl)) { c.xp -= xpToNext(c.lvl); c.lvl++; }
+  if (c.lvl >= MAX_LVL) c.xp = 0;
+  PROG.coins += coins; saveProg(); walletEarn(coins);
+  return { xp, coins, from, to: c.lvl, kind: p.kind, xp2: xpMul > 1 };
+}
+function rewardsHTML(r) {
+  if (!r) return '';
+  const c = PROG.chars[r.kind], pct = c.lvl >= MAX_LVL ? 100 : Math.round(100 * c.xp / xpToNext(c.lvl));
+  const unlocked = WEAPON_ORDER.filter((w) => !WEAPONS[w].store && WEAPONS[w].lvl > r.from && WEAPONS[w].lvl <= r.to);
+  return `<div class="rewards"><span>+${r.xp} XP${r.xp2 ? ' (2x)' : ''}</span><span class="coin">+${r.coins}</span>
+    <div class="lvl"><b>${CHARS[r.kind].name} LV ${c.lvl}</b><div class="xpbar"><i style="width:${pct}%"></i></div></div>
+    ${r.to > r.from ? `<div class="lvup">LEVEL UP! ${r.from} &rarr; ${r.to}${unlocked.length ? ' &bull; NEW WEAPON: ' + unlocked.map((w) => WEAPONS[w].name).join(', ') : ''}</div>` : ''}</div>`;
+}
+
+/* ----- weapon picker (quick match + online) ----- */
+function weaponRow(el) {
+  el.innerHTML = WEAPON_ORDER.map((w) => { const W = WEAPONS[w], open = weaponOpen(w);
+    return `<button class="wpn ${PROG.weapon === w ? 'sel' : ''} ${open ? '' : 'locked'}" data-w="${w}"><b>${W.name}</b><small>${open ? W.desc : W.store ? 'STORE' : 'LV ' + W.lvl}</small></button>`; }).join('');
+  el.querySelectorAll('.wpn').forEach((b) => b.onclick = () => { const w = b.dataset.w; if (!weaponOpen(w)) { SFX.hit(); banner(WEAPONS[w].store ? 'GET IT IN THE STORE' : 'REACH LV ' + WEAPONS[w].lvl); return; } PROG.weapon = w; saveProg(); SFX.pick(); weaponRow(el); });
+}
+function levelBadge(k) { const c = PROG.chars[k]; const pct = c.lvl >= MAX_LVL ? 100 : Math.round(100 * c.xp / xpToNext(c.lvl)); return `<div class="lvchip">LV ${c.lvl}<i style="width:${pct}%"></i></div>`; }
+
+/* ----- coin chips (title + store) ----- */
+function syncCoinChips() { document.querySelectorAll('.coinChip').forEach((el) => (el.textContent = PROG.coins.toLocaleString())); }
+
+/* ----- store ----- */
+function ownedCount(id, kind) { if (STORE_ITEMS[id].perChar) return id === 'armor' ? PROG.chars[kind].armor : 0; if (id === 'xp2') return PROG.xp2; return PROG.owned[id] ? 1 : 0; }
+function canBuy(id, kind) { const it = STORE_ITEMS[id]; if (it.once && PROG.owned[id]) return false; if (id === 'armor' && PROG.chars[kind].armor >= it.max) return false; if (id === 'lvl' && PROG.chars[kind].lvl >= MAX_LVL) return false; return true; }
+let storeKind = pick;
+function renderStore() {
+  const open = storeOpen();
+  $('storeLock').style.display = open ? 'none' : '';
+  $('storeBody').style.display = open ? '' : 'none';
+  if (!open) { const t = new Date(STORE_OPEN_AT); $('storeWhen').textContent = t.toLocaleString([], { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); return; }
+  tokRow($('storeChars'), storeKind, (k) => { storeKind = k; SFX.pick(); renderStore(); });
+  $('storeItems').innerHTML = STORE_ORDER.map((id) => { const it = STORE_ITEMS[id], ok = canBuy(id, storeKind), n = ownedCount(id, storeKind);
+    const own = it.once && PROG.owned[id] ? 'OWNED' : id === 'armor' ? `${n}/${it.max} on ${CHARS[storeKind].name}` : id === 'xp2' && n ? `${n} left` : id === 'lvl' ? `${CHARS[storeKind].name} LV ${PROG.chars[storeKind].lvl}` : '';
+    return `<div class="item"><div class="ic">${it.icon}</div><div class="tx"><b>${it.name}</b><small>${it.desc}</small>${own ? `<em>${own}</em>` : ''}</div>
+      <button class="btn small buy" data-id="${id}" ${ok ? '' : 'disabled'}><span class="coin">${it.cost.toLocaleString()}</span><small>or $${it.usd}</small></button></div>`; }).join('');
+  $('storeItems').querySelectorAll('.buy').forEach((b) => b.onclick = () => openCheckout({ type: 'item', id: b.dataset.id, kind: storeKind }));
+  $('packs').innerHTML = COIN_PACKS.map((p) => `<button class="pack" data-id="${p.id}">${p.tag ? `<i>${p.tag}</i>` : ''}<b class="coin">${p.coins.toLocaleString()}</b><span>$${p.usd}</span></button>`).join('');
+  $('packs').querySelectorAll('.pack').forEach((b) => b.onclick = () => openCheckout(Object.assign({ type: 'pack' }, COIN_PACKS.find((p) => p.id === b.dataset.id))));
+  syncCoinChips();
+}
+async function buyItem(id, kind) {
+  const it = STORE_ITEMS[id];
+  if (!canBuy(id, kind)) return;
+  if (PROG.coins < it.cost) { SFX.hit(); storeMsg('Not enough coins. Grab a coin pack below.'); return false; }
+  if (PAY.ready()) {   // signed in: the server checks the balance and records the item
+    const r = await PAY.rpc('zev_spend', { p_item: id, p_char: kind });
+    if (!r || r.error) { storeMsg(r && r.error ? r.error : "Couldn't reach the store. Try again."); return false; }
+    PROG.coins = r.coins;
+  } else PROG.coins -= it.cost;
+  grantItem(id, kind);
+  saveProg(); SFX.power(); storeMsg('Got it: ' + it.name); renderStore();
+  return true;
+}
+function grantItem(id, kind) {
+  if (id === 'armor') PROG.chars[kind].armor = Math.min(2, PROG.chars[kind].armor + 1);
+  else if (id === 'xp2') PROG.xp2 += STORE_ITEMS.xp2.uses;
+  else if (id === 'lvl') { const c = PROG.chars[kind]; if (c.lvl < MAX_LVL) { c.lvl++; c.xp = 0; } }
+  else PROG.owned[id] = true;
+  if (id === 'gold') PROG.weapon = 'gold';
+}
+function storeMsg(t) { $('storeMsg').textContent = t; clearTimeout(storeMsg.t); storeMsg.t = setTimeout(() => ($('storeMsg').textContent = ''), 3500); }
+
+/* ----- payments: Stripe checkout in a game window, coins credited by the server after payment ----- */
+const PAY = {
+  cfg: () => window.ZEV_PAY || {},
+  configured() { const c = this.cfg(); return !!(c.stripeKey && c.functionsUrl && LEADERBOARD.url); },
+  session: null,
+  ready() { return this.configured() && !!this.session; },
+  async auth() {                       // quiet sign-in (Supabase anonymous user) so purchases follow the player
+    if (!this.configured()) return null;
+    try { this.session = JSON.parse(localStorage.getItem('ps_auth') || 'null'); } catch (e) { this.session = null; }
+    const now = Date.now() / 1000;
+    if (this.session && this.session.expires_at > now + 60) return this.session;
+    const url = LEADERBOARD.url + '/auth/v1/' + (this.session ? 'token?grant_type=refresh_token' : 'signup');
+    const body = this.session ? { refresh_token: this.session.refresh_token } : { data: { game: 'perci' } };
+    const r = await fetch(url, { method: 'POST', headers: { apikey: LEADERBOARD.anonKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
+    if (!r || !r.ok) { this.session = null; return null; }
+    const j = await r.json(); this.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || now + (j.expires_in || 3600), user: j.user && j.user.id };
+    localStorage.setItem('ps_auth', JSON.stringify(this.session)); return this.session;
+  },
+  async rpc(fn, args) {
+    if (!(await this.auth())) return null;
+    const r = await fetch(LEADERBOARD.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: LEADERBOARD.anonKey, Authorization: 'Bearer ' + this.session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) }).catch(() => null);
+    if (!r) return null; const j = await r.json().catch(() => null); return r.ok ? j : { error: (j && j.message) || 'Store error' };
+  },
+  async wallet() { return this.rpc('zev_wallet', {}); },
+};
+async function walletSync() {              // server is the source of truth for coins and owned items once signed in
+  if (!PAY.configured()) return;
+  const w = await PAY.wallet(); if (!w || w.error) return;
+  PROG.coins = w.coins;
+  for (const row of w.owned || []) { if (row.item === 'armor' && PROG.chars[row.char]) PROG.chars[row.char].armor = Math.max(PROG.chars[row.char].armor, row.qty); else if (STORE_ITEMS[row.item] && STORE_ITEMS[row.item].once) PROG.owned[row.item] = true; }
+  for (const g of w.pending || []) grantItem(g.item, g.char || pick);   // xp boosts and level skips bought with money
+  if ((w.pending || []).length) PAY.rpc('zev_claim', {});
+  saveProg();
+}
+async function walletEarn(coins) { if (PAY.ready() && coins > 0) { const r = await PAY.rpc('zev_earn', { p_amount: coins }); if (r && !r.error && typeof r.coins === 'number') { PROG.coins = r.coins; saveProg(); } } }
+let STRIPE = null, ELEMENTS = null, payWhat = null, payWay = 'coins';
+function loadStripeJs() { return new Promise((res, rej) => { if (window.Stripe) return res(); const s = document.createElement('script'); s.src = 'https://js.stripe.com/v3/'; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+// what = { type: 'pack', id, coins, usd } or { type: 'item', id, kind }
+function openCheckout(what) {
+  payWhat = what; ELEMENTS = null;
+  const item = what.type === 'item' ? STORE_ITEMS[what.id] : null;
+  $('payPack').innerHTML = item ? `<b>${item.icon} ${item.name}</b>${item.perChar ? ` <small>for ${CHARS[what.kind].name}</small>` : ''}`
+                                : `<b class="coin">${what.coins.toLocaleString()}</b> ZEV COINS`;
+  // payment choices: ZEV Coins (items only) and money (card, Apple Pay, Google Pay, Cash App, PayPal, Link)
+  const opts = [];
+  if (item) opts.push({ k: 'coins', html: `<b>ZEV COINS</b><span class="coin">${item.cost.toLocaleString()}</span><small>You have ${PROG.coins.toLocaleString()}</small>`, off: PROG.coins < item.cost });
+  opts.push({ k: 'money', html: `<b>CARD &bull; APPLE PAY &bull; GOOGLE PAY &bull; CASH APP &bull; PAYPAL</b><span>$${item ? item.usd : what.usd}</span><small>${PAY.configured() ? 'Secure checkout by Stripe' : 'Not switched on yet'}</small>`, off: !PAY.configured() });
+  payWay = item && PROG.coins >= item.cost ? 'coins' : 'money';
+  $('payWays').innerHTML = opts.map((o) => `<button class="way ${o.k === payWay ? 'sel' : ''} ${o.off ? 'off' : ''}" data-k="${o.k}">${o.html}</button>`).join('');
+  $('payWays').querySelectorAll('.way').forEach((b) => b.onclick = () => { payWay = b.dataset.k; $('payWays').querySelectorAll('.way').forEach((x) => x.classList.toggle('sel', x === b)); syncPayWay(); });
+  $('payModal').classList.add('on'); syncPayWay();
+}
+async function syncPayWay() {
+  const item = payWhat.type === 'item' ? STORE_ITEMS[payWhat.id] : null;
+  $('payEl').innerHTML = ''; $('payMsg').textContent = '';
+  if (payWay === 'coins') {
+    const ok = PROG.coins >= item.cost;
+    $('bPayNow').textContent = `PAY ${item.cost.toLocaleString()} COINS`; $('bPayNow').disabled = !ok;
+    if (!ok) $('payMsg').textContent = `You need ${(item.cost - PROG.coins).toLocaleString()} more coins. Pay with money, or grab a coin pack.`;
+    return;
+  }
+  $('bPayNow').textContent = 'PAY $' + (item ? item.usd : payWhat.usd); $('bPayNow').disabled = true;
+  if (!PAY.configured()) { $('payMsg').textContent = "Money payments aren't switched on yet."; return; }
+  $('payMsg').textContent = 'Loading secure checkout...';
+  try {
+    await loadStripeJs(); if (!(await PAY.auth())) throw new Error('sign-in');
+    const body = payWhat.type === 'pack' ? { pack: payWhat.id } : { item: payWhat.id, char: payWhat.kind };
+    const r = await fetch(PAY.cfg().functionsUrl + '/zev-pay', { method: 'POST', headers: { apikey: LEADERBOARD.anonKey, Authorization: 'Bearer ' + PAY.session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json(); if (!r.ok || !j.clientSecret) throw new Error(j.error || 'checkout');
+    if (payWay !== 'money') return;
+    STRIPE = STRIPE || window.Stripe(PAY.cfg().stripeKey);
+    ELEMENTS = STRIPE.elements({ clientSecret: j.clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#ffd60a', colorBackground: '#1c1729', fontFamily: 'Poppins, sans-serif', borderRadius: '10px' } } });
+    ELEMENTS.create('payment', { layout: { type: 'accordion', defaultCollapsed: false, radios: true, spacedAccordionItems: true }, wallets: { applePay: 'auto', googlePay: 'auto' } }).mount('#payEl');
+    $('payMsg').textContent = ''; $('bPayNow').disabled = false;
+  } catch (e) { $('payMsg').textContent = "Couldn't open checkout. Check your connection and try again."; }
+}
+async function payNow() {
+  if (payWay === 'coins') {
+    $('bPayNow').disabled = true;
+    const ok = await buyItem(payWhat.id, payWhat.kind);
+    $('payMsg').textContent = ok ? 'Paid with ZEV Coins. Enjoy!' : $('storeMsg').textContent || 'Not enough coins.';
+    if (ok) setTimeout(() => $('payModal').classList.remove('on'), 900); else $('bPayNow').disabled = false;
+    return;
+  }
+  if (!STRIPE || !ELEMENTS) return;
+  $('bPayNow').disabled = true; $('payMsg').textContent = 'Processing...';
+  const before = JSON.stringify([PROG.coins, PROG.owned, PROG.chars, PROG.xp2]);
+  const { error } = await STRIPE.confirmPayment({ elements: ELEMENTS, confirmParams: { return_url: location.origin + location.pathname + '?paid=1' }, redirect: 'if_required' });
+  if (error) { $('payMsg').textContent = error.message || 'Payment failed.'; $('bPayNow').disabled = false; return; }
+  $('payMsg').textContent = 'Paid! Delivering...';
+  for (let i = 0; i < 15; i++) { await new Promise((r) => setTimeout(r, 1500)); await walletSync(); if (JSON.stringify([PROG.coins, PROG.owned, PROG.chars, PROG.xp2]) !== before) break; }
+  $('payMsg').textContent = JSON.stringify([PROG.coins, PROG.owned, PROG.chars, PROG.xp2]) !== before ? 'Delivered! Thanks for supporting Perci Shorti.' : 'Payment went through. It will show up in a minute.';
+  SFX.power(); renderStore();
+}
+$('bPayNow').onclick = payNow;
+$('bPayClose').onclick = () => { $('payModal').classList.remove('on'); ELEMENTS = null; };
+$('bStore').onclick = () => { ac(); storeKind = pick; renderStore(); showScreen('sStore'); walletSync().then(() => storeOpen() && renderStore()); };
+$('bStoreBack').onclick = () => showScreen('sTitle');
+document.querySelectorAll('#setView button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === viewMode); b.onclick = () => { viewMode = b.dataset.v; localStorage.setItem('ps_view', viewMode); document.querySelectorAll('#setView button').forEach((x) => x.classList.toggle('sel', x === b)); resize(); }; });
+if (new URLSearchParams(location.search).get('paid')) setTimeout(() => walletSync(), 1500);
+syncCoinChips();
+
+
 function drawLeaf(g, x, y, s, col) {
   g.save(); g.translate(x, y); g.fillStyle = col;
   const parts = [[-90, 1], [-55, 0.82], [-125, 0.82], [-22, 0.6], [-158, 0.6], [10, 0.38], [-190, 0.38]];
@@ -1869,6 +2132,7 @@ function storyFinish(r) {
   }
   storyLast = { ch, won, stars, tags: p.tags, tagged: p.tagged, time: Math.ceil(G.time) };
   lastCard = reportCard(p, (ch.time - G.time) / 60);
+  storyLast.rewards = award(p, { won, cleared: won, stars });
   (won ? SFX.win : SFX.lose)();
   if (won) wipe(() => playCut(ch.outro, () => wipe(showStoryEnd)));
   else wipe(showStoryEnd);
@@ -1882,6 +2146,7 @@ function showStoryEnd() {
   $('seKV').innerHTML = `<span>Goal</span><b>${ch.goal.text}</b><span>Your tags</span><b>${r.tags}</b><span>Times tagged</span><b>${r.tagged}</b>` + (r.won ? `<span>Time left</span><b>${Math.floor(r.time / 60)}:${String(r.time % 60).padStart(2, '0')}</b>` : '');
   $('seTip').textContent = r.won ? (r.stars < 3 ? 'Stars: clear it • get tagged 2 times or less • ' + (ch.goal.type === 'survive' ? 'never get tagged' : 'finish with 30+ seconds left') : 'Perfect run. Three stars.') : 'Tip: save your item slots for when it gets hot.';
   renderReportCard($('seCard'), lastCard);
+  $('seRewards').innerHTML = rewardsHTML(storyLast.rewards);
   const next = CHAPTERS[ch.id];
   $('bSeNext').style.display = r.won && next ? '' : 'none';
   $('bSeNext').textContent = next ? `NEXT: CHAPTER ${next.id}` : '';
@@ -2217,5 +2482,5 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 })();
