@@ -1668,13 +1668,13 @@ function drawEventFloor(t) {             // world space, on the floor (under peo
 function drawEventTop(t) {               // world space, above people
   const ev = G.ev; if (!ev || ev.kind !== 'twister' || !ev.tw) return;
   const tw = ev.tw, x = tw.x, y = tw.y * TILT;
-  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(x, y, 70, 26, 0, 0, Math.PI * 2); ctx.fill();
-  for (let i = 0; i < 9; i++) {
-    const h = i * 22, r = 18 + i * 9, a = tw.spin + i * 0.7;
-    ctx.strokeStyle = `rgba(${150 + i * 8},${140 + i * 6},${120 + i * 5},${0.55 - i * 0.03})`; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.ellipse(x + Math.sin(a) * 6, y - h, r, r * 0.32, 0, a, a + Math.PI * 1.5); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(x, y, 80, 30, 0, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 10; i++) {
+    const h = i * 22, r = 18 + i * 10, a = tw.spin + i * 0.7, cx = x + Math.sin(a) * 6, cy = y - h;
+    ctx.strokeStyle = `rgba(58,50,44,${0.8 - i * 0.04})`; ctx.lineWidth = 9; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.32, 0, a, a + Math.PI * 1.4); ctx.stroke();
+    ctx.strokeStyle = `rgba(200,190,170,${0.7 - i * 0.04})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.32, 0, a + Math.PI, a + Math.PI * 2.1); ctx.stroke();
   }
-  ctx.fillStyle = 'rgba(110,90,60,0.6)'; for (let i = 0; i < 10; i++) { const a = tw.spin * 1.3 + i * 0.63, rr = 40 + (i % 3) * 22; ctx.fillRect(x + Math.cos(a) * rr, y - 20 - (i * 13) % 120 + Math.sin(a) * rr * 0.3, 5, 5); }
+  ctx.fillStyle = 'rgba(70,56,40,0.85)'; for (let i = 0; i < 14; i++) { const a = tw.spin * 1.3 + i * 0.45, rr = 40 + (i % 4) * 22; ctx.fillRect(x + Math.cos(a) * rr, y - 20 - (i * 17) % 170 + Math.sin(a) * rr * 0.3, 6, 6); }
 }
 function drawTerritory() {               // world space, under everything: each team's half gets a faint tint
   const m = G.lineShown, H = WORLD.h * TILT;
