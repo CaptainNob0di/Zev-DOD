@@ -45,9 +45,18 @@ IMG.title.onload = () => { STATIC = null; };
 
 /* ---------------- audio (synth) ---------------- */
 let AC = null, muted = localStorage.getItem('ps_muted') === '1';
-function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return AC; }
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state !== 'running' && AC.resume) { try { AC.resume(); } catch (e) {} } return AC; }
+// browsers keep sound off until the first tap / key: unlock the audio engine on the first one (also plays a silent blip for iOS)
+(function unlockAudio() {
+  const go = () => {
+    const a = ac(); if (!a) return;
+    try { const b = a.createBuffer(1, 1, 22050), s = a.createBufferSource(); s.buffer = b; s.connect(a.destination); s.start(0); } catch (e) {}
+    a.resume && a.resume().then(() => { if (a.state === 'running') ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => removeEventListener(t, go, true)); }).catch(() => {});
+  };
+  ['pointerdown', 'touchend', 'keydown', 'click'].forEach((t) => addEventListener(t, go, true));
+})();
 function beep(f0, f1, dur, type = 'square', vol = 0.06) {
-  if (muted) return; const a = ac(); if (!a) return;
+  if (muted) return; const a = ac(); if (!a || a.state === 'suspended') return;
   const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(f0, a.currentTime); o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), a.currentTime + dur);
   g.gain.setValueAtTime(vol, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur); o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + dur);
 }
