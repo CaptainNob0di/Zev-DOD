@@ -558,8 +558,8 @@ function controlLocal(e, dt, shoot, ability) {
     e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
-    if (FP) { raw = e.yaw; firing = !!input.mdown; }
-    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = false; }
+    if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.4))); }
+    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && autoTarget(e, raw, 0.4)); }
     else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
       if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
