@@ -16,7 +16,7 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
 - **Power-ups + item slots (from handheld V10):** run over a power-up to store it in one of 4 item slots
   (A+ shield, rapid fire, speed, power recharge), then tap the slot (phones) or press 1-4 (keyboard) to use it.
   Full slots leave power-ups on the floor. Online matches still use power-ups instantly. +10 points each.
-- **Cover (V10):** the left/right COVER buttons (Q / E on keyboard) dash you behind the nearest box on that side.
+- **Weed + munchies items (Perci only):** when you play Perci, Dream Kush and Munchies Burger power-ups also show up in Quick Match and Online (MATURE CONTENT ON): smoke cloud, PUFF PUFF stamp, lingering haze, slow-mo on the other team. Other fighters never see them. Power-ups spawn every ~3 seconds now.
 - **Aim assist (V10):** Off / Light / Strong in SETTINGS (Strong by default on phones, Light on desktop);
   green brackets show the bot it's helping you hit. Phone auto-fire is off by default (toggle in SETTINGS).
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,

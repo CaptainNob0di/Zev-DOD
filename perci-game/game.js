@@ -335,11 +335,13 @@ function useAbility(e) {
 
 /* ---------------- pickups (auto-collect on contact) ---------------- */
 function spawnPickup() {
-  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'].concat(G.story ? (G.story.extras || []).filter((k) => MATURE || k !== 'kush') : []);
+  const perci = G.ents.find((e) => e.human && e.kind === 'perci' && e.dead <= 0) || G.ents.find((e) => e.human && e.kind === 'perci');   // Perci's weed items: quick match, online and story
+  const extras = G.story ? (G.story.extras || []).filter((k) => MATURE || k !== 'kush') : (perci && MATURE ? ['kush', 'burger'] : perci ? ['burger'] : []);
+  const kinds = ['shield', 'shield', 'rapid', 'speed', 'charge'].concat(extras);
   const kind = kinds[Math.floor(Math.random() * kinds.length)];
-  if (isReal() && !PICKUPS[kind].perciOnly) return;   // no power-ups in the real world
-  // power-ups alternate sides so both teams can reach them; Perci's story items always land on his side
-  const side = PICKUPS[kind].perciOnly ? 'P' : (G.pkSide = G.pkSide === 'P' ? 'B' : 'P'), m = midX();
+  if (isReal() && !PICKUPS[kind].perciOnly) { G.pickupT = 1; return; }   // no power-ups in the real world (try again soon)
+  // power-ups alternate sides so both teams can reach them; Perci's items always land on his side
+  const side = PICKUPS[kind].perciOnly ? (perci ? perci.team : 'P') : (G.pkSide = G.pkSide === 'P' ? 'B' : 'P'), m = midX();
   for (let tries = 0; tries < 40; tries++) {
     const x = side === 'P' ? 220 + Math.random() * (m - 320) : m + 100 + Math.random() * (m - 320), y = 120 + Math.random() * (WORLD.h - 240);
     if (BLOCK[cellOf(x, y)[1] * GC + cellOf(x, y)[0]]) continue;
@@ -347,17 +349,37 @@ function spawnPickup() {
     G.pickups.push({ x, y, t: 0, id: ++G.pkId, kind }); G.rings.push({ x, y, r: 6, life: 0.5, col: '#ffffff' }); return;
   }
 }
+
+// ---- Perci's weed + munchies animations (quick match, online and story) ----
+function smokePuff(x, y, big) { if (G.parts.length > 420) return; const a = Math.random() * Math.PI * 2, s = (big ? 60 : 20) * Math.random(); G.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 20, life: (big ? 2.2 : 1.3) + Math.random() * 0.8, smoke: true, sz: (big ? 16 : 9) + Math.random() * (big ? 16 : 8), col: Math.random() < 0.7 ? '#d6d2de' : '#9fe8b0' }); }
+function kushFx(e, mine) {
+  for (let i = 0; i < 46; i++) smokePuff(e.x + (Math.random() - 0.5) * 36, e.y + (Math.random() - 0.5) * 10, true);
+  for (let i = 0; i < 3; i++) G.rings.push({ x: e.x, y: e.y, r: 8 + i * 14, life: 0.7 + i * 0.15, col: i % 2 ? '#c070ff' : '#5dff7a' });
+  stamp(e, 'PUFF PUFF', '#2fa84f');
+  if (mine) {
+    G.haze = 9; G.shake = Math.max(G.shake, 0.12); beep(180, 90, 0.5, 'sine', 0.07); setTimeout(() => beep(520, 180, 0.4, 'triangle', 0.05), 380);
+    setTimeout(() => G && state === 'play' && banner(KUSH_LINES[Math.floor(Math.random() * KUSH_LINES.length)]), 700);
+  }
+}
+function burgerFx(e) {
+  for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; G.parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, life: 0.7, col: i % 2 ? '#ff9f40' : '#ffd60a' }); }
+  G.pops.push({ x: e.x, y: e.y - 40, txt: 'MUNCHIES!', life: 1.1, col: '#ff9f40' }); stamp(e, 'MUNCHIES', '#c8651e');
+}
+function hazeStep(dt) {   // lingering smoke around Perci while the haze lasts
+  G.haze = Math.max(0, (G.haze || 0) - dt);
+  if (G.haze > 0) { G.smokeT = (G.smokeT || 0) - dt; const p = G.ents.find((e) => e.human && e.kind === 'perci' && e.dead <= 0); if (p && G.smokeT <= 0) { G.smokeT = 0.11; smokePuff(p.x, p.y - 6, false); } }
+}
 function applyPickup(e, kind) {
   if (kind === 'shield') { if (e.hp < e.maxhp) e.hp++; else e.shield = Math.max(e.shield, 2.5); }
   if (kind === 'rapid') e.rapid = Math.max(e.rapid, 4);
   if (kind === 'speed') e.fast = 4;
   if (kind === 'charge') e.abilityCd = 0;
-  if (kind === 'kush') {   // story only, Perci only
-    G.slow = 5; G.slowTeam = e.team === 'P' ? 'B' : 'P'; e.shield = Math.max(e.shield, 1.5); e.rapid = Math.max(e.rapid, 3); G.haze = 6;
-    for (let i = 0; i < 14; i++) G.parts.push({ x: e.x + (Math.random() - 0.5) * 30, y: e.y - 20, vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 60, life: 1.2, col: '#d8d4e0' });
-    setTimeout(() => banner(KUSH_LINES[Math.floor(Math.random() * KUSH_LINES.length)]), 900);
+  if (kind === 'kush') {   // Perci only
+    G.slow = 5; G.slowTeam = e.team === 'P' ? 'B' : 'P'; e.shield = Math.max(e.shield, 1.5); e.rapid = Math.max(e.rapid, 3);
+    kushFx(e, e === G.player);
+    if (MP.host) MP.ev.push(['z', G.ents.indexOf(e), 1]);
   }
-  if (kind === 'burger') { e.hp = e.maxhp; e.fast = Math.max(e.fast, 3); }
+  if (kind === 'burger') { e.hp = e.maxhp; e.fast = Math.max(e.fast, 3); burgerFx(e); if (MP.host) MP.ev.push(['z', G.ents.indexOf(e), 2]); }
 }
 function collect(e, pk) {
   if (pk.kind === 'top') {                               // spinning top: flips dream / real right away
@@ -366,7 +388,7 @@ function collect(e, pk) {
     flipWorld(e, e.name + ' spun the top'); if (e.isPlayer) stamp(e, 'EXTRA CREDIT', '#8232dc');
     return true;
   }
-  if (PICKUPS[pk.kind].perciOnly && e !== G.player) return false;   // only you can grab story items
+  if (PICKUPS[pk.kind].perciOnly && !(e.human && e.kind === 'perci')) return false;   // only Perci can grab his items
   if (e === G.player && e.inv) {
     const slot = e.inv.indexOf(null);
     if (slot < 0) return false;                          // slots full: leave it on the floor
@@ -390,7 +412,7 @@ function useItem(i) {
   G.rings.push({ x: p.x, y: p.y, r: 10, life: 0.5, col: PICKUPS[kind].col }); spark(p.x, p.y, PICKUPS[kind].col, 16, 200);
   syncInv();
 }
-const INV_ICON = { shield: 'A+', rapid: '\u26A1', speed: '\u00BB', charge: '\u2605' };
+const INV_ICON = { shield: 'A+', rapid: '\u26A1', speed: '\u00BB', charge: '\u2605', kush: '\uD83C\uDF43', burger: '\uD83C\uDF54' };
 function syncInv() {
   const box = $('inv'); if (!box || !G || !G.player) return;
   const inv = G.player.inv || [];
@@ -540,7 +562,8 @@ function controlLocal(e, dt, shoot, ability) {
 function update(dt) {
   if (!G || state !== 'play') return;
   G.t += dt; G.time -= dt; G.slow = Math.max(0, G.slow - dt); G.shake = Math.max(0, G.shake - dt);
-  if (G.story) { G.haze = Math.max(0, (G.haze || 0) - dt); const r = G.time <= 0 ? storyTimeUp() : storyCheck(); if (r) return storyFinish(r); }
+  hazeStep(dt);
+  if (G.story) { const r = G.time <= 0 ? storyTimeUp() : storyCheck(); if (r) return storyFinish(r); }
   if (G.time <= 0) return endMatch();
   if (!G.story && G.pushWin) return endMatch();
   const p = G.player;
@@ -573,14 +596,14 @@ function update(dt) {
   twistStep(dt);
   // pickups: everyone collects automatically by walking over them
   G.pickupT -= dt;
-  if (G.pickupT <= 0) { G.pickupT = 5.5; if (G.pickups.length < 5) spawnPickup(); }
+  if (G.pickupT <= 0) { G.pickupT = 3.2; if (G.pickups.length < 6) spawnPickup(); }
   for (const pk of G.pickups) { pk.t += dt; for (const e of G.ents) if (e.dead <= 0 && dist(e, pk) < e.r + 20) { if (collect(e, pk)) break; } }
   G.pickups = G.pickups.filter((q) => !q.gone);
   cameraStep(dt);
   hud();
 }
 function fxStep(dt) {
-  for (const q of G.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.9; q.vy *= 0.9; q.life -= dt; }
+  for (const q of G.parts) { q.x += q.vx * dt; q.y += q.vy * dt; const dm = q.smoke ? 0.97 : 0.9; q.vx *= dm; q.vy *= dm; q.life -= dt; }
   G.parts = G.parts.filter((q) => q.life > 0);
   for (const r of G.rings) { r.r += 260 * dt; r.life -= dt; } G.rings = G.rings.filter((r) => r.life > 0);
   for (const q of G.pops) { q.y -= 40 * dt; q.life -= dt; } G.pops = G.pops.filter((q) => q.life > 0);
@@ -866,7 +889,7 @@ function drawWorld(t) {
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(b.x - b.vx * k * 0.6, (b.y - b.vy * k * 0.6) * TILT - LZ); ctx.stroke();
     ctx.globalAlpha = 0.25; ctx.fillStyle = b.col; ctx.beginPath(); ctx.ellipse(b.x, b.y * TILT, 6, 2.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
   }
-  for (const q of G.parts) { ctx.globalAlpha = Math.max(0, q.life * 2.2); ctx.fillStyle = q.col; ctx.fillRect(q.x - 2.5, q.y * TILT - 50 - 2.5, 5, 5); }
+  for (const q of G.parts) { if (q.smoke) { const k = Math.min(1, q.life / 1.2); ctx.globalAlpha = 0.5 * k; ctx.fillStyle = q.col; ctx.beginPath(); ctx.arc(q.x, q.y * TILT - 50, q.sz * (1.6 - 0.6 * k), 0, Math.PI * 2); ctx.fill(); continue; } ctx.globalAlpha = Math.max(0, q.life * 2.2); ctx.fillStyle = q.col; ctx.fillRect(q.x - 2.5, q.y * TILT - 50 - 2.5, 5, 5); }
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.lineCap = 'butt';
   drawEventTop(t);
   for (const q of G.pops) { ctx.globalAlpha = Math.min(1, q.life * 2); ctx.font = '22px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#100814'; const py = q.y * TILT - 100; ctx.strokeText(q.txt, q.x, py); ctx.fillStyle = q.col; ctx.fillText(q.txt, q.x, py); }
@@ -1017,13 +1040,10 @@ addEventListener('keydown', (e) => { input.keys[e.code] = true; if (e.code === '
 addEventListener('keyup', (e) => { input.keys[e.code] = false; });
 addEventListener('keydown', (e) => {
   if (state !== 'play' || e.repeat) return;
-  if (e.code === 'KeyQ') input.coverL = true;
-  else if (e.code === 'KeyE') input.coverR = true;
-  else if (/^Digit[1-4]$/.test(e.code)) useItem(+e.code.slice(5) - 1);
+  if (/^Digit[1-4]$/.test(e.code)) useItem(+e.code.slice(5) - 1);
   else if (e.code === 'KeyF' && G && G.player.inv) { const i = G.player.inv.findIndex((k) => k); if (i >= 0) useItem(i); }
 });
 const tapBtn = (el, fn) => { if (!el) return; el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
-tapBtn($('covL'), () => { input.coverL = true; }); tapBtn($('covR'), () => { input.coverR = true; });
 document.querySelectorAll('#inv .slot').forEach((b, i) => tapBtn(b, () => useItem(i)));
 // settings screen: aim assist + phone auto-fire
 function syncSettings() {
@@ -1259,7 +1279,7 @@ function clientAbility(e) {
   if (e.kind === 'chatgpt') { const ox = e.x, oy = e.y, dd = e.moveAngle !== undefined ? e.moveAngle : e.a; moveEnt(e, Math.cos(dd) * 240, Math.sin(dd) * 240); spark(ox, oy, '#00e6ff', 20); spark(e.x, e.y, '#00e6ff', 20); }
 }
 function updateClient(dt) {
-  G.t += dt; G.time = Math.max(0, G.time - dt); G.slow = Math.max(0, G.slow - dt); G.shake = Math.max(0, G.shake - dt);
+  hazeStep(dt); G.t += dt; G.time = Math.max(0, G.time - dt); G.slow = Math.max(0, G.slow - dt); G.shake = Math.max(0, G.shake - dt);
   const me = G.player;
   for (const e of G.ents) {
     e.cool = Math.max(0, e.cool - dt); e.flash = Math.max(0, e.flash - dt); e.hurt = Math.max(0, e.hurt - dt);
@@ -1318,6 +1338,7 @@ function applyEv(v, me) {
     const e = G.ents[v[1]], pk = PICKUPS[v[2]]; if (!pk) return;
     spark(v[3], v[4], pk.col, 18, 200); G.rings.push({ x: v[3], y: v[4], r: 8, life: 0.4, col: pk.col });
     if (e === me) { SFX.pick(); banner(pk.label); buzz(20); G.pops.push({ x: v[3], y: v[4] - 24, txt: '+10', life: 0.8, col: '#ffffff' }); }
+  } else if (v[0] === 'z') { const e = G.ents[v[1]]; if (e) { if (v[2] === 1) kushFx(e, e === me); else burgerFx(e); }
   } else if (v[0] === 'a') { const e = G.ents[v[1]]; if (e && e !== me) G.rings.push({ x: e.x, y: e.y, r: 10, life: 0.5, col: e.stats.shot }); }
 }
 
@@ -1456,6 +1477,7 @@ const CHAPTERS = [
 // story items (story only, Perci only): Dream Kush and Might Be Castle munchies
 PICKUPS.kush = { col: '#5dff7a', label: 'DREAM KUSH: EVERYTHING SLOWED DOWN', perciOnly: true };
 PICKUPS.burger = { col: '#ff9f40', label: 'MUNCHIES! FULL SHIELDS', perciOnly: true };
+PK_KINDS.push('kush', 'burger', 'receipt');   // online snapshots send pickups by index
 INV_ICON.kush = '🌿'; INV_ICON.burger = '🍔';
 const KUSH_LINES = ['PUFF PUFF... FOCUS.', 'HIGH TIMES ON THE 14TH FLOOR', 'WHY IS EVERYTHING SO SLOW? PERFECT.'];
 
