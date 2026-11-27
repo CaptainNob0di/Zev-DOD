@@ -989,7 +989,7 @@ async function share() {
 }
 
 /* ---------------- screens / UI ---------------- */
-function showScreen(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); if (id) state = id === 'sEnd' ? 'end' : 'menu'; }
+function showScreen(id) { document.body.dataset.screen = id || ''; document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); if (id) state = id === 'sEnd' ? 'end' : 'menu'; }
 function buildCards() {
   $('cards').innerHTML = ORDER.map((k) => { const c = CHARS[k]; const lab = ['SPEED', 'FIRE', 'RANGE', 'SKILL'];
     return `<div class="card ${k === pick ? 'sel' : ''}" data-k="${k}"><img src="assets/${k}.png" alt="${c.name}"><h3>${c.name}</h3>${levelBadge(k)}<div class="role">${c.role}</div>${c.stats.map((v, i) => `<div class="stat"><span>${lab[i]}</span><div class="bar"><i style="width:${v * 20}%"></i></div></div>`).join('')}<div class="ability">${c.ability}: ${c.abilityDesc}</div></div>`; }).join('');

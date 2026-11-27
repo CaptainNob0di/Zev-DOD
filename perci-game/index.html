@@ -218,6 +218,18 @@ body.playing .previewTag{display:none}
 }
 @media (max-width:380px){.btn{min-width:170px;font-size:19px;padding:8px 18px}.cards{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
 @media (min-width:1100px) and (min-height:700px){.title-img{width:min(560px,50vh)}}
+
+/* store: never wider than the screen; price buttons always visible */
+#storeItems,#packs{width:100%;min-width:0}
+#storeBody{width:min(560px,100%);min-width:0}
+.item{min-width:0;gap:8px;padding:8px}
+.item .tx{min-width:0;overflow-wrap:anywhere}
+.item .buy{flex:0 0 auto;min-width:82px;margin:0;padding:6px 10px;box-shadow:3px 3px 0 var(--ink)}
+.item .buy .coin{font-size:18px}
+@media (max-width:420px){.item .ic{width:30px;font-size:24px}.item b{font-size:15px}.item small{font-size:11px}.item .buy{min-width:74px;padding:5px 8px}}
+/* owner preview badge: tiny, title screen only */
+.previewTag{font-size:10px!important;padding:3px 10px!important;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:.85}
+body:not([data-screen="sTitle"]) .previewTag{display:none!important}
 </style>
 </head>
 <body>
