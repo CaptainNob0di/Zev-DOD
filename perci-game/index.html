@@ -73,7 +73,7 @@ input{font-family:Poppins;font-size:18px;padding:10px 14px;border-radius:10px;bo
 .pl.me{color:var(--gold)}.pl.bot{color:var(--muted);font-weight:600}
 .diff button:disabled{opacity:.55}
 #inv{position:absolute;display:none;gap:6px;pointer-events:auto;left:50%;transform:translateX(-50%);bottom:calc(46px + env(safe-area-inset-bottom))}
-#hud.on #inv{display:flex}body.mp #inv{display:none!important}
+#hud.on #inv{display:none!important}body.mp #inv{display:none!important}
 #inv .slot{width:50px;height:50px;border-radius:12px;background:rgba(20,14,32,.82);border:3px solid var(--c,#5a4f70);color:#fff;font-family:Anton;font-size:22px;position:relative;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #inv .slot.full{box-shadow:0 0 12px var(--c);background:rgba(40,28,60,.92)}
 #inv .slot span{color:var(--c);display:block;line-height:44px}
@@ -443,8 +443,8 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
   </div>
   <div class="panel how">
-    <p><b>Phone:</b> left thumb moves &bull; right thumb aims (look) and the red FIRE button shoots &bull; tap an <b>item slot</b> to use it &bull; yellow button = your power.</p>
-    <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>1-4</b> use items (<b>F</b> = first item) &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
+    <p><b>Phone:</b> left thumb moves &bull; right thumb aims (look) and the red FIRE button shoots &bull; yellow button = your power.</p>
+    <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
   </div>
   <button class="btn" id="bBack5">DONE</button>
 </section>
@@ -454,11 +454,11 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <h2>HOW TO PLAY</h2>
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims, red FIRE button shoots (aim assist helps). Tap an <b>item slot</b> to use a power-up. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims, red FIRE button shoots (aim assist helps). Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
     <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power, <b>1-4</b> to use items, <b>P</b> pauses.</p>
     <p><b>Maps:</b> every match builds a brand-new arena (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn, Dream Grid, School Gym), so no two games play the same.</p>
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
-    <p><b>Power-ups</b> (run over them to grab): they go into your <b>4 item slots</b> so you can use them when you need them. <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each. Slots full? Use one to grab more. (Online matches use power-ups right away.)</p>
+    <p><b>Power-ups</b> (run over them to grab): they take effect the moment you grab them. <b>A+</b> = +1 shield &bull; <b style="color:#ffd60a">lightning</b> = rapid fire &bull; <b style="color:#7cff6b">arrows</b> = speed boost &bull; <b style="color:#c070ff">star</b> = power recharged. +10 points each.</p>
     <p><b>Score:</b> +100 per tag, +500 for a win, +10 per power-up, plus an accuracy bonus, minus 25 each time you're tagged. Difficulty multiplies it all.</p>
     <p><b>Story Mode (mature content):</b> 6 chapters that follow Episodes 1-6, with short animated scenes between levels. Each chapter has its own goal (tag a number of bots, survive the clock, out-tag them, or beat the boss). Clear a chapter to unlock the next; earn up to 3 stars. Watch for <b style="color:#5dff7a">Dream Kush</b> (slows everything down) and <b style="color:#ff9f40">Might Be Castle munchies</b> (full shields).</p>
     <p><b>Push the line:</b> every tag moves the center line toward the other team. Push it all the way to their side and you win on the spot. The bar at the bottom shows where it is.</p>
@@ -521,6 +521,6 @@ const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
 <script src="arenas.js"></script>
-<script src="game.js?v=fire6"></script>
+<script src="game.js?v=auto1"></script>
 </body>
 </html>

@@ -274,7 +274,7 @@ function startMatch() {
 function beginMatch(ents, me) {
   for (const e of ents) e.dodgeCd = 0;
   if (!MP.on) applyLoadout(me, myLoadout(me.kind));   // weapon, level perks and store upgrades
-  me.inv = MP.on ? null : [null, null, null, null];   // item slots (solo); online keeps instant power-ups
+  me.inv = null;   // no item slots: every power-up applies the moment you pick it up
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
   input.fireBtn = false; me.yaw = me.team === 'P' ? 0 : Math.PI;   // first person: start facing the enemy side
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y * TILT - 40 - VH / Z / 2;
