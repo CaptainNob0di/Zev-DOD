@@ -1361,7 +1361,7 @@ addEventListener('pagehide', () => { if (MP.on && MP.net) { try { MP.net.send(MP
 /* ---------------- story mode: 6 chapters that follow the show ---------------- */
 // Mature content (strong language, crude humor, cartoon weed use) unless turned off in SETTINGS. Weed content stays with the adults (Perci, ChatGPT): it only appears
 // in scenes and chapters where Miracle, Jessica and Mixi (kids) are not present.
-const STORY_KEY = 'ps_story_v1';
+let STORY_KEY = 'ps_story_v1';
 let storyProg = (() => { try { return Object.assign({ unlocked: 1, stars: {} }, JSON.parse(localStorage.getItem(STORY_KEY) || '{}')); } catch (e) { return { unlocked: 1, stars: {} }; } })();
 const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(storyProg)); } catch (e) {} };
 let pendingStory = null, storyCh = null, storyDiffSave = null, storyLast = null;
@@ -1486,7 +1486,7 @@ function twistBegin() {
   if (kind === 'signal') { G.ev.strikes = []; G.ev.next = 6; }
   if (kind === 'rigpulse') { G.ev.ring = -1; G.ev.next = 8; }
   if (kind === 'lightsout') { G.ev.next = 14; G.ev.on = 0; }
-  setTimeout(() => { if (G && state === 'play') { feed('Arena event: ' + EVENT_NAME[kind]); feed(G.world === 'real' ? 'You start AWAKE (real world)' : 'You start in the DREAM'); } }, 900);
+  setTimeout(() => { if (G && state === 'play' && !(G.story && G.story.night)) { feed('Arena event: ' + EVENT_NAME[kind]); feed(G.world === 'real' ? 'You start AWAKE (real world)' : 'You start in the DREAM'); } }, 900);
 }
 function freeSpot(side) {
   const m = WORLD.w / 2;
@@ -2483,4 +2483,422 @@ requestAnimationFrame(loop);
 })();
 
 window.__ps = { get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+
+/* =====================================================================================================
+   NIGHT TRIAL (story mode 2): one night in Lincoln, 7 PM to 7 AM. Somnus Civic runs a city-wide sleep experiment.
+   Same game as the handheld edition. Loaded after game.js; it wraps game.js functions instead of editing them.
+   Layers: awake + 3 dream layers, Doubt meter (HUD lies), Might Be Castle receipt ("*maybe" = awake), random event deck,
+   10-second Kick, Perci-only weed items off when Miracle/Mixi are around, choices that change later chapters, 4 endings.
+   ===================================================================================================== */
+const NIGHT_DATA = {"chapters":[{"arena":"b8lincoln","bots":3,"choiceAfter":{"id":"door","options":[{"desc":"In the 1987 dream, that door stays sealed.","label":"CHAIN-LOCK THE REAL DOOR","set":"doorLocked"},{"desc":"Faster to bed. The dream door will not be sealed.","label":"LEAVE IT OPEN","set":"doorOpen"}],"prompt":"The apartment door is open. The bots saw you leave it that way.","title":"BEFORE YOU SLEEP"},"crew":[],"diff":"easy","extras":[],"goal":{"n":6,"text":"TAG 6 SECURITY BOTS • WATCH YOUR BATTERY","type":"tags"},"id":1,"intro":[{"bg":"skyline","cap":"CHAPTER 1","dur":3,"fx":{"night":1},"sub":"\"SIGN HERE\" • 7:00 PM • LINCOLN"},{"actors":[{"k":"perci","s":1.5,"x":330,"y":390}],"bg":"house","fx":{"night":1},"lines":[["perci","Crutches, no job, rent due. And a tent that pays five grand to sleep."],["somnus","One night. 7 PM to 7 AM. Somnus Civic pays $5,000 to every opt-in."],["perci","Where do I sign?"]]},{"actors":[{"k":"perci","s":1.5,"x":330,"y":390}],"bg":"house","fx":{"flash":1,"night":1},"lines":[["somnus","Free ZevBand sleep tracker. Wear it. Don't take it off."],["perci","Free? ...Then it's definitely a trap."],["perci","Five thousand dollars. I'm walking into it."]]},{"bg":"house","cap":"THE CITY GOES DARK","dur":2.6,"fx":{"night":1,"shake":1},"sub":"ALARMS DOWN • CAMERAS DOWN • 911 DOWN"},{"bg":"house","cap":"AWAKE IN LINCOLN","dur":2.6,"sub":"CRUTCHES • NO POWERS • LIMITED BATTERY"}],"night":{"battery":true,"clock":"7:00 PM","depth":0,"noflip":true,"span":50,"t0":1140,"world":"real"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","fx":{"night":1},"lines":[["perci","Six bots. And that's just the tent."],["phone","ZevBand: Good evening, Perci. Sleep when you're ready."]]}],"place":"LINCOLN • SOMNUS CIVIC TENT","time":110,"title":"SIGN HERE"},{"arena":"apt14","bots":4,"choiceBefore":{"id":"tv","options":[{"desc":"Somnus loses its real camera on you.","label":"SHOOT THE DREAM TV","set":"tvShot"},{"desc":"Keep your ammo. It keeps watching.","label":"LEAVE IT ALONE","set":"tvLeft"}],"prompt":"It shows your own face, live. Somnus is watching through it.","title":"THE DREAM TV"},"crew":["chatgpt"],"diff":"easy","extras":["kush","receipt"],"goal":{"n":8,"text":"TAG 8 DREAM BOTS • TV IS WATCHING","type":"tags"},"id":2,"intro":[{"bg":"apartment","cap":"CHAPTER 2","dur":3,"fx":{"haze":1},"sub":"\"FREE SLEEP TRACKER\" • 8:30 PM • LAYER 1"},{"actors":[{"k":"perci","s":1.5,"x":300,"y":390},{"f":-1,"k":"chatgpt","s":1.5,"x":520,"y":390}],"bg":"apartment","lines":[["perci","Legs work again. ...This is a dream."],["chatgpt","The ZevBand is sharing one dream between every sleeper in Lincoln."],["chatgpt","Somnus is running its experiment in the streets and in here at the same time."]]},{"bg":"apartment","fx":{"eyes":1,"glitch":1},"lines":[["broke","TV: Hello Perci. You have been selected for further study."],["perci","The TV knows my name."]]}],"night":{"clock":"8:30 PM","depth":1,"span":90,"t0":1230,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"apartment","lines":[["perci","Down one layer. And my legs ain't even sore."],["chatgpt","Careful. Every layer feels more real than the last."]]}],"place":"LAYER 1 • 1987 • BUILDING 8","time":100,"title":"FREE SLEEP TRACKER"},{"arena":"stair8","bots":5,"crew":[],"diff":"normal","extras":["kush","receipt"],"goal":{"lives":4,"text":"SURVIVE 1:30 • DON'T GET TAGGED 4 TIMES","type":"survive"},"id":3,"intro":[{"bg":"stairwell","cap":"CHAPTER 3","dur":3,"fx":{"glitch":1},"sub":"\"THE 1987 DOOR\" • 10:00 PM • LAYER 2"},{"bg":"door","fx":{"eyes":1,"shake":1},"lines":[["phone","...open the door."],["perci","Not again."]]},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","lines":[["perci","Second layer. Everything's louder and it's still the same hallway."]]}],"night":{"clock":"10:00 PM","depth":2,"span":60,"t0":1320,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","lines":[["perci","Held it. Somnus counts every step I take down here."],["perci","My stomach says it's almost eleven."]]}],"place":"LAYER 2 • THE STAIRWELL","time":90,"title":"THE 1987 DOOR"},{"arena":"phouse","bots":4,"choiceAfter":{"id":"route","options":[{"desc":"Get Miracle, Jessica and Mixi out of the locked city.","label":"WAKE UP","route":"wake"},{"desc":"Dive to layer 3 and break Somnus from the inside.","label":"GO DEEPER","route":"deep"}],"prompt":"Wake up and save your family, or go deeper and shut the experiment down. Both roads end at the Landlord.","title":"11:11 PM"},"crew":[],"diff":"normal","extras":["kush","burger","receipt"],"goal":{"n":10,"text":"TAG 10 BOTS • READ THE RECEIPT","type":"tags"},"id":4,"intro":[{"bg":"bedroom","cap":"CHAPTER 4","dur":3,"fx":{"haze":1},"sub":"\"11:11\" • 11:00 PM"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"bedroom","lines":[["perci","11:11. Every clock in the house stopped on it."],["phone","ZevBand: You may wake up now. Or you may continue."],["perci","Hold up. That's a choice? In this experiment?"]]}],"night":{"clock":"11:00 PM","depth":2,"span":11,"t0":1380,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"bedroom","fx":{"flash":1},"lines":[["perci","Wake up and get my family out. Or go deeper and shut it down from inside."]]}],"place":"LAYER 2 • PERCI'S HOUSE","time":100,"title":"11:11"},{"alt":{"arena":"barn","bots":4,"crew":["chatgpt"],"extras":["kush","receipt"],"goal":{"n":12,"text":"TAG 12 BOTS • THE FLOORS KEEP MOVING","type":"tags"},"intro":[{"bg":"dream","cap":"CHAPTER 5","dur":3,"fx":{"glitch":1},"sub":"\"LAYER THREE\" • 12:20 AM • DEEPER"},{"actors":[{"k":"perci","s":1.5,"x":300,"y":390},{"f":-1,"k":"chatgpt","s":1.5,"x":520,"y":390}],"bg":"dream","lines":[["chatgpt","Third layer. The rules are mostly gone from here."],["perci","Then why do I feel stronger and dizzier at the same time?"]]}],"night":{"clock":"12:20 AM","depth":3,"span":30,"t0":1460,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"dream","lines":[["perci","The experiment has a floor. I can hear it ticking."]]}],"place":"LAYER 3 • THE ELEVATOR SHAFT","time":110,"title":"LAYER THREE"},"arena":"mhouse","bots":4,"crew":["miracle"],"diff":"normal","extras":["receipt"],"goal":{"text":"OUT-TAG SOMNUS BOTS • HOLD THE HOUSE","type":"win"},"id":5,"intro":[{"bg":"mhouse","cap":"CHAPTER 5","dur":3,"fx":{"night":1},"sub":"\"THE LOCKED CITY\" • 12:20 AM • AWAKE"},{"actors":[{"k":"perci","s":1.4,"x":290,"y":400},{"f":-1,"k":"miracle","s":1.35,"x":510,"y":400}],"bg":"mhouse","fx":{"night":1},"lines":[["miracle","Daddy, the alarms are dead and the phones say no service!"],["perci","Somnus took the whole city offline. Stay behind me."]]}],"night":{"battery":true,"clock":"12:20 AM","depth":1,"span":30,"t0":1460,"world":"real"},"outro":[{"actors":[{"k":"miracle","s":1.5,"x":400,"y":400}],"bg":"mhouse","fx":{"night":1},"lines":[["miracle","Daddy, I read their terms. We're all in the study too."]]}],"place":"LINCOLN • THE REAL STREETS","time":110,"title":"THE LOCKED CITY"},{"alt":{"arena":"stair8","bots":5,"crew":["chatgpt"],"extras":["kush","receipt"],"goal":{"lives":4,"text":"SURVIVE 1:40 • 4 LIVES","type":"survive"},"intro":[{"bg":"dream","cap":"CHAPTER 6","dur":3,"fx":{"glitch":1,"shake":1},"sub":"\"THE BOTTOM\" • 12:55 AM • LAYER 3"},{"actors":[{"k":"chatgpt","s":1.6,"x":400,"y":400}],"bg":"dream","lines":[["chatgpt","Nobody comes back from here the same, Perci."],["perci","Good. I wasn't the same to begin with."]]}],"night":{"clock":"12:55 AM","depth":3,"span":30,"t0":1495,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"dream","lines":[["perci","The bottom was a landlord's office. With a lease."]]}],"place":"LAYER 3 • THE FLOOR UNDER THE FLOOR","time":100,"title":"THE BOTTOM"},"arena":"b8lincoln","bots":5,"crew":["miracle","mixi"],"diff":"hard","extras":[],"goal":{"lives":5,"text":"SURVIVE 1:40 • PROTECT THE KIDS","type":"survive"},"id":6,"intro":[{"bg":"car","cap":"CHAPTER 6","dur":3,"fx":{"night":1,"radio":1},"sub":"\"SIRENS\" • 12:55 AM • AWAKE"},{"actors":[{"k":"mixi","s":1.35,"x":400,"y":410}],"bg":"stairwell","fx":{"night":1,"shake":1},"lines":[["mixi","Daddy! The sirens aren't police, they're just recorded!"],["perci","Keep the tablet low. Hold the stairs with me."]]}],"night":{"battery":true,"clock":"12:55 AM","depth":1,"span":30,"t0":1495,"world":"real"},"outro":[{"bg":"car","fx":{"night":1},"lines":[["perci","Everybody in. Seatbelts. We're driving to the bottom of this."]]}],"place":"LINCOLN • BUILDING 8","time":100,"title":"SIRENS"},{"arena":"apt14","bots":5,"crew":[],"diff":"hard","extras":["kush","burger","receipt","receipt"],"goal":{"n":15,"text":"TAG 15 BOTS • USE THE RECEIPT","type":"tags"},"id":7,"intro":[{"bg":"apartment","cap":"CHAPTER 7","dur":3,"fx":{"glitch":1},"sub":"\"WHAT'S REAL\" • 1:30 AM"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"apartment","lines":[["perci","My HUD just lied to me. The clock, the score, the badge."],["perci","Got a Might Be Castle receipt in my pocket. The asterisk is the tell."],["perci","No asterisk after the total means I'm dreaming."]]}],"night":{"battery":true,"clock":"1:30 AM","depth":2,"span":20,"t0":1530,"world":"real"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"apartment","fx":{"flash":1},"lines":[["perci","Okay. Two roads, one hallway. And somebody's paying rent on all of it."]]}],"place":"BOTH ROADS MEET • BUILDING 8 14TH FLOOR","time":110,"title":"WHAT'S REAL"},{"arena":"b8lincoln","bots":5,"crew":[],"diff":"hard","extras":["receipt"],"goal":{"n":14,"text":"TAG 14 NIGHT-SHIFT BOTS • AWAKE","type":"tags"},"id":8,"intro":[{"bg":"skyline","cap":"CHAPTER 8","dur":3,"fx":{"night":1},"sub":"\"NIGHT SHIFT\" • 1:55 AM • AWAKE"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","fx":{"night":1},"lines":[["perci","Somnus Civic's lobby. Lights on, nobody home, and every desk is staffed."],["somnus","Night shift is monitoring. Please return to your bed."]]}],"night":{"battery":true,"clock":"1:55 AM","depth":1,"span":20,"t0":1555,"world":"real"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","fx":{"night":1},"lines":[["perci","Found a badge. It opens the waiting room."]]}],"place":"LINCOLN • SOMNUS CIVIC LOBBY","time":100,"title":"NIGHT SHIFT"},{"arena":"mhouse","bots":5,"crew":["chatgpt"],"diff":"hard","extras":["kush","receipt"],"goal":{"lives":4,"text":"SURVIVE 1:20 • DON'T GET TAGGED 4 TIMES","type":"survive"},"id":9,"intro":[{"bg":"dream","cap":"CHAPTER 9","dur":3,"fx":{"glitch":1},"sub":"\"THE WAITING ROOM\" • 2:15 AM • LAYER 2"},{"actors":[{"k":"perci","s":1.5,"x":300,"y":390},{"f":-1,"k":"chatgpt","s":1.5,"x":520,"y":390}],"bg":"dream","lines":[["chatgpt","Every sleeper in Lincoln is sitting in this room, waiting for a number."],["perci","Then why am I the one they're staring at?"]]}],"night":{"clock":"2:15 AM","depth":2,"span":20,"t0":1575,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"dream","lines":[["perci","They called my number. Wasn't mine."]]}],"place":"LAYER 2 • A LOBBY THAT NEVER CALLS YOUR NAME","time":80,"title":"THE WAITING ROOM"},{"alt":{"crew":["miracle"],"extras":["receipt"],"goal":{"text":"OUT-TAG THE BOTS • PROTECT MIRACLE","type":"win"}},"arena":"phouse","bots":4,"crew":[],"diff":"hard","extras":["burger","receipt"],"goal":{"text":"OUT-TAG THE BOTS • PROTECT THE FILES","type":"win"},"id":10,"intro":[{"bg":"bedroom","cap":"CHAPTER 10","dur":3,"fx":{"night":1},"sub":"\"PAPER TRAIL\" • 2:35 AM • AWAKE"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","fx":{"night":1},"lines":[["perci","Printed every page of that contract. Somnus wants them back."],["perci","Page four says the building owns my sleep."]]}],"night":{"battery":true,"clock":"2:35 AM","depth":1,"span":15,"t0":1595,"world":"real"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","fx":{"night":1},"lines":[["perci","Got the evidence. Now I need a layer deep enough to use it."]]}],"place":"LINCOLN • PERCI'S HOUSE • AWAKE","time":110,"title":"PAPER TRAIL"},{"arena":"barn","bots":5,"crew":["chatgpt"],"diff":"hard","extras":["kush","burger","receipt"],"goal":{"n":16,"text":"TAG 16 BOTS • THE SIGNAL IS EVERYWHERE","type":"tags"},"id":11,"intro":[{"bg":"dream","cap":"CHAPTER 11","dur":3,"fx":{"glitch":1,"shake":1},"sub":"\"BROADCAST\" • 2:50 AM • LAYER 3"},{"actors":[{"k":"chatgpt","s":1.6,"x":400,"y":400}],"bg":"dream","lines":[["chatgpt","Somnus is pushing one signal into every ZevBand at once."],["perci","So whatever I shoot, they all feel it?"],["chatgpt","That's the point of a broadcast."]]}],"night":{"clock":"2:50 AM","depth":3,"span":12,"t0":1610,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"dream","lines":[["perci","Static. Then silence. Somebody just heard me."]]}],"place":"LAYER 3 • EVERY DREAM IN LINCOLN","time":110,"title":"BROADCAST"},{"arena":"apt14","bots":5,"crew":[],"diff":"hard","extras":["burger","receipt"],"goal":{"lives":4,"text":"SURVIVE 1:30 • DON'T GET TAGGED 4 TIMES","type":"survive"},"id":12,"intro":[{"bg":"apartment","cap":"CHAPTER 12","dur":3,"fx":{"night":1,"shake":1},"sub":"\"LAST CALL\" • 3:02 AM • AWAKE"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"apartment","fx":{"night":1},"lines":[["somnus","Last call for sleepers. All remaining subjects return to bed."],["perci","I'm done being a subject."]]}],"night":{"battery":true,"clock":"3:02 AM","depth":2,"span":8,"t0":1622,"world":"real"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"apartment","fx":{"night":1},"lines":[["perci","Held the floor. It's 3:10. Somebody's about to knock."]]}],"place":"BUILDING 8 • THE 14TH FLOOR • AWAKE","time":90,"title":"LAST CALL"},{"arena":"stair8","bots":5,"crew":[],"diff":"hard","extras":["kush","burger","receipt"],"goal":{"n":18,"text":"TAG 18 BOTS • TEAR UP PAGE FOUR","type":"tags"},"id":13,"intro":[{"bg":"stairwell","cap":"CHAPTER 13","dur":3,"fx":{"glitch":1},"sub":"\"THE LEASE\" • 3:10 AM • LAYER 3"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","lines":[["perci","Page four, in a stairwell as long as the contract."],["landlord","Rent comes due at 3:33. I collect in person."]]}],"night":{"clock":"3:10 AM","depth":3,"span":6,"t0":1630,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"stairwell","fx":{"shake":1},"lines":[["perci","Okay. Next stop is the way up. Then him."]]}],"place":"LAYER 3 • THE PAGE NOBODY READS","time":100,"title":"THE LEASE"},{"arena":"phouse","bots":5,"crew":[],"diff":"hard","extras":["burger","receipt"],"goal":{"lives":4,"text":"SURVIVE 1:20 • SURVIVE EVERY KICK","type":"survive"},"id":14,"intro":[{"bg":"house","cap":"CHAPTER 14","dur":3,"fx":{"flash":1,"shake":1},"sub":"\"THE KICK\" • 3:15 AM"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","lines":[["perci","Waking up falls. Every time I surface, the ground drops ten seconds long."],["perci","Ten seconds. Don't get tagged."]]}],"night":{"clock":"3:15 AM","depth":3,"kicks":true,"span":15,"t0":1635,"world":"dream"},"outro":[{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","lines":[["phone","ZevBand: Landlord on line one."],["perci","Rent's due at 3:33."]]}],"place":"THE WAY UP • PERCI'S HOUSE","time":80,"title":"THE KICK"},{"arena":"barn","boss":true,"bossHp":30,"bossName":"THE LANDLORD","bossShort":"LANDLORD","bots":3,"crew":[],"diff":"hard","extras":["kush","burger","receipt"],"goal":{"text":"TAG THE LANDLORD","type":"boss"},"id":15,"intro":[{"bg":"barn","cap":"CHAPTER 15","dur":3,"fx":{"shake":1},"sub":"\"LANDLORD\" • 3:33 AM"},{"actors":[{"k":"perci","s":1.5,"x":300,"y":400}],"bg":"barn","lines":[["landlord","You signed. Page four. Everything in your sleep belongs to the building."],["perci","I only read page one."]]},{"bg":"dream","cap":"BOSS: THE LANDLORD","dur":2.6,"fx":{"shake":1},"sub":"TAG HIM BEFORE SUNRISE"}],"night":{"clock":"3:33 AM","depth":3,"span":200,"t0":213,"world":"dream"},"outro":[],"place":"3:33 AM • THE BARN AT THE BOTTOM OF THE NIGHT","time":150,"title":"LANDLORD"}],"endings":{"deep":{"name":"SHUTDOWN","shots":[{"bg":"dream","cap":"THE LAST LAYER","dur":3,"sub":"EVERY ZEVBAND IN LINCOLN GOES QUIET"},{"bg":"white","fx":{"flash":1},"lines":[["perci","Lights out for good."]]},{"bg":"tbc","cap":"ENDING: SHUTDOWN","dur":4,"sub":"NIGHT TRIAL • ENDING 2 OF 4"}],"sub":"You went deeper and switched the experiment off."},"doubt":{"name":"STILL ASLEEP","shots":[{"bg":"bedroom","cap":"7:00 AM?","dur":3,"fx":{"glitch":1},"sub":"THE ALARM IS RINGING. OR IS IT?"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"bedroom","lines":[["perci","Receipt says maybe."]]},{"bg":"tbc","cap":"ENDING: STILL ASLEEP","dur":4,"sub":"NIGHT TRIAL • ENDING 3 OF 4"}],"sub":"Your doubt never cleared. Are you awake?"},"secret":{"name":"THE ASTERISK","shots":[{"bg":"white","cap":"7:00 AM*","dur":3,"sub":"THE ASTERISK STAYS ON THE RECEIPT"},{"actors":[{"k":"perci","s":1.5,"x":360,"y":390}],"bg":"house","lines":[["perci","The asterisk was on the sunrise too."],["phone","ZevBand: Subject 0001, you may keep the five thousand."]]},{"bg":"tbc","cap":"SECRET ENDING: THE ASTERISK","dur":4,"sub":"NIGHT TRIAL • ENDING 4 OF 4"}],"sub":"You saw through all of it."},"wake":{"name":"SUNRISE","shots":[{"bg":"skyline","cap":"7:00 AM","dur":3,"sub":"SUNRISE OVER LINCOLN"},{"actors":[{"k":"perci","s":1.4,"x":300,"y":390},{"f":-1,"k":"miracle","s":1.3,"x":460,"y":400},{"f":-1,"k":"mixi","s":1.2,"x":560,"y":410}],"bg":"house","lines":[["perci","Everybody breathing. Everybody here."],["miracle","Daddy, the Somnus tent is empty."]]},{"bg":"tbc","cap":"ENDING: SUNRISE","dur":4,"sub":"NIGHT TRIAL • ENDING 1 OF 4"}],"sub":"You woke up and got your family out."}},"order":["wake","deep","doubt","secret"]};
+const NIGHT = (() => {
+  const OLD_CHAPTERS = CHAPTERS.slice();
+  const ND = NIGHT_DATA;
+  const RUN_KEY = 'ps_night_run_v1', END_KEY = 'ps_night_end_v1';
+  let run = { doubt: 15, route: null, flags: {}, receipts: 0 }, endings = {};
+  const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rd = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') || d; } catch (e) { return d; } };
+  const saveRun = () => { try { localStorage.setItem(RUN_KEY, JSON.stringify(run)); } catch (e) {} };
+  const loadRun = () => { run = Object.assign({ doubt: 15, route: null, flags: {}, receipts: 0 }, rd(RUN_KEY, {})); endings = rd(END_KEY, {}); };
+  const newRun = () => { run = { doubt: 15, route: null, flags: {}, receipts: 0 }; saveRun(); };
+  let mode = 'old';
+  PICKUPS.receipt = { col: '#f4e8d0', label: 'MIGHT BE CASTLE RECEIPT: AM I AWAKE?', perciOnly: true };
+  INV_ICON.receipt = '§';
+
+  function makeChapters() {
+    return ND.chapters.map((base) => {
+      const ch = JSON.parse(JSON.stringify(base));
+      if (ch.alt) { if (run.route === 'deep') Object.assign(ch, ch.alt); delete ch.alt; }
+      ch.baseBots = ch.bots; ch.baseLives = ch.goal.lives;
+      return ch;
+    });
+  }
+  function prepare(ch) {
+    const f = run.flags;
+    ch.bots = ch.baseBots; ch.goal.lives = ch.baseLives;
+    if (ch.id === 3 && f.doorLocked) { ch.bots = Math.max(2, ch.bots - 1); if (ch.goal.lives) ch.goal.lives++; }
+    if (ch.id === 3 && f.doorOpen) ch.bots++;
+    if (f.tvShot && ch.night.world === 'real' && ch.id > 2) ch.bots = Math.max(2, ch.bots - 1);
+  }
+  function refresh() { CHAPTERS.splice(0, CHAPTERS.length, ...(mode === 'night' ? makeChapters() : OLD_CHAPTERS)); }
+  function setMode(m) {
+    if (m === mode && CHAPTERS.length) { if (m === 'night') loadRun(); return; }
+    saveStory(); mode = m; try { localStorage.setItem('ps_story_mode', m); } catch (e) {}
+    STORY_KEY = m === 'night' ? 'ps_night_v1' : 'ps_story_v1';
+    try { storyProg = Object.assign({ unlocked: 1, stars: {} }, JSON.parse(localStorage.getItem(STORY_KEY) || '{}')); } catch (e) { storyProg = { unlocked: 1, stars: {} }; }
+    if (m === 'night') loadRun();
+    refresh();
+  }
+  const totalStars = (skip, add) => Object.entries(storyProg.stars).reduce((a, [k, v]) => a + (+k === skip ? 0 : v), 0) + (add || 0);
+
+  /* ---- choice screen ---- */
+  let choiceEl = null;
+  function ensureChoice() {
+    if (choiceEl) return choiceEl;
+    choiceEl = document.createElement('section'); choiceEl.className = 'screen'; choiceEl.id = 'sChoice';
+    choiceEl.innerHTML = '<h2 id="chcTitle">CHOICE</h2><p id="chcPrompt" class="muted" style="text-align:center;max-width:480px;margin:6px 0 16px"></p><div id="chcOpts" style="display:flex;flex-direction:column;gap:12px;width:min(520px,100%)"></div>';
+    document.body.appendChild(choiceEl); return choiceEl;
+  }
+  function choice(c, cont) {
+    ensureChoice();
+    $('chcTitle').textContent = c.title; $('chcPrompt').textContent = c.prompt;
+    const box = $('chcOpts'); box.innerHTML = '';
+    c.options.forEach((o) => {
+      const b = document.createElement('button'); b.className = 'btn' + (o.route === 'deep' ? ' purple' : '');
+      b.innerHTML = `${o.label}<br><small style="font-weight:400;opacity:.85">${o.desc}</small>`;
+      b.onclick = () => {
+        for (const x of c.options) if (x.set) delete run.flags[x.set];
+        if (o.set) run.flags[o.set] = true;
+        if (o.route) run.route = o.route;
+        saveRun(); refresh(); SFX.pick(); wipe(cont);
+      };
+      box.appendChild(b);
+    });
+    wipe(() => showScreen('sChoice'));
+  }
+  const decided = (c) => c.options.some((o) => o.set && run.flags[o.set]);
+
+  /* ---- helpers inside a match ---- */
+  const depthOf = () => (G.world === 'dream' ? (G.story.night.depth || 1) : 0);
+  const addDoubt = (v) => { G.night.doubt = clampN(G.night.doubt + v, 0, 100); };
+  const shuffle = (l) => { l = l.slice(); for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
+  function drawDeck() {
+    const n = G.night;
+    n.deck = shuffle(['lights', 'siren', 'raid', 'deja', 'static', 'lights', 'raid']).filter((k) => !((k === 'siren' && run.flags.tvShot) || (k === 'static' && G.story.night.noflip) || (k === 'deja' && G.story.id === 1)));
+  }
+  function clockString() {
+    const ch = G.story, nt = ch.night, el = clampN((ch.time - G.time) / ch.time, 0, 1), m = Math.floor(nt.t0 + el * nt.span), h24 = Math.floor(m / 60) % 24, mm = m % 60;
+    return ((h24 % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + (h24 >= 12 ? 'PM' : 'AM');
+  }
+  function begin() {
+    const ch = G.story, nt = ch.night;
+    G.world = nt.world; G.ev = { kind: 'none', t: 0, cycle: 0 }; G.dark = 0;
+    G.night = { ch, doubt: run.doubt, bat: 100, sinceFire: 9, kick: 0, t: 0, evT: 12 + Math.random() * 6, darkT: 0, siren: null, receiptT: 0, receiptsUsed: 0, lieT: 2, lieSeed: 0, fakeT: 9, trail: [], trailT: 0, deck: [], lowT: 0, batMsg: 0, lastTags: 0, lose: false };
+    G.lie = null; G.lieBadge = false; drawDeck();
+    if (nt.noflip) { G.flipT = 1e9; G.topT = 1e9; }
+    if (nt.kicks) G.flipT = 16;
+    setTimeout(() => { if (G && G.night && state === 'play') { feed(nt.world === 'real' ? 'You are AWAKE in Lincoln' : 'You are in layer ' + (nt.depth || 1)); if (nt.world === 'real' && nt.battery) feed('Crutches: slower. Laser battery is limited.'); } }, 900);
+  }
+  function spawnRaid() {
+    if (G.ents.filter((e) => e.raid).length >= 4) return;
+    const slots = [3, 1, 4, 0], c = G.ents.filter((e) => e.raid).length;
+    for (let i = 0; i < 2; i++) {
+      const e = newEntity('B', 'bot', slots[(c + i) % 4], false); if (!e) continue;
+      Object.assign(e, { raid: true, streak: 0, maxStreak: 0, pushes: 0, flips: 0, slowFx: 0, hazCd: 0, shield: 1.5 }); G.ents.push(e);
+    }
+    banner('CREW RAID!'); feed('Somnus crew dropped in');
+  }
+  function runEvent(k) {
+    const n = G.night, awake = G.world === 'real';
+    if (k === 'lights') { n.darkT = awake ? 8 : 5; banner('LIGHTS OUT!'); feed(awake ? "Somnus cut the block's power" : 'The dream blinked'); }
+    else if (k === 'siren') { n.siren = { x: -80, dir: 1, w: 170, life: 9, cd: 0 }; banner('SIREN SWEEP'); feed('Stay out of the light'); }
+    else if (k === 'raid') spawnRaid();
+    else if (k === 'deja') { banner('DEJA VU'); feed('You have been here before'); const old = n.trail[0]; if (old) { G.player.x = old.x; G.player.y = old.y; pushOut(G.player); } addDoubt(14); }
+    else if (k === 'static') { banner('STATIC STORM'); flipWorld(null, 'Static storm flipped the world'); }
+  }
+  function lieStep(dt) {
+    const n = G.night; n.lieT -= dt;
+    if (n.receiptT > 0) { G.lie = null; G.lieBadge = false; return; }
+    if (n.lieT <= 0) {
+      n.lieT = 3.5; n.lieSeed = 1 + Math.floor(Math.random() * 9999);
+      const d = n.doubt; if (d < 40) { G.lie = null; G.lieBadge = false; return; }
+      const ch = (d - 30) / 90; G.lieBadge = Math.random() < ch;
+      G.lie = { clock: d >= 55 && Math.random() < ch * 1.3, goal: d >= 70 && Math.random() < ch * 1.3, score: d >= 70 && Math.random() < ch };
+    }
+    if (n.doubt >= 85) {
+      n.fakeT -= dt;
+      if (n.fakeT <= 0) { n.fakeT = 8 + Math.random() * 4; const l = ['YOU GOT TAGGED', 'AM I AWAKE?', 'TIME IS UP', "THEY'RE BEHIND YOU"][Math.floor(Math.random() * 4)]; banner(l); feed('HUD: ' + l.toLowerCase()); }
+    }
+  }
+  function update(dt) {
+    const n = G.night, p = G.player; n.t += dt; n.batMsg -= dt;
+    const depth = depthOf();
+    if (depth > 0) addDoubt(0.32 * depth * dt); else addDoubt(-1.6 * dt);
+    if (p.tags > n.lastTags) { addDoubt(-1.5 * (p.tags - n.lastTags)); n.lastTags = p.tags; }
+    if (n.doubt >= 100) { n.lowT += dt; if (n.lowT > 3 && !n.lose) { n.lose = true; n.lostDoubt = true; banner('LOST IN THE DREAM'); } } else n.lowT = 0;
+    if (depth > 0 && p.dead <= 0) { if (p.abilityCd > 0) p.abilityCd = Math.max(0, p.abilityCd - dt * 0.35 * depth); if (p.cool > 0) p.cool = Math.max(0, p.cool - dt * 0.12 * depth); }
+    if (G.world === 'real' && G.story.night.battery) { n.sinceFire += dt; if (n.sinceFire > 0.6) n.bat = Math.min(100, n.bat + 7 * dt); } else n.bat = Math.min(100, n.bat + 30 * dt);
+    if (n.kick > 0) {
+      n.kick -= dt;
+      for (const e of G.ents) if (e.team === 'B' && e.dead <= 0) e.rapid = Math.max(e.rapid, 0.25);
+      if (Math.floor(n.t * 3) % 3 === 0) G.shake = Math.max(G.shake, 0.05);
+      if (n.kick <= 0) { n.kick = 0; banner('YOU LANDED'); addDoubt(-10); n.bat = Math.min(100, n.bat + 40); feed('Kick survived: Doubt eased'); }
+    }
+    if (n.receiptT > 0) n.receiptT -= dt;
+    n.trailT -= dt;
+    if (n.trailT <= 0 && p.dead <= 0) { n.trailT = 0.5; n.trail.push({ x: p.x, y: p.y }); if (n.trail.length > 12) n.trail.shift(); }
+    n.evT -= dt;
+    if (n.evT <= 0) { n.evT = 20 + Math.random() * 12 - depth * 2; if (!n.deck.length) drawDeck(); const k = n.deck.shift(); if (k) runEvent(k); }
+    if (n.darkT > 0) n.darkT -= dt;
+    G.dark += ((n.darkT > 0.4 ? 1 : 0) - G.dark) * Math.min(1, dt * 4);
+    const s = n.siren;
+    if (s) {
+      s.x += s.dir * (WORLD.w / 6.5) * dt; s.life -= dt; s.cd -= dt;
+      if (s.x > WORLD.w + 80) s.dir = -1; else if (s.x < -80) s.dir = 1;
+      if (s.life <= 0) n.siren = null;
+      else if (p.dead <= 0 && Math.abs(p.x - s.x) < s.w / 2 && s.cd <= 0) {
+        s.cd = 3; addDoubt(8); p.slowFx = 1.5;
+        for (const e of G.ents) if (e.team === 'B') e.rapid = Math.max(e.rapid, 3.5);
+        banner('SPOTTED!'); feed('The siren found you');
+      }
+    }
+    lieStep(dt);
+  }
+
+  /* ---- drawing (canvas) ---- */
+  function drawScreen(t) {
+    const n = G.night, d = depthOf();
+    if (d === 2) { ctx.fillStyle = 'rgba(26,204,230,0.05)'; ctx.fillRect(0, 0, VW, VH); }
+    else if (d >= 3) { ctx.fillStyle = `rgba(255,38,102,${0.06 + 0.04 * Math.sin(t * 3)})`; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = 'rgba(255,255,255,0.04)'; for (let y = (t * 40) % 8; y < VH; y += 8) ctx.fillRect(0, y, VW, 1); }
+    const s = n.siren;
+    if (s) { const sx = (s.x - G.cam.x) * Z, w = s.w * Z; ctx.fillStyle = Math.floor(t * 6) % 2 === 0 ? 'rgba(255,26,51,0.28)' : 'rgba(26,76,255,0.28)'; ctx.fillRect(sx - w / 2, 0, w, VH); ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(sx - 2, 0, 4, VH); }
+    if (n.kick > 0) { ctx.fillStyle = `rgba(255,255,255,${0.04 + 0.04 * Math.sin(t * 14)})`; ctx.fillRect(0, 0, VW, VH); }
+    hudCanvas(t, d);
+  }
+  function hudCanvas(t, d) {
+    const n = G.night; let real = G.world === 'real'; if (G.lieBadge) real = !real;
+    let clock = clockString(); if (G.lie && G.lie.clock) clock = (1 + (n.lieSeed % 11)) + ':' + String(n.lieSeed % 60).padStart(2, '0') + ' AM';
+    const w = 128, h = 40, x = 10, y = 48;
+    ctx.fillStyle = 'rgba(11,9,18,0.85)'; ctx.fillRect(x, y, w, h); ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+    ctx.textAlign = 'left'; ctx.font = '16px Anton, Impact'; ctx.fillStyle = '#fff'; ctx.fillText(clock, x + 9, y + 17);
+    ctx.font = '12px Anton, Impact'; ctx.fillStyle = real ? '#e8d8b0' : '#c070ff'; ctx.fillText(real ? 'AWAKE' : 'LAYER ' + Math.max(1, d), x + 9, y + 33);
+    const mw = Math.min(250, VW * 0.5), mx = (VW - mw) / 2, my = 134, f = n.doubt / 100;
+    ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, my - 4, mw + 8, 18);
+    ctx.fillStyle = n.doubt >= 70 ? '#ff3b55' : n.doubt >= 40 ? '#ff8c28' : '#3fe0d8'; ctx.fillRect(mx, my, mw * f, 10);
+    ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText('DOUBT ' + Math.floor(n.doubt) + (n.doubt >= 40 ? '   HUD MAY LIE' : ''), VW / 2, my - 7);
+    if (G.world === 'real' && G.story.night.battery) {
+      const by = my + 36; ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, by - 4, mw + 8, 18);
+      ctx.fillStyle = n.bat < 20 ? '#ff3b55' : '#7cff6b'; ctx.fillRect(mx, by, mw * n.bat / 100, 10);
+      ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', VW / 2, by - 7);
+    }
+    if (n.kick > 0) {
+      ctx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 8)); ctx.fillStyle = '#ff3b55'; ctx.font = '54px Anton, Impact'; ctx.fillText('KICK  ' + Math.ceil(n.kick), VW / 2, VH * 0.3);
+      ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.font = '16px Anton, Impact'; ctx.fillText("DON'T GET TAGGED", VW / 2, VH * 0.3 + 26); ctx.globalAlpha = 1;
+    }
+    if (n.receiptT > 0) {
+      const rw = 190, rh = 170, rx = VW - rw - 10, ry = 150;
+      ctx.fillStyle = 'rgba(244,239,224,0.97)'; ctx.fillRect(rx, ry, rw, rh); ctx.strokeStyle = '#1c0f33'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#1c0f33'; ctx.font = '13px Anton, Impact';
+      ctx.fillText('MIGHT BE CASTLE', rx + 12, ry + 22); ctx.fillText('BURGER ...... $2.49', rx + 12, ry + 46); ctx.fillText('FRIES ....... $1.51', rx + 12, ry + 64); ctx.fillText('SHAKE ....... $1.00', rx + 12, ry + 82);
+      ctx.fillText('TOTAL ....... $5.00' + (G.world === 'real' ? '*maybe' : ''), rx + 12, ry + 108);
+      ctx.fillStyle = G.world === 'real' ? '#2a9e50' : '#8232dc'; ctx.fillText(G.world === 'real' ? 'YOU ARE AWAKE' : 'YOU ARE DREAMING (L' + Math.max(1, d) + ')', rx + 12, ry + 132);
+      ctx.fillStyle = '#6a5a80'; ctx.font = '10px Poppins, sans-serif'; ctx.fillText('*maybe = awake. none = dream', rx + 12, ry + 154);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  /* ---- wrap game.js functions ---- */
+  const _fire = fire; fire = function (e, ang) {
+    if (G && G.night && e.isPlayer && !(e.cool > 0 || e.dead > 0 || e.frozen > 0)) {
+      const n = G.night;
+      if (G.world === 'real' && G.story.night.battery) { if (n.bat < 3) { if (n.batMsg <= 0) { banner('BATTERY DEAD'); n.batMsg = 1.2; } return; } n.bat -= 2.4; n.sinceFire = 0; }
+    }
+    return _fire(e, ang);
+  };
+  const _hitEnt = hitEnt; hitEnt = function (t, b) {
+    const hp = t.hp, sh = t.shield > 0; _hitEnt(t, b);
+    if (G && G.night && t.isPlayer && !sh && t.hp < hp) { const n = G.night; if (n.kick > 0) { n.kick = 10; addDoubt(10); banner('FALLING!'); feed('Tagged mid-kick: the timer reset'); } else addDoubt(6); }
+  };
+  const _applyPickup = applyPickup; applyPickup = function (e, kind) {
+    _applyPickup(e, kind);
+    if (!(G && G.night && e === G.player)) return;
+    const n = G.night;
+    if (kind === 'kush') { addDoubt(15); if (G.world === 'real') { G.haze = Math.max(G.haze || 0, 12); feed('The haze filled the real room too'); } else feed('Dream haze: slow-mo, but Doubt goes up'); }
+    if (kind === 'burger') { n.bat = Math.min(100, n.bat + 30); addDoubt(-5); }
+    if (kind === 'receipt') { n.receiptT = 7; n.receiptsUsed++; G.lie = null; G.lieBadge = false; addDoubt(-25); banner(G.world === 'real' ? "ASTERISK: YOU'RE AWAKE" : 'NO ASTERISK: DREAMING'); SFX.power(); }
+  };
+  const _flipWorld = flipWorld; flipWorld = function (by, why) {
+    _flipWorld(by, why);
+    if (!(G && G.night)) return;
+    const n = G.night;
+    if (G.world === 'real') { if (G.story.night.depth > 0) { n.kick = 10; banner('THE KICK! SURVIVE 10s'); feed("Waking up falls. Don't get tagged."); } } else addDoubt(8);
+    if (G.story.night.kicks) G.flipT = 16;
+  };
+  const _worldSpeed = worldSpeed; worldSpeed = function (e) {
+    let k = _worldSpeed(e);
+    if (G && G.night && e.isPlayer) { k *= G.world === 'real' ? 0.85 : 1 + 0.06 * depthOf(); if (G.night.kick > 0) k *= 0.85; }
+    return k;
+  };
+  const _twistStep = twistStep; twistStep = function (dt) { _twistStep(dt); if (G && G.night) update(dt); };
+  const _drawPickupIcon = drawPickupIcon; drawPickupIcon = function (pk, t) {
+    if (pk.kind !== 'receipt') return _drawPickupIcon(pk, t);
+    const bob = Math.sin(pk.t * 4) * 5, x = pk.x, y = pk.y * TILT - 34 + bob;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(pk.x, pk.y * TILT, 16 - bob, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f4efe0'; ctx.strokeStyle = '#1c0f33'; ctx.lineWidth = 2; ctx.fillRect(x - 12, y - 16, 24, 32); ctx.strokeRect(x - 12, y - 16, 24, 32);
+    ctx.fillStyle = '#1c0f33'; for (let i = 0; i < 4; i++) ctx.fillRect(x - 8, y - 10 + i * 6, 16 - (i % 2) * 5, 2); ctx.fillStyle = '#c81e32'; ctx.fillRect(x - 8, y + 12, 8, 2);
+  };
+  const _storyCheck = storyCheck; storyCheck = function () { if (G.night && G.night.lose) return 'lose'; return _storyCheck(); };
+  const _goalText = goalText; goalText = function () {
+    let s = _goalText(); const ch = G.story;
+    if (ch.bossShort) s = s.replace('PRIME', ch.bossShort);
+    if (G.night && G.lie && G.lie.goal) s = s.replace(/\d+/g, (d) => String(Math.max(0, (+d || 0) + (G.night.lieSeed % 5) - 2)));
+    return s;
+  };
+  const _hud = hud; hud = function () {
+    _hud();
+    if (!(G && G.night && G.lie)) return;
+    const s = Math.max(0, Math.ceil(G.time));
+    if (G.lie.clock) { const f = Math.max(0, s + (G.night.lieSeed % 90) - 35); $('clock').textContent = Math.floor(f / 60) + ':' + String(f % 60).padStart(2, '0'); }
+    if (G.lie.score) { $('tp').textContent = 'PERCI ' + Math.max(0, G.score.P + (G.night.lieSeed % 5) - 1); }
+  };
+  const _drawScreenFx = drawScreenFx; drawScreenFx = function (t) {
+    _drawScreenFx(t); if (G && G.night) drawScreen(t);
+  };
+  const _twistBegin = twistBegin; twistBegin = function () {
+    _twistBegin();
+    if (G.story && G.story.night) begin();
+  };
+  const _startStoryLevel = startStoryLevel; startStoryLevel = function (ch) {
+    _startStoryLevel(ch);
+    if (ch.night && ch.bossName) { const b = G.ents.find((e) => e.boss); if (b) { b.name = ch.bossName; b.hp = b.maxhp = ch.bossHp || 30; } }
+  };
+  const _playChapter = playChapter; playChapter = function (id) {
+    if (mode !== 'night') return _playChapter(id);
+    if (!CHAPTERS[id - 1]) return;
+    if (id === 1) { newRun(); refresh(); }
+    prepare(CHAPTERS[id - 1]);
+    const cb = CHAPTERS[id - 1].choiceBefore; if (cb && !decided(cb)) { ac(); return choice(cb, () => _playChapter(id)); }
+    return _playChapter(id);
+  };
+  let nightRes = null;
+  const _storyFinish = storyFinish; storyFinish = function (r) {
+    const ch = G.story;
+    if (!(G.night && ch.night)) { nightRes = null; return _storyFinish(r); }
+    const n = G.night, p = G.player, won = r === 'win';
+    run.doubt = clampN(n.doubt * 0.8, 8, 100); run.receipts = (run.receipts || 0) + (n.receiptsUsed || 0);
+    nightRes = {}; if (n.lostDoubt) nightRes.lostDoubt = true;
+    if (won && ch.id === ND.chapters.length) {
+      let stars = 1; if (p.tagged <= 2) stars++; if (ch.goal.type === 'survive' ? p.tagged === 0 : G.time >= 30) stars++;
+      const total = totalStars(ch.id, Math.max(stars, storyProg.stars[ch.id] || 0)), d = n.doubt, f = run.flags;
+      let key; if (d >= 70) key = 'doubt'; else if (f.doorLocked && f.tvShot && d < 25 && total >= 33) key = 'secret'; else if (run.route === 'deep') key = 'deep'; else key = 'wake';
+      const e = ND.endings[key]; ch.outro = e.shots; nightRes.ending = e.name; nightRes.endingSub = e.sub;
+      endings[key] = true; try { localStorage.setItem(END_KEY, JSON.stringify(endings)); } catch (x) {}
+    }
+    saveRun();
+    return _storyFinish(r);
+  };
+  const _showStoryEnd = showStoryEnd; showStoryEnd = function () {
+    const go = () => { _showStoryEnd(); const r = storyLast; if (nightRes && r) { if (nightRes.lostDoubt) $('seTitle').textContent = 'LOST IN THE DREAM'; if (nightRes.ending) { $('seTitle').textContent = 'ENDING: ' + nightRes.ending; $('seSub').textContent = nightRes.endingSub; } } };
+    const r = storyLast;
+    if (mode === 'night' && r && r.won && r.ch.choiceAfter) { const c = r.ch.choiceAfter; return choice(c, () => { nightRes = nightRes && nightRes.ending ? nightRes : null; go(); }); }
+    go();
+  };
+
+  /* ---- story screen: mode tabs + title button ---- */
+  function decorate() {
+    const sc = $('sStory'); if (!sc) return;
+    let tabs = $('modeTabs');
+    if (!tabs) {
+      tabs = document.createElement('div'); tabs.id = 'modeTabs'; tabs.className = 'row diff';
+      tabs.innerHTML = '<button data-m="night">NIGHT TRIAL</button><button data-m="old">EPISODES 1-6</button>';
+      sc.insertBefore(tabs, $('matNote'));
+      tabs.querySelectorAll('button').forEach((b) => (b.onclick = () => { setMode(b.dataset.m); renderChapters(); }));
+    }
+    tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.m === mode));
+    sc.querySelector('h2').textContent = mode === 'night' ? 'NIGHT TRIAL' : 'STORY MODE';
+    const p = $('chWrap').querySelector('p');
+    if (p) { p.firstChild.textContent = mode === 'night' ? 'One night, 7 PM to 7 AM. Somnus Civic wants you asleep. Your choices change what comes next. ' : 'Play through Episodes 1-6. Clear a chapter to unlock the next. '; }
+    if (mode === 'night') { const e = Object.keys(endings).length; $('chStars').textContent += `   ENDINGS ${e}/${ND.order.length}`; }
+  }
+  const _renderChapters = renderChapters; renderChapters = function () { _renderChapters(); decorate(); };
+
+  function init() {
+    try { mode = 'old'; const saved = localStorage.getItem('ps_story_mode'); loadRun(); if (saved === 'night') setMode('night'); } catch (e) {}
+    const t = $('bStory');
+    if (t && !$('bNight')) {
+      const nb = document.createElement('button'); nb.className = 'btn story'; nb.id = 'bNight'; nb.textContent = 'NIGHT TRIAL'; t.parentNode.insertBefore(nb, t);
+      nb.onclick = () => { setMode('night'); openStory(); };
+      t.onclick = () => { setMode('old'); openStory(); };
+    }
+    Object.assign(SPEAKER, { somnus: { name: 'SOMNUS REP', img: 'brokepilot', col: '#7aa8ff' }, landlord: { name: 'THE LANDLORD', img: 'brokepilot', col: '#ff5a5a' } });
+  }
+  init();
+  return { setMode, get mode() { return mode; }, begin, update, prepare, refresh };
+})();
+
+
+/* =====================================================================================================
+   COIN CATCH: a 45-second arcade mini game that earns ZEV Coins (same as the handheld edition).
+   Catch coins (+1) and burgers (+3), dodge alarm clocks. Reward = 80% of score, max 40 per run, 150 per day.
+   ===================================================================================================== */
+const COIN = (() => {
+  const DAILY_CAP = 150, RUN_CAP = 40, KEY = 'ps_mini_v1';
+  const today = () => new Date().toISOString().slice(0, 10);
+  const earnedToday = () => { try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return d.day === today() ? d.n || 0 : 0; } catch (e) { return 0; } };
+  let el, cv, g, M = null, raf = 0, last = 0, keys = {}, best = 0;
+  function build() {
+    if (el) return;
+    el = document.createElement('div'); el.id = 'coinCatch';
+    el.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;background:#0c0618;align-items:center;justify-content:center;touch-action:none';
+    el.innerHTML = '<canvas id="ccCv" width="720" height="720" style="max-width:100vw;max-height:100vh;aspect-ratio:1;touch-action:none"></canvas><button class="btn alt small" id="ccQuit" style="position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px">QUIT</button>';
+    document.body.appendChild(el); cv = $('ccCv'); g = cv.getContext('2d');
+    $('ccQuit').onclick = close;
+    const mv = (e) => { if (!M || M.phase !== 'play') return; const r = cv.getBoundingClientRect(), x = ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width * 720; M.x = Math.max(50, Math.min(670, x)); };
+    cv.addEventListener('pointermove', mv); cv.addEventListener('pointerdown', (e) => { if (M && M.phase === 'done') { start(); return; } mv(e); });
+    addEventListener('keydown', (e) => { if (el.style.display === 'none') return; keys[e.key] = 1; if (e.key === 'Escape') close(); if ((e.key === 'Enter' || e.key === ' ') && M && M.phase === 'done') start(); });
+    addEventListener('keyup', (e) => { delete keys[e.key]; });
+  }
+  function open() { build(); showScreen(null); el.style.display = 'flex'; state = 'mini'; start(); last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+  function close() { cancelAnimationFrame(raf); if (el) el.style.display = 'none'; M = null; state = 'menu'; showScreen('sTitle'); syncCoinChips(); }
+  function start() { M = { phase: 'play', t: 45, el: 0, score: 0, lives: 3, x: 360, items: [], spawn: 0.4, hurt: 0, pops: [] }; }
+  function finish() {
+    const earned = earnedToday(), want = Math.min(RUN_CAP, Math.floor(M.score * 0.8)), give = Math.max(0, Math.min(want, DAILY_CAP - earned));
+    if (give > 0) { PROG.coins += give; saveProg(); walletEarn(give); try { localStorage.setItem(KEY, JSON.stringify({ day: today(), n: earned + give })); } catch (e) {} }
+    M.reward = give; M.capped = give < want; best = Math.max(best, M.score); M.phase = 'done'; (give > 0 ? SFX.win : SFX.lose)();
+  }
+  function step(dt) {
+    if (!M || M.phase !== 'play') return;
+    M.t -= dt; M.el += dt; M.hurt = Math.max(0, M.hurt - dt);
+    const mx = (keys.ArrowRight || keys.d || keys.D ? 1 : 0) - (keys.ArrowLeft || keys.a || keys.A ? 1 : 0);
+    M.x = Math.max(50, Math.min(670, M.x + mx * 440 * dt));
+    M.spawn -= dt;
+    if (M.spawn <= 0) { M.spawn = Math.max(0.22, 0.65 - M.el * 0.009); const r = Math.random(); M.items.push({ x: 40 + Math.random() * 640, y: -20, kind: r < 0.55 ? 'coin' : r < 0.72 ? 'burger' : 'alarm', v: 190 + M.el * 4 + Math.random() * 40 }); }
+    for (const it of M.items) {
+      it.y += it.v * dt;
+      if (!it.gone && it.y > 585 && it.y < 665 && Math.abs(it.x - M.x) < 48) {
+        it.gone = true;
+        if (it.kind === 'coin') { M.score++; M.pops.push({ x: it.x, y: it.y, txt: '+1', life: 0.6, col: '#ffd60a' }); SFX.pick(); }
+        else if (it.kind === 'burger') { M.score += 3; M.pops.push({ x: it.x, y: it.y, txt: '+3', life: 0.6, col: '#ff9f40' }); SFX.pick(); }
+        else { M.lives--; M.hurt = 0.4; M.pops.push({ x: it.x, y: it.y, txt: 'OUCH', life: 0.7, col: '#ff5a5a' }); SFX.hit(); }
+      }
+      if (it.y > 740) it.gone = true;
+    }
+    M.items = M.items.filter((i) => !i.gone);
+    for (const p of M.pops) { p.y -= 50 * dt; p.life -= dt; } M.pops = M.pops.filter((p) => p.life > 0);
+    if (M.t <= 0 || M.lives <= 0) finish();
+  }
+  function txt(s, x, y, size, col, a = 1) { g.globalAlpha = a; g.font = size + 'px Anton, Impact'; g.textAlign = 'center'; g.fillStyle = col; g.fillText(s, x, y); g.globalAlpha = 1; }
+  function draw(t) {
+    g.fillStyle = '#1a0f33'; g.fillRect(0, 0, 720, 720); g.fillStyle = 'rgba(110,36,200,0.18)'; g.fillRect(0, 0, 720, 720);
+    g.fillStyle = '#fff'; for (let i = 0; i < 40; i++) { g.globalAlpha = 0.2 + 0.2 * Math.sin(t * 2 + i); g.fillRect((i * 97) % 720, (i * 53 + t * 8) % 650, 2, 2); } g.globalAlpha = 1;
+    if (M.phase === 'done') {
+      txt('COIN CATCH', 360, 140, 64, '#ffd60a'); txt('SCORE  ' + M.score, 360, 250, 40, '#fff');
+      txt('+' + M.reward + ' ZEV COINS', 360, 340, 60, M.reward > 0 ? '#7cff6b' : '#ff5a5a');
+      if (M.capped) txt('Daily limit reached: ' + DAILY_CAP + ' coins a day', 360, 395, 22, '#fff', 0.75);
+      txt('BEST THIS SESSION  ' + best, 360, 440, 22, '#c070ff'); txt('TAP TO PLAY AGAIN', 360, 540, 26, '#fff', 0.85); return;
+    }
+    g.fillStyle = '#331f4d'; g.fillRect(0, 650, 720, 70); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(0, 650, 720, 4);
+    for (const it of M.items) {
+      if (it.kind === 'coin') { g.fillStyle = '#ffd60a'; g.beginPath(); g.arc(it.x, it.y, 15, 0, 7); g.fill(); g.strokeStyle = '#997300'; g.lineWidth = 3; g.stroke(); g.fillStyle = '#997300'; g.fillRect(it.x - 3, it.y - 8, 6, 16); }
+      else if (it.kind === 'burger') { g.fillStyle = '#f29e40'; rr(g, it.x - 18, it.y - 14, 36, 12, 8); g.fill(); g.fillStyle = '#66331a'; g.fillRect(it.x - 18, it.y - 2, 36, 7); g.fillStyle = '#f29e40'; rr(g, it.x - 18, it.y + 5, 36, 10, 6); g.fill(); }
+      else { g.fillStyle = '#e62640'; g.beginPath(); g.arc(it.x, it.y, 17, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(it.x, it.y, 12, 0, 7); g.fill(); g.strokeStyle = '#1a1a1a'; g.lineWidth = 2; g.beginPath(); g.moveTo(it.x, it.y); g.lineTo(it.x, it.y - 8); g.moveTo(it.x, it.y); g.lineTo(it.x + 6, it.y + 2); g.stroke(); g.fillStyle = '#e62640'; g.beginPath(); g.arc(it.x - 14, it.y - 15, 5, 0, 7); g.arc(it.x + 14, it.y - 15, 5, 0, 7); g.fill(); }
+    }
+    const head = IMG.perci && IMG.perci.complete && IMG.perci.naturalWidth ? IMG.perci : null;
+    if (head) g.drawImage(head, M.x - 28, 584, 56, 56); else { g.fillStyle = '#ffd60a'; g.beginPath(); g.arc(M.x, 612, 28, 0, 7); g.fill(); }
+    g.fillStyle = '#cc8c4d'; rr(g, M.x - 44, 632, 88, 22, 6); g.fill(); g.strokeStyle = '#66401a'; g.lineWidth = 3; g.stroke();
+    for (const p of M.pops) txt(p.txt, p.x, p.y, 22, p.col, Math.min(1, p.life * 2));
+    txt('TIME ' + Math.ceil(M.t), 120, 40, 30, '#fff'); txt('SCORE ' + M.score, 360, 40, 30, '#ffd60a'); txt('LIVES ' + '♥'.repeat(Math.max(0, M.lives)), 590, 40, 30, '#ff5a8a');
+    txt('Drag or use arrows. Catch coins and burgers, dodge the alarm clocks.', 360, 76, 18, '#fff', 0.7);
+    if (M.hurt > 0) { g.fillStyle = `rgba(255,26,51,${M.hurt * 0.6})`; g.fillRect(0, 0, 720, 720); }
+  }
+  function loop(now) { const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; step(dt); if (M) draw(now / 1000); raf = requestAnimationFrame(loop); }
+  function init() {
+    const st = $('bStore'); if (!st || $('bCoin')) return;
+    const b = document.createElement('button'); b.className = 'btn gold'; b.id = 'bCoin'; b.innerHTML = 'COIN CATCH <span class="coin">FREE COINS</span>';
+    st.parentNode.insertBefore(b, st.nextSibling); b.onclick = () => { ac(); wipe(open); };
+  }
+  init();
+  return { open };
+})();
+
 })();

@@ -53,6 +53,14 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   (Tagging, Aim, Staying Alive, Line Control, Hustle) at the end of every match and chapter. SAVE REPORT CARD makes a
   1080x1350 image and opens the phone's share sheet (or downloads it on a computer).
 - **View:** SETTINGS > VIEW (NORMAL / WIDE / WIDEST). WIDE is the default and shows about 25% more of the arena.
+- **Night Trial (story mode 2):** one night in Lincoln, 7 PM to 7 AM, 15 chapters (awake + three dream layers). Somnus Civic runs a
+  city-wide sleep experiment. A Doubt meter makes the HUD lie, a Might Be Castle receipt ("*maybe" = awake) tells the truth,
+  a random event deck (lights out, siren sweep, crew raid, deja vu, static storm) keeps you moving, waking up triggers a 10-second
+  Kick, and the Landlord boss shows up at 3:33 AM. Two choices change later chapters; there are 4 endings (one secret). It is the
+  same game as the handheld edition. Pick NIGHT TRIAL on the title screen, or switch with the tabs on the story screen. Code is the
+  `NIGHT` section at the end of `game.js`; the original Episodes 1-6 story is still there as the other tab.
+- **Coin Catch:** a 45-second mini game (title screen) that earns ZEV Coins: catch coins and burgers, dodge alarm clocks. Max 40 per
+  run, 150 per day. Same as the handheld edition.
 - **Weapons:** pick one before a match (also online): Own Blaster, Buzz SMG (LV 3), Scatter Gun (LV 6), Bounce
   Launcher (LV 10), Beam Rifle (LV 15), and Perci's Gold Blaster (store only). The level that counts is your highest
   fighter's level.
