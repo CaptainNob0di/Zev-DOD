@@ -64,76 +64,93 @@ function loadImgs() {
 }
 function canvasPx(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); fn(g, w, h); const d = g.getImageData(0, 0, w, h); return { w, h, d: new Uint32Array(d.data.buffer.slice(0)), c }; }
 function noise(g, w, h, amt) { const im = g.getImageData(0, 0, w, h), d = im.data; for (let i = 0; i < d.length; i += 4) { const n = (rnd() - .5) * amt; d[i] += n; d[i + 1] += n; d[i + 2] += n; } g.putImageData(im, 0, 0); }
+const TS = 128;
 const TEX = {};
-function buildTextures() {
-  const S = 64;
-  const base = {
-    concrete: (g) => { g.fillStyle = '#6b7279'; g.fillRect(0, 0, S, S); noise(g, S, S, 36); g.strokeStyle = '#4d545a'; g.lineWidth = 2; g.strokeRect(1, 1, 62, 62); g.beginPath(); g.moveTo(32, 0); g.lineTo(32, 64); g.moveTo(0, 32); g.lineTo(64, 32); g.stroke(); },
-    steel: (g) => { g.fillStyle = '#4c6577'; g.fillRect(0, 0, S, S); noise(g, S, S, 22); g.fillStyle = '#35495a'; g.fillRect(0, 30, S, 4); g.fillStyle = '#9fc2d6'; for (const [x, y] of [[5, 5], [58, 5], [5, 58], [58, 58], [5, 37], [58, 37]]) { g.beginPath(); g.arc(x, y, 2, 0, 7); g.fill(); } g.strokeStyle = '#2c3d4b'; g.strokeRect(0, 0, 64, 64); },
-    brick: (g) => { g.fillStyle = '#4a2d27'; g.fillRect(0, 0, S, S); for (let r = 0; r < 8; r++) for (let c = -1; c < 4; c++) { const x = c * 16 + (r % 2 ? 8 : 0); g.fillStyle = ['#8a4a3a', '#7d4233', '#93523f'][(r + c + 9) % 3]; g.fillRect(x + 1, r * 8 + 1, 14, 6); } noise(g, S, S, 26); },
-    door: (g) => { g.fillStyle = '#2d3a44'; g.fillRect(0, 0, S, S); g.fillStyle = '#1b252d'; g.fillRect(6, 6, 52, 52); g.fillStyle = '#ffd60a'; for (let i = -2; i < 8; i++) { g.save(); g.beginPath(); g.rect(6, 44, 52, 10); g.clip(); g.translate(i * 12, 44); g.rotate(.7); g.fillRect(0, -10, 6, 40); g.restore(); } g.fillStyle = '#38d6ff'; g.fillRect(20, 14, 24, 6); g.fillStyle = '#8fa4b0'; g.fillRect(50, 28, 4, 10); noise(g, S, S, 14); },
-    crate: (g) => { g.fillStyle = '#8a6a3c'; g.fillRect(0, 0, S, S); g.strokeStyle = '#5a4222'; g.lineWidth = 4; g.strokeRect(2, 2, 60, 60); g.beginPath(); g.moveTo(2, 2); g.lineTo(62, 62); g.moveTo(62, 2); g.lineTo(2, 62); g.stroke(); noise(g, S, S, 30); g.fillStyle = '#e8d9a8'; g.font = '700 9px sans-serif'; g.fillText('ZEV', 22, 36); },
-    floor: (g) => { g.fillStyle = '#26303a'; g.fillRect(0, 0, S, S); g.fillStyle = '#2d3844'; g.fillRect(0, 0, 32, 32); g.fillRect(32, 32, 32, 32); noise(g, S, S, 16); g.strokeStyle = '#161d24'; g.strokeRect(0, 0, 64, 64); },
-    ceil: (g) => { g.fillStyle = '#39434c'; g.fillRect(0, 0, S, S); noise(g, S, S, 14); g.fillStyle = '#e8f6ff'; g.fillRect(18, 28, 28, 8); g.fillStyle = '#9ec9dc'; g.fillRect(18, 26, 28, 2); g.strokeStyle = '#242c33'; g.strokeRect(0, 0, 64, 64); },
-  };
-  for (const k in base) TEX[k] = canvasPx(S, S, base[k]);
-  // poster walls: the Perci Shorti crew framed on the wall
-  for (const w of ['concrete', 'steel', 'brick']) CREW.forEach((cr, i) => {
-    TEX['p_' + w + i] = canvasPx(S, S, (g) => {
-      g.drawImage(TEX[w].c, 0, 0);
-      g.fillStyle = '#10161b'; g.fillRect(10, 8, 44, 48); g.strokeStyle = cr.c; g.lineWidth = 3; g.strokeRect(10, 8, 44, 48);
-      if (IMG[cr.k]) g.drawImage(IMG[cr.k], 14, 12, 36, 36);
-      g.fillStyle = cr.c; g.font = '700 8px sans-serif'; g.textAlign = 'center'; g.fillText(cr.name, 32, 53);
-    });
-  });
+function lin(g, x0, y0, x1, y1, stops) { const gr = g.createLinearGradient(x0, y0, x1, y1); stops.forEach(([o, c]) => gr.addColorStop(o, c)); return gr; }
+function speck(g, amt, n) { for (let i = 0; i < n; i++) { g.fillStyle = (rnd() < .5 ? 'rgba(255,255,255,' : 'rgba(0,0,0,') + (rnd() * amt).toFixed(3) + ')'; g.fillRect(rnd() * TS, rnd() * TS, 1 + rnd() * 2, 1 + rnd() * 2); } }
+function bevelRect(g, x, y, w, h, d) { g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x, y, w, d); g.fillRect(x, y, d, h); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x, y + h - d, w, d); g.fillRect(x + w - d, y, d, h); }
+function stain(g, n, a) { for (let i = 0; i < n; i++) { const x = rnd() * TS, y = rnd() * TS, r = 14 + rnd() * 26, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(0,0,0,' + a + ')'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }
+function drawBase(g, style) {
+  if (style === 'concrete') {
+    g.fillStyle = lin(g, 0, 0, 0, TS, [[0, '#7d848a'], [1, '#686f75']]); g.fillRect(0, 0, TS, TS); stain(g, 5, .09); speck(g, .12, 700);
+    for (const [x, y, w, h] of [[0, 0, 64, 64], [64, 0, 64, 64], [0, 64, 64, 64], [64, 64, 64, 64]]) bevelRect(g, x, y, w, h, 2);
+    g.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 0; i < 4; i++) g.fillRect(8 + (i % 2) * 64, 8 + (i >> 1) * 64, 3, 3);
+  } else if (style === 'steel') {
+    g.fillStyle = lin(g, 0, 0, TS, 0, [[0, '#566d7f'], [.5, '#4a6072'], [1, '#566d7f']]); g.fillRect(0, 0, TS, TS);
+    for (let y = 0; y < TS; y += 2) { g.fillStyle = 'rgba(255,255,255,' + (rnd() * .05).toFixed(3) + ')'; g.fillRect(0, y, TS, 1); }
+    bevelRect(g, 0, 0, 128, 62, 3); bevelRect(g, 0, 66, 128, 62, 3); speck(g, .08, 300); stain(g, 3, .07);
+    for (const [x, y] of [[9, 9], [119, 9], [9, 53], [119, 53], [9, 73], [119, 73], [9, 119], [119, 119]]) { const gr = g.createRadialGradient(x - 1, y - 1, 0, x, y, 4); gr.addColorStop(0, '#d6edf9'); gr.addColorStop(1, '#27323b'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, 3.6, 0, 7); g.fill(); }
+  } else {
+    g.fillStyle = '#3d2520'; g.fillRect(0, 0, TS, TS);
+    for (let r = 0; r < 8; r++) for (let c = -1; c < 4; c++) { const x = c * 32 + (r % 2 ? 16 : 0), y = r * 16; const t = .85 + rnd() * .3; g.fillStyle = lin(g, 0, y, 0, y + 14, [[0, `rgb(${150 * t | 0},${82 * t | 0},${64 * t | 0})`], [1, `rgb(${116 * t | 0},${60 * t | 0},${46 * t | 0})`]]); g.fillRect(x + 1.5, y + 1.5, 29, 13); g.fillStyle = 'rgba(255,255,255,.10)'; g.fillRect(x + 1.5, y + 1.5, 29, 1.5); }
+    speck(g, .12, 500); stain(g, 4, .12);
+  }
+}
+function buildWallTex(style) {
+  TEX.wall = canvasPx(TS, TS, (g) => drawBase(g, style));
+  TEX.vent = canvasPx(TS, TS, (g) => { drawBase(g, style); g.fillStyle = '#0e1318'; g.fillRect(30, 26, 68, 60); bevelRect(g, 30, 26, 68, 60, 2); for (let i = 0; i < 7; i++) { g.fillStyle = lin(g, 0, 30 + i * 8, 0, 36 + i * 8, [[0, '#46535d'], [1, '#1e272e']]); g.fillRect(34, 30 + i * 8, 60, 5); } });
+  TEX.sign = canvasPx(TS, TS, (g) => { drawBase(g, style); g.fillStyle = '#ffd60a'; g.fillRect(14, 36, 100, 40); g.fillStyle = '#10151a'; for (let i = -1; i < 9; i++) { g.save(); g.beginPath(); g.rect(14, 36, 100, 40); g.clip(); g.translate(14 + i * 14, 36); g.rotate(.6); g.fillRect(0, -10, 7, 70); g.restore(); } g.fillStyle = '#10151a'; g.fillRect(24, 46, 80, 20); g.fillStyle = '#ffd60a'; g.font = '700 15px Poppins,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('ZEV DOD', 64, 56); bevelRect(g, 14, 36, 100, 40, 2); });
+}
+function buildStaticTex() {
+  TEX.door = canvasPx(TS, TS, (g) => { g.fillStyle = lin(g, 0, 0, TS, 0, [[0, '#3a4954'], [.5, '#2c3943'], [1, '#3a4954']]); g.fillRect(0, 0, TS, TS); g.fillStyle = '#18222a'; g.fillRect(12, 12, 104, 104); bevelRect(g, 12, 12, 104, 104, 3);
+    g.fillStyle = '#ffd60a'; g.save(); g.beginPath(); g.rect(12, 88, 104, 22); g.clip(); for (let i = -2; i < 12; i++) { g.save(); g.translate(12 + i * 20, 88); g.rotate(.7); g.fillStyle = i % 2 ? '#ffd60a' : '#10151a'; g.fillRect(0, -10, 10, 60); g.restore(); } g.restore();
+    g.fillStyle = '#0b1c24'; g.fillRect(40, 22, 48, 14); g.fillStyle = '#38d6ff'; g.shadowColor = '#38d6ff'; g.shadowBlur = 8; g.fillRect(44, 26, 40, 6); g.shadowBlur = 0;
+    g.fillStyle = lin(g, 0, 56, 0, 76, [[0, '#cfd9df'], [1, '#6a7b85']]); g.fillRect(96, 54, 8, 22); speck(g, .08, 200); });
+  TEX.crate = canvasPx(TS, TS, (g) => { g.fillStyle = '#7e5f36'; g.fillRect(0, 0, TS, TS); for (let i = 0; i < 4; i++) { const y = i * 32; g.fillStyle = lin(g, 0, y, 0, y + 32, [[0, '#9a7845'], [1, '#745630']]); g.fillRect(0, y + 1, TS, 30); for (let k = 0; k < 14; k++) { g.strokeStyle = 'rgba(60,35,10,' + (rnd() * .25).toFixed(2) + ')'; g.beginPath(); const yy = y + 3 + rnd() * 26; g.moveTo(0, yy); g.bezierCurveTo(40, yy + rnd() * 4 - 2, 90, yy + rnd() * 4 - 2, TS, yy + rnd() * 3); g.stroke(); } g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, y + 30, TS, 2); }
+    g.fillStyle = '#4b5660'; for (const [x, y] of [[0, 0], [100, 0], [0, 100], [100, 100]]) { g.fillRect(x, y, 28, 28); bevelRect(g, x, y, 28, 28, 2); g.fillStyle = '#c8d4dc'; g.fillRect(x + 12, y + 12, 4, 4); g.fillStyle = '#4b5660'; }
+    g.fillStyle = '#e8d9a8'; g.font = '800 15px Poppins,sans-serif'; g.textAlign = 'center'; g.fillText('ZEV', 64, 70); speck(g, .1, 300); });
+  TEX.floor = canvasPx(TS, TS, (g) => { g.fillStyle = '#2a3540'; g.fillRect(0, 0, TS, TS); for (const [x, y] of [[0, 0], [64, 0], [0, 64], [64, 64]]) { g.fillStyle = lin(g, x, y, x + 64, y + 64, [[0, '#33404c'], [1, '#27313b']]); g.fillRect(x + 1, y + 1, 62, 62); g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(x + 1, y + 1, 62, 1.5); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 1, y + 62, 62, 1.5); } speck(g, .09, 500); stain(g, 4, .1);
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(80, 70); g.lineTo(92, 84); g.lineTo(88, 98); g.stroke(); });
+  TEX.ceil = canvasPx(TS, TS, (g) => { g.fillStyle = '#3a454e'; g.fillRect(0, 0, TS, TS); speck(g, .08, 300); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 2; g.strokeRect(1, 1, 126, 126); g.beginPath(); g.moveTo(64, 0); g.lineTo(64, 128); g.stroke();
+    g.fillStyle = '#eaf7ff'; g.shadowColor = '#bfe6ff'; g.shadowBlur = 10; g.fillRect(30, 52, 68, 22); g.shadowBlur = 0; g.fillStyle = '#ffffff'; g.fillRect(34, 56, 60, 14); });
 }
 function px(r, g, b, a) { return ((a === undefined ? 255 : a) << 24) | (b << 16) | (g << 8) | r; }
 
 const SPR = {};
+function sprCanvas(w, h, fn) { return canvasPx(w * 2, h * 2, (g) => { g.scale(2, 2); g.lineJoin = 'round'; fn(g, w, h); }); }
 function humanoid(kind, state, frame, crewIdx) {
   const key = kind + state + frame + crewIdx; if (SPR[key]) return SPR[key];
-  const W = 48, H = 96;
   const enemy = kind === 'enemy';
-  const body = enemy ? '#2a1b22' : '#1d3238', vest = enemy ? '#8c2233' : CREW[crewIdx].c, trim = enemy ? '#ff5a5a' : '#dffcf4';
-  const s = canvasPx(W, H, (g) => {
-    g.lineJoin = 'round';
+  const body = enemy ? '#23262d' : '#1d3238', body2 = enemy ? '#14161b' : '#10202a', vest = enemy ? '#7d1f2c' : CREW[crewIdx].c, trim = enemy ? '#ff5a5a' : '#dffcf4';
+  return (SPR[key] = sprCanvas(48, 96, (g) => {
+    const sh = (x, y, w, h, c1, c2) => { g.fillStyle = lin(g, x, y, x + w, y, [[0, c1], [.5, c2], [1, c1]]); g.fillRect(x, y, w, h); };
     if (state === 'down') {
-      g.fillStyle = '#00000055'; g.beginPath(); g.ellipse(24, 88, 22, 5, 0, 0, 7); g.fill();
-      g.fillStyle = body; g.fillRect(4, 74, 40, 14); g.fillStyle = vest; g.fillRect(14, 74, 18, 14);
-      g.fillStyle = '#c99a7a'; g.beginPath(); g.arc(8, 80, 7, 0, 7); g.fill(); return;
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(24, 88, 22, 5, 0, 0, 7); g.fill();
+      sh(4, 74, 40, 14, body, body2); g.fillStyle = vest; g.fillRect(14, 75, 18, 12);
+      if (enemy) { g.fillStyle = '#1b1d22'; g.beginPath(); g.arc(8, 80, 8, 0, 7); g.fill(); } else { g.fillStyle = '#c99a7a'; g.beginPath(); g.arc(8, 80, 7, 0, 7); g.fill(); } return;
     }
     const sw = state === 'walk' ? (frame ? 5 : -5) : 0;
-    g.fillStyle = '#00000055'; g.beginPath(); g.ellipse(24, 92, 16, 4, 0, 0, 7); g.fill();
-    g.fillStyle = body; g.fillRect(14, 58 + (sw > 0 ? 0 : 0), 8, 30 + sw); g.fillRect(26, 58, 8, 30 - sw);      // legs
-    g.fillStyle = '#0e0e12'; g.fillRect(13, 86 + sw, 10, 5); g.fillRect(25, 86 - sw, 10, 5);                    // boots
-    g.fillStyle = body; g.fillRect(12, 30, 24, 32);                                                              // torso
-    g.fillStyle = vest; g.fillRect(14, 33, 20, 22); g.fillStyle = trim; g.fillRect(14, 33, 20, 3); g.fillRect(22, 38, 4, 14);
-    if (state === 'aim' || state === 'fire') {                                                                  // arms forward, gun at viewer
-      g.fillStyle = body; g.fillRect(8, 34, 7, 20); g.fillRect(33, 34, 7, 20);
-      g.fillStyle = '#111'; g.fillRect(19, 40, 10, 16); g.fillStyle = '#333'; g.fillRect(22, 36, 4, 8);
-      if (state === 'fire') { const gr = g.createRadialGradient(24, 38, 0, 24, 38, 14); gr.addColorStop(0, '#fff'); gr.addColorStop(.4, '#ffd60a'); gr.addColorStop(1, '#ff8c0000'); g.fillStyle = gr; g.fillRect(6, 20, 36, 36); }
-    } else { g.fillStyle = body; g.fillRect(6, 32, 7, 28 + (sw ? 2 : 0)); g.fillRect(35, 32, 7, 28 - (sw ? 2 : 0)); g.fillStyle = '#111'; g.fillRect(36, 54, 8, 4); }
-    // head: portrait for crew, BROKE-pilot mask for enemies
-    g.save(); g.beginPath(); g.arc(24, 16, 15, 0, 7); g.clip(); g.fillStyle = enemy ? '#1a1118' : '#10202a'; g.fillRect(0, 0, W, 40);
-    const im = enemy ? IMG.brokepilot : IMG[CREW[crewIdx].k]; if (im) g.drawImage(im, 8, 0, 32, 32); g.restore();
-    g.strokeStyle = enemy ? '#ff4a4a' : CREW[crewIdx].c; g.lineWidth = 2.5; g.beginPath(); g.arc(24, 16, 15, 0, 7); g.stroke();
-    if (enemy) { g.fillStyle = '#1b1218'; g.beginPath(); g.arc(24, 12, 16, Math.PI * 1.05, Math.PI * 1.95); g.fill(); g.strokeStyle = '#ff4a4a'; g.lineWidth = 2; g.beginPath(); g.arc(24, 16, 15, 0, 7); g.stroke(); }
-  });
-  return (SPR[key] = s);
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(24, 92, 16, 4, 0, 0, 7); g.fill();
+    sh(14, 58, 9, 30 + sw, body, body2); sh(26, 58, 9, 30 - sw, body, body2);
+    g.fillStyle = '#0b0b0e'; g.fillRect(13, 86 + sw, 11, 5); g.fillRect(25, 86 - sw, 11, 5);
+    sh(11, 30, 26, 32, body, body2); g.fillStyle = lin(g, 0, 33, 0, 56, [[0, vest], [1, enemy ? '#4b121c' : vest]]); g.fillRect(14, 33, 20, 22); g.fillStyle = trim; g.fillRect(14, 33, 20, 2.5); g.fillRect(22, 38, 4, 13);
+    g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(14, 33, 20, 1); g.fillStyle = body2; g.fillRect(14, 56, 20, 4); g.fillStyle = '#555c66'; g.fillRect(17, 57, 4, 3); g.fillRect(27, 57, 4, 3);
+    if (state === 'aim' || state === 'fire') {
+      sh(7, 34, 8, 22, body, body2); sh(33, 34, 8, 22, body, body2);
+      g.fillStyle = '#16181c'; g.fillRect(19, 40, 10, 17); g.fillStyle = '#3a3f46'; g.fillRect(22, 36, 4, 8); g.fillStyle = '#c99a7a'; g.fillRect(8, 52, 6, 5); g.fillRect(34, 52, 6, 5);
+      if (state === 'fire') { const gr = g.createRadialGradient(24, 38, 0, 24, 38, 16); gr.addColorStop(0, '#fff'); gr.addColorStop(.35, '#ffd60a'); gr.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = gr; g.fillRect(4, 18, 40, 40); }
+    } else { sh(5, 32, 8, 28 + (sw ? 2 : 0), body, body2); sh(35, 32, 8, 28 - (sw ? 2 : 0), body, body2); g.fillStyle = '#16181c'; g.fillRect(36, 54, 8, 4); g.fillStyle = '#c99a7a'; g.fillRect(5, 58, 7, 4); }
+    if (enemy) {                                                    // BLACK VEIL operative: armored helmet with glowing visor
+      g.fillStyle = lin(g, 9, 0, 39, 0, [[0, '#2b2f37'], [.5, '#4a505b'], [1, '#22252c']]); g.beginPath(); g.arc(24, 17, 14.5, 0, 7); g.fill();
+      g.fillStyle = '#0a0b0e'; g.beginPath(); g.roundRect ? g.roundRect(12, 13, 24, 9, 4) : g.rect(12, 13, 24, 9); g.fill();
+      g.fillStyle = '#ff3a3a'; g.shadowColor = '#ff3a3a'; g.shadowBlur = 6; g.fillRect(14, 16, 20, 3); g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(12, 6, 24, 2);
+    } else {                                                         // squad operator: crew portrait in a helmet ring
+      g.save(); g.beginPath(); g.arc(24, 16, 15, 0, 7); g.clip(); g.fillStyle = '#10202a'; g.fillRect(0, 0, 48, 40); if (IMG[CREW[crewIdx].k]) g.drawImage(IMG[CREW[crewIdx].k], 8, 0, 32, 32); g.restore();
+      g.strokeStyle = CREW[crewIdx].c; g.lineWidth = 2.5; g.beginPath(); g.arc(24, 16, 15, 0, 7); g.stroke();
+    }
+  }));
 }
 function spriteTerminal(on) {
   const key = 'term' + on; if (SPR[key]) return SPR[key];
-  return (SPR[key] = canvasPx(48, 64, (g) => {
-    g.fillStyle = '#00000055'; g.beginPath(); g.ellipse(24, 60, 18, 4, 0, 0, 7); g.fill();
-    g.fillStyle = '#1b2832'; g.fillRect(8, 24, 32, 36); g.fillStyle = '#26394a'; g.fillRect(6, 18, 36, 26);
-    g.fillStyle = on ? '#0a2b3a' : '#0a1a22'; g.fillRect(10, 21, 28, 20);
-    if (on) { g.shadowColor = '#38d6ff'; g.shadowBlur = 8; if (IMG.aplus) g.drawImage(IMG.aplus, 14, 22, 20, 18); g.fillStyle = '#38d6ff'; g.fillRect(12, 46, 24, 3); }
-    g.shadowBlur = 0; g.fillStyle = '#38d6ff'; g.fillRect(12, 50, 24, 2);
+  return (SPR[key] = sprCanvas(48, 64, (g) => {
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(24, 60, 18, 4, 0, 0, 7); g.fill();
+    g.fillStyle = lin(g, 0, 24, 0, 60, [[0, '#26333d'], [1, '#141c23']]); g.fillRect(8, 24, 32, 36); g.fillStyle = lin(g, 0, 18, 0, 44, [[0, '#2f4658'], [1, '#1c2c38']]); g.fillRect(6, 18, 36, 26);
+    g.fillStyle = '#071c26'; g.fillRect(10, 21, 28, 20); g.shadowColor = '#38d6ff'; g.shadowBlur = 8; if (IMG.aplus) g.drawImage(IMG.aplus, 14, 22, 20, 18); g.fillStyle = '#38d6ff'; g.fillRect(12, 46, 24, 3); g.fillRect(12, 51, 24, 2); g.shadowBlur = 0;
   }));
 }
-function spriteExit() { return SPR.exit || (SPR.exit = canvasPx(48, 64, (g) => { g.fillStyle = '#5ce8b840'; g.beginPath(); g.ellipse(24, 56, 22, 6, 0, 0, 7); g.fill(); g.strokeStyle = '#5ce8b8'; g.lineWidth = 3; g.beginPath(); g.ellipse(24, 56, 20, 5, 0, 0, 7); g.stroke(); g.fillStyle = '#5ce8b8'; g.beginPath(); g.moveTo(24, 8); g.lineTo(36, 30); g.lineTo(28, 30); g.lineTo(28, 46); g.lineTo(20, 46); g.lineTo(20, 30); g.lineTo(12, 30); g.fill(); })); }
-function spriteNade(kind) { const k = 'nade' + kind; return SPR[k] || (SPR[k] = canvasPx(16, 16, (g) => { g.fillStyle = ['#ff6a3a', '#fff3a0', '#9fb0b8'][kind - 1]; g.beginPath(); g.arc(8, 8, 6, 0, 7); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 2; g.stroke(); })); }
-function spriteSmoke() { return SPR.smoke || (SPR.smoke = canvasPx(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 4, 32, 32, 31); gr.addColorStop(0, 'rgba(200,210,215,.9)'); gr.addColorStop(.7, 'rgba(160,170,178,.6)'); gr.addColorStop(1, 'rgba(160,170,178,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); })); }
+function spriteExit() { return SPR.exit || (SPR.exit = sprCanvas(48, 64, (g) => { g.fillStyle = 'rgba(92,232,184,.25)'; g.beginPath(); g.ellipse(24, 56, 22, 6, 0, 0, 7); g.fill(); g.strokeStyle = '#5ce8b8'; g.lineWidth = 3; g.beginPath(); g.ellipse(24, 56, 20, 5, 0, 0, 7); g.stroke(); g.fillStyle = '#5ce8b8'; g.shadowColor = '#5ce8b8'; g.shadowBlur = 8; g.beginPath(); g.moveTo(24, 8); g.lineTo(36, 30); g.lineTo(28, 30); g.lineTo(28, 46); g.lineTo(20, 46); g.lineTo(20, 30); g.lineTo(12, 30); g.fill(); })); }
+function spriteNade(kind) { const k = 'nade' + kind; return SPR[k] || (SPR[k] = sprCanvas(16, 16, (g) => { const gr = g.createRadialGradient(6, 6, 1, 8, 8, 7); gr.addColorStop(0, '#fff'); gr.addColorStop(1, ['#ff6a3a', '#d8c870', '#7d8f98'][kind - 1]); g.fillStyle = gr; g.beginPath(); g.arc(8, 8, 6, 0, 7); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 1.5; g.stroke(); })); }
+function spriteSmoke() { return SPR.smoke || (SPR.smoke = canvasPx(128, 128, (g) => { for (let i = 0; i < 9; i++) { const x = 64 + (rnd() - .5) * 50, y = 64 + (rnd() - .5) * 50, r = 30 + rnd() * 18, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(205,214,219,.55)'); gr.addColorStop(1, 'rgba(160,172,180,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); } })); }
 
 /* ============================== AUDIO ============================== */
 let AC = null; const sfxCache = {};
@@ -194,7 +211,7 @@ function makeLevel(i0) {
   const spots = []; for (let y = 3; y <= 15; y++) for (let x = 3; x <= 15; x++) if (grid[y][x] === 0 && (x + y) > 8 && (x * 7 + y * 13 + i * 3) % 7 === 0 && dist(x - .5, y - .5, G.target.x, G.target.y) > 1.3) spots.push([x - .5, y - .5]);
   const en = [], n = Math.min(MISSIONS[i - 1].n, spots.length);
   for (let j = 1; j <= n; j++) { const v = spots[Math.floor((j - 1) * spots.length / MISSIONS[i - 1].n)]; en.push({ x: v[0], y: v[1], hp: 55 + i * 5, wait: 1 + j * .16, phase: j * .8, alive: true, homeX: v[0], homeY: v[1], alert: 0, fire: 0, walk: 0, stun: 0, stagger: 0, burst: 0 }); }
-  G.grid = grid; G.enemies = en; mapStyle = WALLSTYLE[i - 1];
+  G.grid = grid; G.enemies = en; mapStyle = WALLSTYLE[i - 1]; G.gridVer = (G.gridVer || 0) + 1; if (TEX.floor) buildWallTex(mapStyle);
 }
 const startSpots = [[1.5, 1.5], [2.5, 1.5], [1.5, 2.5], [2.5, 2.5]];
 function newPlayer(d, idx) {
@@ -329,7 +346,7 @@ function doUse(pl) {
   const r = ray(pl.x, pl.y, pl.a, 1.6);
   if (r.t === 2) { openCell(r.cx, r.cy); notify('Door opened', pl.pid); sound('door', .7, r.x, r.y); } else notify('No object in reach', pl.pid);
 }
-function openCell(cx, cy) { G.grid[cy][cx] = 0; G.opened.push([cx, cy]); G.flowClock = 0; }
+function openCell(cx, cy) { G.gridVer++; G.grid[cy][cx] = 0; G.opened.push([cx, cy]); G.flowClock = 0; }
 function doBreach(pl) {
   if (pl.dead) return; const r = ray(pl.x, pl.y, pl.a, 1.8);
   if (pl.breach > 0 && (r.t === 2 || r.t === 3)) { openCell(r.cx, r.cy); pl.breach--; notify('Barrier cleared', pl.pid); sound('explosion', .5, r.x, r.y); G.shake = Math.max(G.shake, .3); } else notify(pl.breach > 0 ? 'Nothing to breach' : 'No breach charges', pl.pid);
@@ -412,33 +429,169 @@ function timers(dt) {
 }
 
 /* ============================== RENDER ============================== */
-const view = $('view'), vctx = view.getContext('2d');
+/* ============================== RENDER ============================== */
+const view = $('view'), vctx = view.getContext('2d'), glc = $('gl');
 let BW = 320, BH = 240, buf, buf32, bufCanvas, bctx, imgData, zbuf, VW = 0, VH = 0, focal = 240;
+let useGL = false, resScale = 1, GL = null;
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5); VW = Math.floor(innerWidth * dpr); VH = Math.floor(innerHeight * dpr); view.width = VW; view.height = VH;
+  const dpr = Math.min(window.devicePixelRatio || 1, useGL ? 1.25 : 1.5) * (useGL ? resScale : 1); VW = Math.max(160, Math.floor(innerWidth * dpr)); VH = Math.max(120, Math.floor(innerHeight * dpr)); view.width = VW; view.height = VH;
+  if (useGL) { glc.width = VW; glc.height = VH; glc.style.display = 'block'; return; }
+  glc.style.display = 'none';
   BH = 240; BW = clamp(Math.round(BH * VW / VH), 220, 440); if (innerWidth < 600) { BH = 200; BW = clamp(Math.round(BH * VW / VH), 200, 420); }
   bufCanvas = document.createElement('canvas'); bufCanvas.width = BW; bufCanvas.height = BH; bctx = bufCanvas.getContext('2d'); imgData = bctx.createImageData(BW, BH); buf32 = new Uint32Array(imgData.data.buffer); zbuf = new Float32Array(BW);
-  vctx.imageSmoothingEnabled = false;
+  vctx.imageSmoothingEnabled = true;
 }
 const shade = (c, l) => 0xff000000 | ((((c >> 16) & 255) * l | 0) << 16) | ((((c >> 8) & 255) * l | 0) << 8) | ((c & 255) * l | 0);
 function wallTex(t, cx, cy) {
   if (t === 2) return TEX.door; if (t === 3) return TEX.crate;
-  if ((cx * 7 + cy * 13 + G.mission) % 7 === 0 && cx > 1 && cy > 1 && cx < 17 && cy < 17) return TEX['p_' + mapStyle + ((cx + cy) % 5)];
-  return TEX[mapStyle];
+  const h = ((cx - 1) * 7 + (cy - 1) * 13 + G.mission) % 7; return h === 0 ? TEX.vent : h === 3 ? TEX.sign : TEX.wall;
 }
-function render() {
+function sprDesc(s) {
+  let sprite, hgt = .85, wid = .43, lift = 0, alpha = 1, emit = false, soft = false;
+  if (s.k === 'e') { const e = s.e, st = !e.alive ? 'down' : e.fire > 0 ? 'fire' : e.alert > 0 && e.stun <= 0 && !e.moving ? 'aim' : e.moving ? 'walk' : 'idle'; sprite = humanoid('enemy', st, Math.floor(e.walk) % 2, 0); emit = e.fire > 0; }
+  else if (s.k === 'p') { const p = s.p; sprite = humanoid('ally', p.dead ? 'down' : (G.timer - (p.shotT || -9) < .12 ? 'fire' : 'aim'), 0, p.crew); }
+  else if (s.k === 't') { sprite = spriteTerminal(1); hgt = .8; wid = .6; emit = true; } else if (s.k === 'x') { sprite = spriteExit(); hgt = .8; wid = .6; emit = true; }
+  else if (s.k === 'n') { sprite = spriteNade(s.v.kind); hgt = .16; wid = .16; lift = s.v.z - .1; }
+  else { sprite = spriteSmoke(); hgt = 1.2; wid = 1.2; lift = -.1; alpha = clamp(s.c.life, 0, 1) * .8; soft = true; }
+  return { sprite, hgt, wid, lift, alpha, emit, soft };
+}
+function collectSprites(cx0, cy0, me) {
+  const sp = [], addS = (s) => { const dx = s.x - cx0, dy = s.y - cy0; s.d = dx * dx + dy * dy; sp.push(s); };
+  for (const e of G.enemies) addS({ x: e.x, y: e.y, k: 'e', e });
+  for (const p of G.players) if (p !== me) addS({ x: p.x, y: p.y, k: 'p', p });
+  if (!G.objective) addS({ x: G.target.x, y: G.target.y, k: 't' }); else addS({ x: G.exit.x, y: G.exit.y, k: 'x' });
+  for (const v of G.projectiles) addS({ x: v.x, y: v.y, k: 'n', v });
+  for (const c of G.clouds) addS({ x: c.x, y: c.y, k: 's', c });
+  sp.sort((a, b) => b.d - a.d); return sp;
+}
+
+/* ---------- WebGL2 renderer: smooth, full-resolution, mip-mapped textures, per-pixel lighting ---------- */
+const VS_FULL = `#version 300 es
+void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+const FS_WORLD = `#version 300 es
+precision highp float; precision highp sampler2DArray;
+uniform vec2 uRes, uPos, uDir, uPlane; uniform float uFocal, uHor, uMis, uTime;
+uniform sampler2D uGrid; uniform sampler2DArray uTex;
+out vec4 oC;
+float cellAt(ivec2 c){ if (c.x < 0 || c.y < 0 || c.x > 16 || c.y > 16) return 1.0; return floor(texelFetch(uGrid, c, 0).r * 255.0 + 0.5); }
+void main(){
+  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  float cam = 2.0 * frag.x / uRes.x - 1.0; vec2 rd = uDir + uPlane * cam;
+  ivec2 mp = ivec2(floor(uPos));
+  vec2 dd = vec2(abs(1.0 / (abs(rd.x) < 1e-6 ? 1e-6 : rd.x)), abs(1.0 / (abs(rd.y) < 1e-6 ? 1e-6 : rd.y)));
+  ivec2 st = ivec2(rd.x < 0.0 ? -1 : 1, rd.y < 0.0 ? -1 : 1);
+  vec2 sd = vec2(rd.x < 0.0 ? (uPos.x - float(mp.x)) * dd.x : (float(mp.x) + 1.0 - uPos.x) * dd.x, rd.y < 0.0 ? (uPos.y - float(mp.y)) * dd.y : (float(mp.y) + 1.0 - uPos.y) * dd.y);
+  int side = 0; float tile = 0.0; float pd = 40.0;
+  for (int i = 0; i < 48; i++) {
+    if (sd.x < sd.y) { sd.x += dd.x; mp.x += st.x; side = 0; } else { sd.y += dd.y; mp.y += st.y; side = 1; }
+    float t = cellAt(mp); if (t > 0.5) { tile = t; pd = side == 0 ? sd.x - dd.x : sd.y - dd.y; break; }
+  }
+  float lineH = uFocal / max(pd, 0.05); float y0 = uHor - lineH * 0.5, y1 = uHor + lineH * 0.5;
+  vec3 col; float depth = 1.0; float dist;
+  if (tile > 0.5 && frag.y >= y0 && frag.y <= y1) {
+    float wx = side == 0 ? uPos.y + pd * rd.y : uPos.x + pd * rd.x; wx -= floor(wx);
+    if ((side == 0 && rd.x < 0.0) || (side == 1 && rd.y > 0.0)) wx = 1.0 - wx;
+    float v = (frag.y - y0) / lineH;
+    float layer = tile > 2.5 ? 2.0 : (tile > 1.5 ? 1.0 : 0.0);
+    if (tile < 1.5) { float h = mod(float(mp.x) * 7.0 + float(mp.y) * 13.0 + uMis, 7.0); if (h < 0.5) layer = 5.0; else if (h > 2.5 && h < 3.5) layer = 6.0; }
+    float lod = max(0.0, log2(128.0 * pd / uFocal));
+    col = textureLod(uTex, vec3(wx, v, layer), lod).rgb;
+    float l = 0.22 + 0.78 / (1.0 + pd * 0.2); if (side == 1) l *= 0.74;
+    float ao = smoothstep(0.0, 0.1, v) * smoothstep(1.0, 0.9, v); col *= 0.68 + 0.32 * ao;
+    col *= l; depth = pd / 30.0; dist = pd;
+  } else {
+    float off = frag.y - uHor; float rdist = 0.5 * uFocal / max(abs(off), 0.5);
+    vec2 w = uPos + rdist * (uDir + uPlane * cam); bool fl = off > 0.0;
+    float lod = max(0.0, log2(128.0 * rdist / uFocal));
+    vec3 t = textureLod(uTex, vec3(w, fl ? 3.0 : 4.0), lod).rgb;
+    float l = (0.28 + 0.72 / (1.0 + rdist * 0.2)) * (fl ? 1.0 : 0.85);
+    float emit = fl ? 0.0 : smoothstep(0.80, 0.94, dot(t, vec3(0.3333)));
+    col = t * mix(l, 1.4, emit); dist = rdist;
+  }
+  col = mix(vec3(0.03, 0.05, 0.07), col, exp(-dist * 0.03));
+  vec2 vc = frag / uRes - 0.5; col *= 1.0 - 0.5 * dot(vc, vc);
+  oC = vec4(col, 1.0); gl_FragDepth = depth;
+}`;
+const VS_SPR = `#version 300 es
+in vec3 aP; in vec2 aUV; out vec2 vUV; void main(){ vUV = aUV; gl_Position = vec4(aP, 1.0); }`;
+const FS_SPR = `#version 300 es
+precision highp float; uniform sampler2D uS; uniform float uL, uA, uE; in vec2 vUV; out vec4 o;
+void main(){ vec4 t = texture(uS, vUV); if (t.a < 0.01) discard; float l = mix(uL, 1.0, uE); o = vec4(t.rgb * l * uA, t.a * uA); }`;
+function glInit() {
+  let gl; try { gl = glc.getContext('webgl2', { antialias: false, alpha: false, depth: true, powerPreference: 'high-performance' }); } catch (e) {}
+  if (!gl) return false;
+  try {
+    const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'aP'); gl.bindAttribLocation(p, 1, 'aUV'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
+    const pw = prog(VS_FULL, FS_WORLD), ps = prog(VS_SPR, FS_SPR), U = (p, n) => gl.getUniformLocation(p, n);
+    const grid = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, grid); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 17, 17, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(289));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const arr = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, arr); gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 8, gl.RGBA8, TS, TS, 7);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    const an = gl.getExtension('EXT_texture_filter_anisotropic'); if (an) gl.texParameterf(gl.TEXTURE_2D_ARRAY, an.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(an.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    const buf = gl.createBuffer(); const vao = gl.createVertexArray();
+    GL = { gl, pw, ps, grid, arr, buf, vao, gridVer: -1, style: '', spr: new Map(), uw: { res: U(pw, 'uRes'), pos: U(pw, 'uPos'), dir: U(pw, 'uDir'), plane: U(pw, 'uPlane'), focal: U(pw, 'uFocal'), hor: U(pw, 'uHor'), mis: U(pw, 'uMis'), grid: U(pw, 'uGrid'), tex: U(pw, 'uTex') }, us: { s: U(ps, 'uS'), l: U(ps, 'uL'), a: U(ps, 'uA'), e: U(ps, 'uE') } };
+    glLayer(1, TEX.door); glLayer(2, TEX.crate); glLayer(3, TEX.floor); glLayer(4, TEX.ceil); return true;
+  } catch (e) { console.warn('WebGL setup failed, using the canvas renderer', e); GL = null; return false; }
+}
+function glLayer(i, t) { const gl = GL.gl; gl.bindTexture(gl.TEXTURE_2D_ARRAY, GL.arr); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, TS, TS, 1, gl.RGBA, gl.UNSIGNED_BYTE, t.c); }
+function glWalls() { const k = mapStyle; if (GL.style === k) return; GL.style = k; glLayer(0, TEX.wall); glLayer(5, TEX.vent); glLayer(6, TEX.sign); GL.gl.bindTexture(GL.gl.TEXTURE_2D_ARRAY, GL.arr); GL.gl.generateMipmap(GL.gl.TEXTURE_2D_ARRAY); }
+function glGrid() { if (GL.gridVer === G.gridVer) return; GL.gridVer = G.gridVer; const d = new Uint8Array(289); for (let y = 0; y < 17; y++) for (let x = 0; x < 17; x++) d[y * 17 + x] = G.grid[y + 1][x + 1] || 0; const gl = GL.gl; gl.bindTexture(gl.TEXTURE_2D, GL.grid); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 17, 17, gl.RED, gl.UNSIGNED_BYTE, d); }
+function glSprTex(sp) {
+  let t = GL.spr.get(sp.c); if (t) return t; const gl = GL.gl; t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sp.c); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  GL.spr.set(sp.c, t); return t;
+}
+function renderGL() {
+  const me = G.me, gl = GL.gl; glWalls(); glGrid();
+  const W = VW, H = VH, plane = (.4875 * W / H) * (1 - me.aim * .28); focal = W / (2 * plane);
+  const sh = G.shake, cx0 = me.x + (rnd() - .5) * sh * .03, cy0 = me.y + (rnd() - .5) * sh * .03, dirX = Math.cos(me.a), dirY = Math.sin(me.a), plX = -dirY * plane, plY = dirX * plane;
+  const horizon = H / 2 + Math.sin(me.stride) * me.moving * 1.6 * (H / 240);
+  gl.viewport(0, 0, W, H); gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(GL.pw); const u = GL.uw;
+  gl.uniform2f(u.res, W, H); gl.uniform2f(u.pos, cx0, cy0); gl.uniform2f(u.dir, dirX, dirY); gl.uniform2f(u.plane, plX, plY); gl.uniform1f(u.focal, focal); gl.uniform1f(u.hor, horizon); gl.uniform1f(u.mis, G.mission);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, GL.grid); gl.uniform1i(u.grid, 0); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D_ARRAY, GL.arr); gl.uniform1i(u.tex, 1);
+  gl.bindVertexArray(GL.vao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // sprites
+  const sp = collectSprites(cx0, cy0, me), inv = 1 / (plX * dirY - dirX * plY);
+  gl.useProgram(GL.ps); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.bindBuffer(gl.ARRAY_BUFFER, GL.buf);
+  gl.enableVertexAttribArray(0); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+  gl.activeTexture(gl.TEXTURE2); gl.uniform1i(GL.us.s, 2);
+  for (const s of sp) {
+    const d = sprDesc(s), dx = s.x - cx0, dy = s.y - cy0, tx = inv * (dirY * dx - dirX * dy), ty = inv * (-plY * dx + plX * dy); if (ty < .15) continue;
+    const scrX = (W / 2) * (1 + tx / ty), shh = focal / ty * d.hgt, sww = focal / ty * d.wid, floorY = horizon + .5 * focal / ty - d.lift * focal / ty, top = floorY - shh;
+    if (scrX + sww / 2 < 0 || scrX - sww / 2 > W) continue;
+    const x0 = (scrX - sww / 2) / W * 2 - 1, x1 = (scrX + sww / 2) / W * 2 - 1, y0 = 1 - top / H * 2, y1 = 1 - floorY / H * 2, z = Math.min(.999, ty / 30) * 2 - 1;
+    gl.depthMask(!d.soft); gl.bindTexture(gl.TEXTURE_2D, glSprTex(d.sprite));
+    gl.uniform1f(GL.us.l, clamp(.25 + .75 / (1 + ty * .2), 0, 1)); gl.uniform1f(GL.us.a, d.alpha); gl.uniform1f(GL.us.e, d.emit ? 1 : 0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([x0, y0, z, 0, 0, x1, y0, z, 1, 0, x1, y1, z, 1, 1, x0, y0, z, 0, 0, x1, y1, z, 1, 1, x0, y1, z, 0, 1]), gl.DYNAMIC_DRAW);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+  gl.depthMask(true); gl.disable(gl.BLEND);
+  // 2D overlay on top: hit sparks, then HUD effects and the weapon
+  vctx.clearRect(0, 0, VW, VH);
+  for (const im of G.impacts) {
+    if (!los(me.x, me.y, im.x, im.y)) continue; const dx = im.x - cx0, dy = im.y - cy0, tx = inv * (dirY * dx - dirX * dy), ty = inv * (-plY * dx + plX * dy); if (ty < .2) continue;
+    const X = (W / 2) * (1 + tx / ty), r = Math.max(2, focal / ty * .16 * (im.life / im.total + .4)), gr = vctx.createRadialGradient(X, horizon, 0, X, horizon, r);
+    gr.addColorStop(0, im.kind === 'hit' ? 'rgba(255,90,90,.95)' : 'rgba(255,240,190,.95)'); gr.addColorStop(1, 'rgba(255,140,60,0)'); vctx.fillStyle = gr; vctx.fillRect(X - r, horizon - r, r * 2, r * 2);
+  }
+  drawOverlay(me);
+}
+
+function renderCPU() {
   const me = G.me; if (!me) return;
   const aimZ = me.aim, plane = (.4875 * BW / BH) * (1 - aimZ * .28); focal = BW / (2 * plane);
   const sh = G.shake > 0 ? G.shake : 0, cx0 = me.x + (rnd() - .5) * sh * .03, cy0 = me.y + (rnd() - .5) * sh * .03;
   const dirX = Math.cos(me.a), dirY = Math.sin(me.a), plX = -dirY * plane, plY = dirX * plane;
   const hor = BH >> 1, bob = Math.sin(me.stride) * me.moving * 1.6 | 0, horizon = hor + bob;
   // floor + ceiling
-  const FT = TEX.floor.d, CT = TEX.ceil.d;
+  const FT = TEX.floor.d, CT = TEX.ceil.d, TM = TS - 1;
   for (let y = 0; y < BH; y++) {
     const off = y - horizon; if (off === 0) continue; const isFloor = off > 0, rd = 0.5 * focal / Math.abs(off); if (rd > 22) { buf32.fill(0xff0b0f14, y * BW, (y + 1) * BW); continue; }
     const l = clamp(.28 + .72 / (1 + rd * .22), 0, 1) * (isFloor ? 1 : .8), T = isFloor ? FT : CT;
     let fx = cx0 + rd * (dirX - plX), fy = cy0 + rd * (dirY - plY); const sx = rd * 2 * plX / BW, sy = rd * 2 * plY / BW; let o = y * BW;
-    for (let x = 0; x < BW; x++, fx += sx, fy += sy) { const tx = ((fx * 64) & 63), ty = ((fy * 64) & 63); buf32[o++] = shade(T[ty * 64 + tx], l); }
+    for (let x = 0; x < BW; x++, fx += sx, fy += sy) { const tx = ((fx * TS) & TM), ty = ((fy * TS) & TM); buf32[o++] = shade(T[ty * TS + tx], l); }
   }
   // walls
   for (let x = 0; x < BW; x++) {
@@ -454,10 +607,10 @@ function render() {
     }
     zbuf[x] = pd; if (!t) continue;
     const lh = Math.min(BH * 4, focal / Math.max(pd, .05)), y0 = (horizon - lh / 2) | 0, y1 = (horizon + lh / 2) | 0;
-    let wx = side === 0 ? cy0 + pd * rdy : cx0 + pd * rdx; wx -= Math.floor(wx); if ((side === 0 && rdx > 0) || (side === 1 && rdy < 0)) wx = 1 - wx;
-    const tex = wallTex(t, mx + 1, my + 1).d, tx = (wx * 64) | 0, l = clamp(.2 + .8 / (1 + pd * .2), 0, 1) * (side ? .72 : 1), step = 64 / lh;
+    let wx = side === 0 ? cy0 + pd * rdy : cx0 + pd * rdx; wx -= Math.floor(wx); if ((side === 0 && rdx < 0) || (side === 1 && rdy > 0)) wx = 1 - wx;
+    const tex = wallTex(t, mx + 1, my + 1).d, tx = (wx * TS) | 0, l = clamp(.2 + .8 / (1 + pd * .2), 0, 1) * (side ? .72 : 1), step = TS / lh;
     let tp = (Math.max(y0, 0) - y0) * step;
-    for (let y = Math.max(y0, 0); y < Math.min(y1, BH); y++) { buf32[y * BW + x] = shade(tex[(tp | 0) * 64 + tx], l); tp += step; }
+    for (let y = Math.max(y0, 0); y < Math.min(y1, BH); y++) { buf32[y * BW + x] = shade(tex[(tp | 0) * TS + tx], l); tp += step; }
   }
   // sprites
   const sp = [];
@@ -496,9 +649,11 @@ function render() {
     for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) { const X = scrX + x, Y = yy + y; if (X >= 0 && X < BW && Y >= 0 && Y < BH && ty < zbuf[X] + .1) buf32[Y * BW + X] = col; }
   }
   bctx.putImageData(imgData, 0, 0);
-  vctx.imageSmoothingEnabled = false; vctx.drawImage(bufCanvas, 0, 0, VW, VH);
+  vctx.imageSmoothingEnabled = true; vctx.drawImage(bufCanvas, 0, 0, VW, VH);
   drawOverlay(me);
 }
+
+function render() { if (!G.me) return; if (useGL) renderGL(); else renderCPU(); }
 function drawOverlay(me) {
   const c = vctx, w = VW, h = VH, sc = h / 360;
   // damage vignette + flash/blast
@@ -515,20 +670,27 @@ function drawOverlay(me) {
 }
 const GUNCOL = ['#3a4248', '#323a40', '#363f44', '#2a2e30', '#3a443f', '#6a5f45'];
 function drawWeapon(c, w, h, me) {
-  const wp = WEAPONS[me.gun], sc = h / 360, t = G.timer, bobX = Math.sin(me.stride * .5) * me.moving * 8 * sc * (1 - me.aim), bobY = Math.abs(Math.sin(me.stride * .5)) * me.moving * 8 * sc * (1 - me.aim);
-  const kick = me.recoil * 26 * sc, rl = me.reload > 0 ? Math.sin((1 - me.reload / me.reloadTotal) * Math.PI) * 70 * sc : 0;
-  const cx = w * (.66 - .16 * me.aim) + bobX, by = h + 10 * sc - bobY + kick + rl + me.aim * -10 * sc;
-  const L = (150 + wp.len * 150) * sc, tw = (me.gun === 3 ? 46 : me.gun === 0 ? 34 : 30) * sc, col = GUNCOL[me.gun];
-  c.save(); c.translate(cx, by);
-  c.fillStyle = '#1b2125'; c.beginPath(); c.moveTo(-tw * 1.5, 0); c.lineTo(-tw * .7, -L * .55); c.lineTo(tw * .7, -L * .55); c.lineTo(tw * 1.8, 0); c.fill();              // hands/forearms
-  c.fillStyle = col; c.beginPath(); c.moveTo(-tw * .8, -L * .18); c.lineTo(-tw * .32, -L); c.lineTo(tw * .32, -L); c.lineTo(tw * .8, -L * .18); c.fill();                          // slide / receiver
-  c.fillStyle = '#10151a'; c.fillRect(-tw * .13, -L - 24 * sc, tw * .26, 26 * sc);                                                                                              // barrel
-  c.fillStyle = '#1d242a'; c.fillRect(-tw * .5, -L * .7, tw, 6 * sc);
-  if (me.att[1] === 2) { c.fillStyle = '#0b0f12'; c.fillRect(-tw * .2, -L - 70 * sc, tw * .4, 50 * sc); }
-  if (me.att[0] > 0) { c.strokeStyle = me.att[0] > 1 ? '#38d6ff' : '#ff4a4a'; c.lineWidth = 3 * sc; c.beginPath(); c.arc(0, -L * .8, 14 * sc, 0, 7); c.stroke(); c.fillStyle = '#10151a'; c.fillRect(-18 * sc, -L * .8 + 14 * sc, 36 * sc, 6 * sc); }
-  c.fillStyle = '#f2f2f2'; c.fillRect(-2 * sc, -L - 30 * sc, 4 * sc, 8 * sc);
-  if (G.flash > 0) { const gr = c.createRadialGradient(0, -L - 30 * sc, 0, 0, -L - 30 * sc, 70 * sc); gr.addColorStop(0, 'rgba(255,255,220,.95)'); gr.addColorStop(.4, 'rgba(255,200,60,.6)'); gr.addColorStop(1, 'rgba(255,140,0,0)'); c.fillStyle = gr; c.fillRect(-80 * sc, -L - 110 * sc, 160 * sc, 160 * sc); }
-  c.restore(); void t;
+  const wp = WEAPONS[me.gun], sc = h / 360, bobX = Math.sin(me.stride * .5) * me.moving * 8 * sc * (1 - me.aim), bobY = Math.abs(Math.sin(me.stride * .5)) * me.moving * 8 * sc * (1 - me.aim);
+  const kick = me.recoil * 26 * sc, rl = me.reload > 0 ? Math.sin((1 - me.reload / me.reloadTotal) * Math.PI) * 80 * sc : 0;
+  const cx = w * (.66 - .16 * me.aim) + bobX, by = h + 14 * sc - bobY + kick + rl - me.aim * 12 * sc;
+  const L = (150 + wp.len * 150) * sc, tw = (me.gun === 3 ? 46 : me.gun === 0 ? 36 : 31) * sc, col = GUNCOL[me.gun];
+  const metal = (x0, x1, a, b) => { const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, a); g.addColorStop(.45, b); g.addColorStop(1, a); return g; };
+  c.save(); c.translate(cx, by); c.lineJoin = 'round';
+  // forearms + gloves
+  c.fillStyle = metal(-tw * 2, tw * 2, '#14181b', '#2a3238'); c.beginPath(); c.moveTo(-tw * 1.7, 0); c.lineTo(-tw * .75, -L * .5); c.lineTo(tw * .75, -L * .5); c.lineTo(tw * 2, 0); c.fill();
+  c.fillStyle = '#c99a7a'; c.beginPath(); c.ellipse(-tw * .55, -L * .38, tw * .32, tw * .22, -.3, 0, 7); c.fill();
+  // body: tapered receiver with highlight and shadow edge
+  c.fillStyle = metal(-tw, tw, '#1c2226', col); c.beginPath(); c.moveTo(-tw * .85, -L * .15); c.lineTo(-tw * .3, -L); c.lineTo(tw * .3, -L); c.lineTo(tw * .85, -L * .15); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.22)'; c.lineWidth = 1.5 * sc; c.beginPath(); c.moveTo(-tw * .3, -L); c.lineTo(-tw * .85, -L * .15); c.stroke();
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(-tw * .06, -L * .98, tw * .12, L * .8);
+  for (let i = 0; i < 6; i++) { const y = -L * (.25 + i * .06); c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(-tw * (.7 - i * .06), y, tw * (1.4 - i * .12), 2 * sc); }
+  // barrel, muzzle, sight
+  c.fillStyle = metal(-tw * .2, tw * .2, '#0a0d10', '#3a444c'); c.fillRect(-tw * .14, -L - 26 * sc, tw * .28, 28 * sc);
+  if (me.att[1] === 2) { c.fillStyle = metal(-tw * .25, tw * .25, '#0a0d10', '#2e363c'); c.fillRect(-tw * .22, -L - 74 * sc, tw * .44, 52 * sc); }
+  c.fillStyle = '#e9edf0'; c.fillRect(-2 * sc, -L - 34 * sc, 4 * sc, 9 * sc);
+  if (me.att[0] > 0) { c.strokeStyle = me.att[0] > 1 ? '#38d6ff' : '#ff4a4a'; c.lineWidth = 3 * sc; c.beginPath(); c.arc(0, -L * .8, 15 * sc, 0, 7); c.stroke(); c.fillStyle = '#0d1115'; c.fillRect(-19 * sc, -L * .8 + 15 * sc, 38 * sc, 7 * sc); }
+  if (G.flash > 0) { const gr = c.createRadialGradient(0, -L - 30 * sc, 0, 0, -L - 30 * sc, 80 * sc); gr.addColorStop(0, 'rgba(255,255,230,.97)'); gr.addColorStop(.35, 'rgba(255,210,70,.65)'); gr.addColorStop(1, 'rgba(255,140,0,0)'); c.fillStyle = gr; c.fillRect(-90 * sc, -L - 120 * sc, 180 * sc, 180 * sc); }
+  c.restore();
 }
 function drawMini() {
   const c = $('mini').getContext('2d'), n = 17, cs = 96 / n, me = G.me; if (!me) return; c.clearRect(0, 0, 96, 96);
@@ -691,7 +853,7 @@ function sendSnapshot() {
 /* guest: apply host snapshot */
 function onSnap(s) {
   if (G.mode !== 'guest' || !G.me) return; G.timer = s.t; G.objective = !!s.ob; G.kills = s.k | 0;
-  for (const [cx, cy] of s.op || []) if (G.grid[cy] && G.grid[cy][cx] !== 0) { G.grid[cy][cx] = 0; }
+  for (const [cx, cy] of s.op || []) if (G.grid[cy] && G.grid[cy][cx] !== 0) { G.grid[cy][cx] = 0; G.gridVer++; }
   for (const r of s.ps || []) { const pl = G.players.find((x) => x.pid === r[0]); if (!pl) continue;
     if (pl === G.me) { if (r[4] < pl.hp) { G.hurt = .23; G.shake = Math.min(1, G.shake + .4); sfx('impact', .4); } pl.hp = r[4]; pl.dead = !!r[5]; pl.kit = r[6]; pl.breach = r[7]; pl.throwCount = r[8]; G.out = G.out.filter((o) => o.s > r[9]); }
     else { pl.tx = r[1]; pl.ty = r[2]; pl.ta = r[3]; pl.hp = r[4]; pl.dead = !!r[5]; } }
@@ -733,12 +895,15 @@ function frame(now) {
       else { hostTick(dt); if (G.mode === 'host') netTick(dt); if (G.me.hp <= 0 && G.mode === 'solo' && !G.over) finish(false); }
       if (G.mode !== 'guest') for (const p of G.players) if (p !== G.me) { p.cooldown = Math.max(0, (p.cooldown || 0) - dt); }
     }
-    render(); updateHud(dt);
+    render(); updateHud(dt); adapt(dt);
   } else if (G.state === 'splash' || G.state === 'menu') { vctx.fillStyle = '#090d12'; vctx.fillRect(0, 0, VW, VH); }
   if (G.mode === 'host' && G.state === 'lobby') { MP.lobbyT -= dt; if (MP.lobbyT <= 0) { MP.lobbyT = 1; const now2 = Date.now(); MP.roster = MP.roster.filter((r) => r.host || now2 - (MP.heard[r.pid] || now2) < 12000); pushLobby(); renderLobby(); } }
   if (MP.on && !MP.host && MP.joined) { MP.helloT -= dt; if (MP.helloT <= 0 && G.state !== 'play') { MP.helloT = 2; sendHello(); } }
   if (MP.on && MP.host && G.state === 'lobby') { /* host keeps its own roster entry fresh */ const h = MP.roster.find((r) => r.host); if (h) Object.assign(h, playerDef(), { name: h.name, host: true }); }
 }
+let emaDt = .016, adaptT = 0;
+function adapt(dt) { if (!useGL) return; emaDt += (dt - emaDt) * .05; adaptT += dt; if (adaptT < 2.5) return; adaptT = 0;
+  if (emaDt > .034 && resScale > .55) { resScale = Math.max(.55, resScale - .15); resize(); } else if (emaDt < .0185 && resScale < 1) { resScale = Math.min(1, resScale + .1); resize(); } }
 // host lobby loop must also run while in lobby (G.mode is 'menu' there): drive it separately
 setInterval(() => { if (MP.on && MP.host && G.state === 'lobby') { const now2 = Date.now(); MP.roster = MP.roster.filter((r) => r.host || now2 - (MP.heard[r.pid] || now2) < 12000); pushLobby(); renderLobby(); } }, 1000);
 setInterval(() => { if (MP.on && !MP.host && MP.joined && G.state !== 'play') { sendHello(); if (Date.now() - (MP.heard.host || Date.now()) > 9000) { leaveMP(); toMenu(); $('oMsg').textContent = 'Lost the host.'; } } }, 2000);
@@ -800,6 +965,6 @@ addEventListener('resize', resize);
 
 /* ============================== BOOT ============================== */
 loadProf(); resize();
-loadImgs().then(() => { buildTextures(); crewRow($('crewRow'), 0, null); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
-  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer }; });
+loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); crewRow($('crewRow'), 0, null); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
+  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL }; });
 })();

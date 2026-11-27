@@ -19,7 +19,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Poppins,system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 input{-webkit-user-select:text;user-select:text}
-#view{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;image-rendering:pixelated}
+#gl,#view{position:fixed;inset:0;width:100%;height:100%;display:block}#view{z-index:1}
 h1,h2,h3{font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.06em;margin:.2em 0}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;padding:max(18px,env(safe-area-inset-top)) 16px 24px;overflow-y:auto;background:radial-gradient(ellipse at 50% 0,#14303a 0,#090d12 70%);z-index:20}
 .screen.on{display:flex}
@@ -92,7 +92,7 @@ body.touch #note{bottom:34%}
 </style>
 </head>
 <body>
-<canvas id="view"></canvas>
+<canvas id="gl"></canvas><canvas id="view"></canvas>
 <a class="back" href="../" id="backLink">&larr; Games</a>
 
 <div id="hud">
@@ -175,6 +175,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=1"></script>
+<script src="game.js?v=2"></script>
 </body>
 </html>
