@@ -59,6 +59,7 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   Kick, and the Landlord boss shows up at 3:33 AM. Two choices change later chapters; there are 4 endings (one secret). It is the
   same game as the handheld edition. Pick NIGHT TRIAL on the title screen, or switch with the tabs on the story screen. Code is the
   `NIGHT` section at the end of `game.js`; the original Episodes 1-6 story is still there as the other tab.
+- **Easier to track the fight:** the camera leans toward the enemy side, the nearest enemy and where you're shooting (CAMERA in the pause menu switches it to CENTERED ON ME). A gold chevron floats over your head, a red `!` marker shows over any enemy that has lined up on you, and the nearest off-screen enemy has a big red arrow with its distance.
 - **Pause menu:** P / Esc / the II button (and switching tabs) opens a real menu: Resume, Sound, Aim Assist, Auto-Fire (phones) and Quit Match (tap twice). Solo play only; online matches keep the double-tap quit.
 - **Coin Catch:** a 45-second mini game (title screen) that earns ZEV Coins: catch coins and burgers, dodge alarm clocks. Max 40 per
   run, 150 per day. Same as the handheld edition.

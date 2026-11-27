@@ -609,14 +609,24 @@ function fxStep(dt) {
   for (const r of G.rings) { r.r += 260 * dt; r.life -= dt; } G.rings = G.rings.filter((r) => r.life > 0);
   for (const q of G.pops) { q.y -= 40 * dt; q.life -= dt; } G.pops = G.pops.filter((q) => q.life > 0);
 }
+let camMode = localStorage.getItem('ps_cam') || 'lead';   // 'lead' = camera leans toward the fight, 'center' = always on you
+function nearestFoe(p, maxD) { let best = null, bd = maxD * maxD; for (const e of G.ents) { if (e.team === p.team || e.dead > 0) continue; const d = (e.x - p.x) ** 2 + (e.y - p.y) ** 2; if (d < bd) { bd = d; best = e; } } return best; }
 function cameraStep(dt) {
   const p = G.player;
-  // camera: smooth follow with a little look-ahead toward the aim
   const vw = VW / Z, vh = VH / Z;
   const fh = WORLD.h * TILT;
-  const look = 0;   // camera stays centered on you
-  const ahead = (p.team === 'P' ? 1 : -1) * vw * 0.17;   // keep a little more of the enemy side in view
-  const tx = clamp(p.x + ahead + Math.cos(p.a) * 70 * look - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + Math.sin(p.a) * 50 * look - vh / 2, -140, fh - vh + 80);
+  // camera: keeps you in view but leans toward the enemy side, the nearest enemy, and where you're aiming
+  let fx = 0, fy = 0;
+  if (camMode === 'lead' && p.dead <= 0) {
+    fx += (p.team === 'P' ? 1 : -1) * vw * 0.1;
+    const foe = nearestFoe(p, 1400);
+    if (foe) { fx += clamp((foe.x - p.x) * 0.32, -vw * 0.26, vw * 0.26); fy += clamp((foe.y - p.y) * TILT * 0.32, -vh * 0.22, vh * 0.22); }
+    if (p.flash > 0 || p.cool > 0) { fx += Math.cos(p.a) * vw * 0.06; fy += Math.sin(p.a) * vh * 0.05; }
+    fx = clamp(fx, -vw * 0.3, vw * 0.3); fy = clamp(fy, -vh * 0.24, vh * 0.24);
+  }
+  const co = G.camOff || (G.camOff = { x: 0, y: 0 }); const k0 = Math.min(1, dt * 3);
+  co.x += (fx - co.x) * k0; co.y += (fy - co.y) * k0;
+  const tx = clamp(p.x + co.x - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + co.y - vh / 2, -140, fh - vh + 80);
   G.cam.x += ((vw > WORLD.w + 160 ? (WORLD.w - vw) / 2 : tx) - G.cam.x) * Math.min(1, dt * 8);
   G.cam.y += ((vh > fh + 220 ? (fh - vh) / 2 - 40 : ty) - G.cam.y) * Math.min(1, dt * 8);
 }
@@ -875,6 +885,7 @@ function drawWorld(t) {
   for (const e of G.ents) if (e.dead <= 0) items.push([e.y, 2, e]);
   items.sort((a, b) => a[0] - b[0]);
   for (const [, kind, o] of items) { if (kind === 0) drawWall(o, t); else if (kind === 1) drawPickupIcon(o, t); else drawEnt(o, t); }
+  drawMarkers(t);
   const at = G.player.assistTarget;
   if (G.player.dead <= 0 && at && at.dead <= 0) {
     const x = at.x, y = at.y * TILT - LASER_Z; ctx.strokeStyle = 'rgba(77,255,190,0.85)'; ctx.lineWidth = 2;
@@ -908,14 +919,35 @@ function drawWorld(t) {
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
   drawSticks();
 }
+
+// readability: a gold chevron over YOU, red warning marker over enemies that are lined up on you
+function drawMarkers(t) {
+  const p = G.player;
+  if (p.dead <= 0) {
+    const x = p.x, y = p.y * TILT - 132 + Math.sin(t * 5) * 4;
+    ctx.fillStyle = '#ffd60a'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y + 14); ctx.lineTo(x - 11, y - 4); ctx.lineTo(x + 11, y - 4); ctx.closePath(); ctx.stroke(); ctx.fill();
+  }
+  for (const e of G.ents) {
+    if (e.team === p.team || e.dead > 0 || p.dead > 0) continue;
+    const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy); if (d > 950) continue;
+    let da = Math.atan2(dy, dx) - e.a; da = Math.atan2(Math.sin(da), Math.cos(da));
+    if (Math.abs(da) > 0.28) continue;
+    const x = e.x, y = e.y * TILT - 118 + Math.sin(t * 12) * 2;
+    ctx.fillStyle = '#ff2d4a'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y + 12); ctx.lineTo(x - 10, y - 4); ctx.lineTo(x + 10, y - 4); ctx.closePath(); ctx.stroke(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '12px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('!', x, y + 5);
+  }
+}
 function drawArrows() {
   const p = G.player; if (p.dead > 0) return;
+  const near = nearestFoe(p, 1e9);
   for (const e of G.ents) {
     if (e.team === p.team || e.dead > 0) continue;
     const sx = (e.x - G.cam.x) * Z, sy = (e.y * TILT - 40 - G.cam.y) * Z; if (sx > 0 && sx < VW && sy > 0 && sy < VH) continue;
-    const a = Math.atan2(sy - VH / 2, sx - VW / 2), m = 34;
+    const a = Math.atan2(sy - VH / 2, sx - VW / 2), m = 34, isN = e === near, k = isN ? 1.35 : 0.9;
     const ex = clamp(VW / 2 + Math.cos(a) * VW, m, VW - m), ey = clamp(VH / 2 + Math.sin(a) * VH, m + 40, VH - m);
-    ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.fillStyle = 'rgba(255,140,40,0.9)'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-8, -9); ctx.lineTo(-4, 0); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.scale(k, k); ctx.globalAlpha = isN ? 1 : 0.7; ctx.fillStyle = isN ? '#ff3b55' : 'rgba(255,140,40,0.95)'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-8, -9); ctx.lineTo(-4, 0); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    if (isN) { const dm = Math.round(Math.hypot(e.x - p.x, e.y - p.y) / 50); ctx.font = '12px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#100814'; ctx.fillStyle = '#fff'; const tx = clamp(ex - Math.cos(a) * 26, 20, VW - 20), ty = clamp(ey - Math.sin(a) * 26 + 4, 60, VH - 8); ctx.strokeText(dm + 'm', tx, ty); ctx.fillText(dm + 'm', tx, ty); }
+    ctx.globalAlpha = 1;
   }
 }
 function drawMinimap() {
@@ -2950,6 +2982,7 @@ const COIN = (() => {
       + '<button class="btn alt" id="pmSound"></button>'
       + '<button class="btn alt" id="pmAim"></button>'
       + '<button class="btn alt" id="pmAuto"></button>'
+      + '<button class="btn alt" id="pmCam"></button>'
       + '<button class="btn alt small" id="pmQuit">QUIT MATCH</button>'
       + '<div class="muted" style="font-size:12px;margin-top:4px">' + (TOUCH ? 'Tap RESUME to keep playing' : 'Press P or Esc to resume') + '</div>';
     document.body.appendChild(pm);
@@ -2958,12 +2991,14 @@ const COIN = (() => {
     $('pmSound').onclick = () => { $('muteBtn').onclick(); sync(); };
     $('pmAim').onclick = () => { aimAssist = aimAssist >= 3 ? 1 : aimAssist + 1; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); sync(); };
     $('pmAuto').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); sync(); };
+    $('pmCam').onclick = () => { camMode = camMode === 'lead' ? 'center' : 'lead'; localStorage.setItem('ps_cam', camMode); sync(); };
     $('pmQuit').onclick = quit;
   }
   function sync() {
     $('pmSound').textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON');
     $('pmAim').textContent = 'AIM ASSIST: ' + (AIM[aimAssist] || 'OFF');
     $('pmAuto').textContent = 'AUTO-FIRE: ' + (autoFire ? 'ON' : 'OFF'); $('pmAuto').style.display = TOUCH ? '' : 'none';
+    $('pmCam').textContent = 'CAMERA: ' + (camMode === 'lead' ? 'FOLLOWS THE FIGHT' : 'CENTERED ON ME');
     $('pmQuit').textContent = quitArm ? 'TAP AGAIN TO QUIT' : 'QUIT MATCH';
     $('pmWhere').textContent = G && G.story ? `Chapter ${G.story.id}: "${G.story.title}"  •  ${G.story.goal.text}` : 'Quick match';
   }
