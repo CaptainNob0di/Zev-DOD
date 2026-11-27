@@ -557,8 +557,8 @@ function controlLocal(e, dt, shoot, ability) {
     e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
-    if (FP) { raw = e.yaw; firing = !!(input.mdown || (input.touchAim && input.touchAim.m > 0.25) || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.3))); }
-    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = true; }
+    if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.3))); }
+    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && autoTarget(e, raw, 0.3)); }
     else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
       if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
@@ -1331,7 +1331,7 @@ function drawSticks() {
     ctx.strokeStyle = side === 'aim' ? 'rgba(255,214,10,0.7)' : 'rgba(0,230,255,0.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, 58, 0, Math.PI * 2); ctx.stroke();
     const dx = s ? clamp(s.cx - s.x, -56, 56) : 0, dy = s ? clamp(s.cy - s.y, -56, 56) : 0;
     ctx.fillStyle = side === 'aim' ? 'rgba(255,214,10,0.85)' : 'rgba(0,230,255,0.75)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 24, 0, Math.PI * 2); ctx.fill();
-    if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? (pov === '1st' ? 'TURN + FIRE' : 'AIM + FIRE') : 'MOVE', h.x, h.y + 82); }
+    if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? (pov === '1st' ? 'LOOK' : 'AIM') : 'MOVE', h.x, h.y + 82); }
     ctx.globalAlpha = 1;
   }
 }
