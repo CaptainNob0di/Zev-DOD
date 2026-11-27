@@ -11,6 +11,7 @@ function resize() {
   // zoom out on small screens so phones see enough of the arena
   Z = Math.min(1, Math.max(0.5, Math.max(VW, VH) / 1350, Math.min(VW, VH) / 760));
   Z = Math.max(0.36, Z * ({ normal: 1, wide: 0.8, widest: 0.66 }[localStorage.getItem('ps_view') || 'wide'] || 0.8));   // VIEW setting: see more of the arena
+  if (VH > VW * 1.1) Z = Math.max(0.3, Z * 0.85);   // phones held upright: zoom out more so you can see across the arena
   buildVignette();
 }
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250)); if (window.visualViewport) visualViewport.addEventListener('resize', resize);
@@ -614,7 +615,8 @@ function cameraStep(dt) {
   const vw = VW / Z, vh = VH / Z;
   const fh = WORLD.h * TILT;
   const look = 0;   // camera stays centered on you
-  const tx = clamp(p.x + Math.cos(p.a) * 70 * look - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + Math.sin(p.a) * 50 * look - vh / 2, -140, fh - vh + 80);
+  const ahead = (p.team === 'P' ? 1 : -1) * vw * 0.17;   // keep a little more of the enemy side in view
+  const tx = clamp(p.x + ahead + Math.cos(p.a) * 70 * look - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + Math.sin(p.a) * 50 * look - vh / 2, -140, fh - vh + 80);
   G.cam.x += ((vw > WORLD.w + 160 ? (WORLD.w - vw) / 2 : tx) - G.cam.x) * Math.min(1, dt * 8);
   G.cam.y += ((vh > fh + 220 ? (fh - vh) / 2 - 40 : ty) - G.cam.y) * Math.min(1, dt * 8);
 }
@@ -2982,4 +2984,6 @@ const COIN = (() => {
   }, 80);
 })();
 
+
+document.querySelectorAll('.cov').forEach((el) => el.remove());   // cover buttons were removed; drop any stale ones
 })();
