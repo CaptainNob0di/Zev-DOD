@@ -411,7 +411,7 @@ function updatePlayer(dt) {
   if (p.dead) { p.moving = 0; p.vx = p.vy = 0; return; }
   // ---- input -> desired move vector (local space: f forward, s strafe right)
   const dz = (v) => { const m = Math.abs(v); return m < .12 ? 0 : Math.sign(v) * Math.pow((m - .12) / .88, 1.25); };
-  let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - dz(touch.my);
+  let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + dz(touch.my);
   let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + dz(touch.mx);
   const mag = Math.hypot(f, s); if (mag > 1) { f /= mag; s /= mag; }
   const aiming = keys.has('KeyZ') || mouseAim || touch.aim;
@@ -984,5 +984,5 @@ addEventListener('resize', resize);
 /* ============================== BOOT ============================== */
 loadProf(); resize();
 loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
-  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL, keys, free, doBreach, openCell, timers, GEAR }; });
+  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL, keys, touch, free, doBreach, openCell, timers, GEAR }; });
 })();
