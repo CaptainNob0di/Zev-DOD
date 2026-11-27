@@ -275,6 +275,7 @@ function beginMatch(ents, me) {
   if (!MP.on) applyLoadout(me, myLoadout(me.kind));   // weapon, level perks and store upgrades
   me.inv = MP.on ? null : [null, null, null, null];   // item slots (solo); online keeps instant power-ups
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
+  me.yaw = me.team === 'P' ? 0 : Math.PI;   // first person: start facing the enemy side
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y * TILT - 40 - VH / Z / 2;
   showScreen(null); $('hud').classList.add('on'); document.body.classList.add('playing'); if (document.activeElement) document.activeElement.blur(); state = 'play';
   feed('Map: ' + MAPNAME); feed(MP.on && MP.mode === 'versus' ? 'Team vs team! Most tags wins.' : "Match start! Tag BROKE-pilot's bots!"); banner('FIGHT!');
@@ -307,7 +308,7 @@ function hitEnt(t, b) {
   if (t.shield > 0) { spark(b.x, b.y, '#ffffff', 6, 160); if (MP.host) MP.ev.push(['h', Math.round(b.x), Math.round(b.y), -1, G.ents.indexOf(t)]); return; }
   t.hp -= b.dmg; b.owner.hits++; t.hurt = 0.12; spark(b.x, b.y, b.col, 10, 220);
   if (MP.host) MP.ev.push(['h', Math.round(b.x), Math.round(b.y), G.ents.indexOf(b.owner), G.ents.indexOf(t)]);
-  if (t.isPlayer) { G.shake = 0.22; SFX.hit(); }
+  if (t.isPlayer) { G.shake = 0.22; SFX.hit(); t.hitFrom = Math.atan2(-b.vy, -b.vx); t.hitT = 0.8; }
   if (t.hp <= 0) {
     t.dead = RESPAWN; t.tagged++; b.owner.tags++; G.score[b.team]++; onTagged(t, b.owner);
     if (MP.host) MP.ev.push(['t', G.ents.indexOf(t), G.ents.indexOf(b.owner)]);
@@ -532,9 +533,19 @@ function seekCover(e, side) {
 }
 function controlLocal(e, dt, shoot, ability) {
     let mx = 0, my = 0; const k = input.keys;
-    if (k.KeyW || k.ArrowUp) my -= 1; if (k.KeyS || k.ArrowDown) my += 1; if (k.KeyA || k.ArrowLeft) mx -= 1; if (k.KeyD || k.ArrowRight) mx += 1;
+    if (k.KeyW || k.ArrowUp) my -= 1; if (k.KeyS || k.ArrowDown) my += 1; if (k.KeyA || (pov !== '1st' && k.ArrowLeft)) mx -= 1; if (k.KeyD || (pov !== '1st' && k.ArrowRight)) mx += 1;
     if (input.touchMove) { mx = input.touchMove.dx; my = input.touchMove.dy; }
     const m = Math.hypot(mx, my); if (m > 1) { mx /= m; my /= m; }
+    const FP = pov === '1st';
+    if (FP) {   // first person: you turn with the right stick / mouse / Q E, and move relative to where you face
+      if (e.yaw === undefined) e.yaw = e.a;
+      let turn = 0;
+      if (input.touchAim && input.touchAim.m > 0.12) turn += Math.sign(input.touchAim.dx) * Math.pow(Math.abs(input.touchAim.dx), 1.3) * 3.4;
+      if (k.KeyQ || k.ArrowLeft) turn -= 2.4; if (k.KeyE || k.ArrowRight) turn += 2.4;
+      if (!TOUCH && input.mouseSeen && document.pointerLockElement !== cvs) { const o = (input.mx - VW / 2) / (VW / 2); if (Math.abs(o) > 0.18) turn += Math.sign(o) * (Math.abs(o) - 0.18) * 3.6; }
+      e.yaw += turn * dt + fpLook * 0.0026; fpLook = 0; e.yaw = Math.atan2(Math.sin(e.yaw), Math.cos(e.yaw));
+      const fw = -my, rt = mx, cyw = Math.cos(e.yaw), syw = Math.sin(e.yaw); mx = cyw * fw - syw * rt; my = syw * fw + cyw * rt;
+    }
     const spd = e.stats.speed * (e.fast > 0 ? 1.35 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 0.5 : 1) * worldSpeed(e);
     if (input.coverL) { input.coverL = false; seekCover(e, -1); } else if (input.coverR) { input.coverR = false; seekCover(e, 1); }
     if (m > 0.2) { e.coverGoal = null; e.moveAngle = Math.atan2(my, mx); }
@@ -546,7 +557,8 @@ function controlLocal(e, dt, shoot, ability) {
     e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
-    if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = true; }
+    if (FP) { raw = e.yaw; firing = !!(input.mdown || (input.touchAim && input.touchAim.m > 0.25) || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.3))); }
+    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = true; }
     else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
       if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
@@ -858,6 +870,7 @@ function drawEnt(e, t) {
   ctx.restore();
 }
 function drawWorld(t) {
+  if (pov === '1st' && G && G.player) return drawFP(t);
   if (!STATIC) buildStatic();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = '#0b0912'; ctx.fillRect(0, 0, VW, VH);
@@ -908,13 +921,16 @@ function drawWorld(t) {
   for (const q of G.pops) { ctx.globalAlpha = Math.min(1, q.life * 2); ctx.font = '22px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#100814'; const py = q.y * TILT - 100; ctx.strokeText(q.txt, q.x, py); ctx.fillStyle = q.col; ctx.fillText(q.txt, q.x, py); }
   ctx.globalAlpha = 1;
   ctx.restore();
+  drawTail(t);
+}
+function drawTail(t) {
   // screen-space: vignette, slow tint, off-screen enemy arrows, minimap, sticks
   if (VIGN) ctx.drawImage(VIGN, 0, 0, VW, VH);
   if (G.slow > 0) { ctx.fillStyle = `rgba(255,140,40,${0.06 + 0.03 * Math.sin(t * 6)})`; ctx.fillRect(0, 0, VW, VH); }
   if (G.haze > 0) { const a = Math.min(1, G.haze / 1.5); ctx.fillStyle = `rgba(${130 + Math.sin(t * 1.3) * 30},60,210,${0.13 * a})`; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = `rgba(70,230,120,${0.07 * a})`; ctx.fillRect(0, 0, VW, VH); }
   if (G.player.hurt > 0) { ctx.fillStyle = `rgba(255,40,60,${G.player.hurt * 1.6})`; ctx.fillRect(0, 0, VW, VH); }
   drawScreenFx(t);
-  if (G.dark < 0.5) drawArrows();
+  if (G.dark < 0.5) { if (fpDrawing) fpArrows(); else drawArrows(); }
   drawMinimap();
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
   drawSticks();
@@ -957,7 +973,9 @@ function drawMinimap() {
   ctx.fillStyle = '#ff3cc8'; ctx.fillRect(x + (G.lineShown || midX()) * k - 1, y, 2, h);
   for (const pk of G.pickups) { ctx.fillStyle = PICKUPS[pk.kind].col; ctx.fillRect(x + pk.x * k - 1.5, y + pk.y * k - 1.5, 3, 3); }
   for (const e of G.ents) { if (e.dead > 0) continue; ctx.fillStyle = e.isPlayer ? '#ffd60a' : e.team === 'P' ? '#ff4b65' : '#ff8c28'; ctx.beginPath(); ctx.arc(x + e.x * k, y + e.y * k, e.isPlayer ? 3.5 : 2.5, 0, Math.PI * 2); ctx.fill(); }
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + G.cam.x * k, y + (G.cam.y / TILT) * k, (VW / Z) * k, (VH / Z / TILT) * k); ctx.restore();
+  if (pov === '1st') { const q = G.player, hf = Math.atan((VW / 2) / fpFocal()), px = x + q.x * k, py = y + q.y * k, yw = q.yaw === undefined ? q.a : q.yaw; ctx.fillStyle = 'rgba(255,214,10,0.28)'; ctx.beginPath(); ctx.moveTo(px, py); ctx.arc(px, py, 700 * k, yw - hf, yw + hf); ctx.closePath(); ctx.fill(); }
+  else { ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + G.cam.x * k, y + (G.cam.y / TILT) * k, (VW / Z) * k, (VH / Z / TILT) * k); }
+  ctx.restore();
 }
 let menuBgT = 0;
 function drawMenuBg(t) {
@@ -965,6 +983,187 @@ function drawMenuBg(t) {
   ctx.fillStyle = '#141217'; ctx.fillRect(0, 0, VW, VH);
   for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2 + t * 0.05; ctx.strokeStyle = `rgba(130,50,220,${0.05 + 0.04 * Math.sin(t * 0.2 + i)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(VW / 2, VH * 0.4); ctx.lineTo(VW / 2 + Math.cos(a) * 2000, VH * 0.4 + Math.sin(a) * 2000); ctx.stroke(); }
 }
+
+/* ---------------- first-person view (1ST / 3RD person) ---------------- */
+let pov = localStorage.getItem('ps_pov') === '1st' ? '1st' : '3rd';
+const EYE = 100, FWALL = 150, CW = 3;          // eye height, wall height, column width (px)
+let FPC = null, fpDrawing = false, FPZ = new Float32Array(0), fpLook = 0, fpPrevT = 0;
+const FPW = { hay: [[98, 110, 118], [210, 180, 70]], crate: [[124, 136, 146], [210, 180, 70]], glitch: [[78, 100, 118], [66, 196, 220]], edge: [[36, 24, 60], [0, 230, 255]] }, FPW_D = [[112, 120, 126], [160, 170, 176]];
+function setPov(v) {
+  pov = v === '1st' ? '1st' : '3rd'; localStorage.setItem('ps_pov', pov);
+  if (G && G.player && pov === '1st') G.player.yaw = G.player.a;
+  if (pov !== '1st' && document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+  const b = $('povBtn'); if (b) b.textContent = pov === '1st' ? '3RD' : '1ST';
+  document.querySelectorAll('#setPov button').forEach((x) => x.classList.toggle('sel', x.dataset.v === pov));
+  if (G && state !== 'menu') feed(pov === '1st' ? 'First person view' : 'Third person view');
+}
+function fpFocal() { return (VW / 2) / Math.tan((VH > VW ? 92 : 80) * Math.PI / 360); }
+function fpProj(x, y, h) {                      // world point (x, y, height) -> screen {x, y, s (px per unit), d (depth)}
+  const c = FPC, dx = x - c.x, dy = y - c.y, d = dx * c.cy + dy * c.sy; if (d < 6) return null;
+  const s = c.f / d; return { x: VW / 2 + (-dx * c.sy + dy * c.cy) * s, y: c.hz + (EYE - h) * s, s, d };
+}
+function wproj(x, y, h) {                       // screen position for effects: third person (camera) or first person (projection)
+  if (fpDrawing) { const q = fpProj(x, y, h); return q && { x: q.x, y: q.y, s: q.s }; }
+  return { x: (x - G.cam.x) * Z, y: (y * TILT - h - G.cam.y) * Z, s: Z };
+}
+function fpLine(x0, y0, x1, y1, h) {
+  const c = FPC, d0 = (x0 - c.x) * c.cy + (y0 - c.y) * c.sy, d1 = (x1 - c.x) * c.cy + (y1 - c.y) * c.sy, N = 14;
+  if (d0 < N && d1 < N) return;
+  if (d0 < N) { const k = (N - d0) / (d1 - d0); x0 += (x1 - x0) * k; y0 += (y1 - y0) * k; } else if (d1 < N) { const k = (N - d1) / (d0 - d1); x1 += (x0 - x1) * k; y1 += (y0 - y1) * k; }
+  const a = fpProj(x0, y0, h), b = fpProj(x1, y1, h); if (!a || !b) return;
+  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+}
+function fpFloor(x, y, r, fill, stroke, lw) {   // a circle lying on the floor
+  const pts = []; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2, p = fpProj(x + Math.cos(a) * r, y + Math.sin(a) * r, 0); if (!p) return; pts.push(p); }
+  ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+}
+function fpClip(x0, x1, d) {                    // clip to the columns where no wall is in front of depth d
+  const n = Math.ceil(VW / CW), a = Math.max(0, Math.floor(x0 / CW)), b = Math.min(n - 1, Math.floor(x1 / CW)); if (b < a) return false;
+  let any = false, all = true; for (let i = a; i <= b; i++) { if (FPZ[i] > d - 6) any = true; else all = false; }
+  if (!any) return false;
+  if (!all) { ctx.beginPath(); let s = -1; for (let i = a; i <= b + 1; i++) { const v = i <= b && FPZ[i] > d - 6; if (v && s < 0) s = i; if (!v && s >= 0) { ctx.rect(s * CW, 0, (i - s) * CW, VH); s = -1; } } ctx.clip(); }
+  return true;
+}
+function fpWalls() {
+  const c = FPC, f = c.f, n = Math.ceil(VW / CW), hz = c.hz;
+  if (FPZ.length < n) FPZ = new Float32Array(n + 8);
+  for (let i = 0; i < n; i++) {
+    const x0 = i * CW, off = (x0 + CW / 2 - VW / 2) / f, rdx = c.cy - off * c.sy, rdy = c.sy + off * c.cy, ix = 1 / (rdx || 1e-9), iy = 1 / (rdy || 1e-9);
+    let best = 1e9, hit = null, sideX = false;
+    for (const w of WALLS) {
+      const a1 = (w.x - c.x) * ix, a2 = (w.x + w.w - c.x) * ix, b1 = (w.y - c.y) * iy, b2 = (w.y + w.h - c.y) * iy;
+      const ax = Math.min(a1, a2), ay = Math.min(b1, b2), en = Math.max(ax, ay), ex = Math.min(Math.max(a1, a2), Math.max(b1, b2));
+      if (en > 0.5 && en < ex && en < best) { best = en; hit = w; sideX = ax > ay; }
+    }
+    FPZ[i] = best; if (!hit) continue;
+    const k = f / best, y0 = hz - (FWALL - EYE) * k, y1 = hz + EYE * k, u = sideX ? c.y + rdy * best - hit.y : c.x + rdx * best - hit.x;
+    const col = FPW[hit.kind] || FPW_D, sh = (sideX ? 1 : 0.76) * Math.max(0.3, 1 - best / 1700) * (Math.floor(u / 34) % 2 ? 1 : 0.92), b = col[0], A = col[1];
+    ctx.fillStyle = `rgb(${b[0] * sh | 0},${b[1] * sh | 0},${b[2] * sh | 0})`; ctx.fillRect(x0, y0, CW + 0.7, y1 - y0);
+    ctx.fillStyle = `rgba(${A[0]},${A[1]},${A[2]},${(hit.kind === 'edge' ? 0.9 : 0.6) * sh})`; ctx.fillRect(x0, y0 + (y1 - y0) * (hit.kind === 'edge' ? 0.8 : 0.42), CW + 0.7, Math.max(1.5, k * 7));
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(x0, y0, CW + 0.7, Math.max(1.5, k * 3));
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, y1 - k * 9, CW + 0.7, k * 9);
+  }
+}
+function fpBackdrop(t) {
+  const c = FPC, hz = c.hz;
+  let g = ctx.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, '#05030b'); g.addColorStop(1, '#241440'); ctx.fillStyle = g; ctx.fillRect(-20, -20, VW + 40, hz + 20);
+  g = ctx.createLinearGradient(0, hz, 0, VH); g.addColorStop(0, '#1d1236'); g.addColorStop(1, '#3d2768'); ctx.fillStyle = g; ctx.fillRect(-20, hz, VW + 40, VH - hz + 20);
+  const W = WORLD.w, H = WORLD.h;
+  ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(0,230,255,0.16)'; ctx.beginPath();
+  for (let gx = 0; gx <= W; gx += 200) fpLine(gx, 0, gx, H, 270); for (let gy = 0; gy <= H; gy += 200) fpLine(0, gy, W, gy, 270); ctx.stroke();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(176,110,255,0.3)'; ctx.beginPath();
+  for (let gx = 0; gx <= W; gx += 100) fpLine(gx, 0, gx, H, 0); for (let gy = 0; gy <= H; gy += 100) fpLine(0, gy, W, gy, 0); ctx.stroke();
+  const m = G.lineShown || midX();
+  ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,60,200,0.35)'; ctx.lineWidth = 9; ctx.beginPath(); fpLine(m, 0, m, H, 0); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,170,230,0.95)'; ctx.lineWidth = 3; ctx.beginPath(); fpLine(m, 0, m, H, 0); ctx.stroke();
+  for (const r of G.rings) { ctx.globalAlpha = Math.max(0, r.life * 2); fpFloor(r.x, r.y, r.r, null, r.col, 3); } ctx.globalAlpha = 1;
+  const ev = G.ev;
+  if (ev && ev.kind === 'signal' && ev.strikes) for (const s of ev.strikes) { const k = Math.min(1, s.t / 1.8); fpFloor(s.x, s.y, 80, null, s.t < 1.8 ? 'rgba(255,48,48,0.95)' : 'rgba(255,255,255,0.85)', 3); fpFloor(s.x, s.y, 80 * k, `rgba(255,48,48,${0.15 + 0.25 * k})`); }
+  if (ev && ev.kind === 'rigpulse' && ev.ring >= 0) { fpFloor(W / 2, H / 2, Math.max(1, ev.ring), null, 'rgba(0,230,255,0.8)', 6); fpFloor(W / 2, H / 2, Math.max(1, ev.ring - 26), null, 'rgba(130,50,220,0.8)', 4); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+function fpMarker(x, y, s, col, bang) {
+  ctx.fillStyle = col; ctx.strokeStyle = '#100814'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, y + s); ctx.lineTo(x - s * 0.85, y - s * 0.7); ctx.lineTo(x + s * 0.85, y - s * 0.7); ctx.closePath(); ctx.stroke(); ctx.fill();
+  if (bang) { ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(s * 0.95) + 'px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('!', x, y + s * 0.38); }
+}
+function fpSprites(t) {
+  const c = FPC, me = G.player, list = [], ev = G.ev, dep = (x, y) => (x - c.x) * c.cy + (y - c.y) * c.sy;
+  for (const pk of G.pickups) { const d = dep(pk.x, pk.y); if (d > 8) list.push({ d, k: 1, o: pk }); }
+  for (const e of G.ents) { if (e === me || e.dead > 0) continue; const d = dep(e.x, e.y); if (d > 8) list.push({ d, k: 2, o: e }); }
+  if (ev && ev.kind === 'vacuums' && ev.vac) for (const v of ev.vac) { const d = dep(v.x, v.y); if (d > 8) list.push({ d, k: 3, o: v }); }
+  if (ev && ev.kind === 'twister' && ev.tw) { const d = dep(ev.tw.x, ev.tw.y); if (d > 8) list.push({ d, k: 4, o: ev.tw }); }
+  list.sort((a, b) => b.d - a.d);
+  const near = nearestFoe(me, 1e9); c.lock = null;
+  for (const it of list) {
+    const o = it.o, pr = fpProj(o.x, o.y, 0); if (!pr) continue;
+    const k = pr.s, hw = (it.k === 4 ? 130 : 36) * k;
+    ctx.save(); if (!fpClip(pr.x - hw, pr.x + hw, it.d)) { ctx.restore(); continue; }
+    ctx.translate(pr.x, pr.y); ctx.scale(k, k);
+    if (it.k === 2) {
+      const ra = o.a - c.yaw, f = Object.create(o); f.x = 0; f.y = 0; f.a = Math.atan2(-Math.cos(ra), Math.sin(ra)); drawEnt(f, t);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      if (o.team !== me.team) {
+        const head = pr.y - 140 * k, dm = it.d, aimed = me.dead <= 0 && dm < 950 && Math.abs(Math.atan2(Math.sin(Math.atan2(me.y - o.y, me.x - o.x) - o.a), Math.cos(Math.atan2(me.y - o.y, me.x - o.x) - o.a))) < 0.28;
+        fpMarker(pr.x, head - 14 - Math.sin(t * 8) * (aimed ? 3 : 0), Math.max(aimed ? 12 : 8, (aimed ? 16 : 11) * k), aimed ? '#ff2d4a' : 'rgba(255,140,40,0.95)', aimed);
+        if (o === near) { ctx.font = '700 12px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#100814'; ctx.fillStyle = '#fff'; const tx = Math.round(dm / 50) + 'm'; ctx.strokeText(tx, pr.x, head - 34); ctx.fillText(tx, pr.x, head - 34); }
+        if (Math.abs(pr.x - VW / 2) < 26 * k + 6) c.lock = o;
+      }
+    } else if (it.k === 1) { const f = Object.create(o); f.x = 0; f.y = 0; drawPickupIcon(f, t); }
+    else if (it.k === 3) { const sv = ev.vac; ev.vac = [Object.assign({}, o, { x: 0, y: 0 })]; drawEventFloor(t); ev.vac = sv; }
+    else { const sv = ev.tw; ev.tw = Object.assign({}, sv, { x: 0, y: 0 }); drawEventTop(t); ev.tw = sv; }
+    ctx.restore();
+  }
+  // lasers, sparks, smoke
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (const b of G.bullets) {
+    const p1 = fpProj(b.x, b.y, LASER_Z); if (!p1) continue;
+    const ci = Math.max(0, Math.min(FPZ.length - 1, Math.floor(p1.x / CW))); if (p1.x >= 0 && p1.x < VW && FPZ[ci] < p1.d - 6) continue;
+    const kk = b.beam ? 0.06 : 0.03, p2 = fpProj(b.x - b.vx * kk, b.y - b.vy * kk, LASER_Z), gs = glowSprite(b.col, 64), sz = Math.max(16, 46 * p1.s);
+    ctx.globalAlpha = 0.85; ctx.drawImage(gs, p1.x - sz / 2, p1.y - sz / 2, sz, sz); ctx.globalAlpha = 1;
+    if (p2) { ctx.strokeStyle = b.col; ctx.lineWidth = Math.max(2, 5 * p1.s); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, 1.8 * p1.s); ctx.stroke(); }
+  }
+  for (const q of G.parts) { if (q.smoke) continue; const p = fpProj(q.x, q.y, 50); if (!p) continue; ctx.globalAlpha = Math.max(0, q.life * 2.2); ctx.fillStyle = q.col; const s = Math.max(2, 6 * p.s); ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const q of G.parts) { if (!q.smoke) continue; const p = fpProj(q.x, q.y, 50); if (!p) continue; const k = Math.min(1, q.life / 1.2); ctx.globalAlpha = 0.5 * k; ctx.fillStyle = q.col; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2, q.sz * (1.6 - 0.6 * k) * p.s), 0, Math.PI * 2); ctx.fill(); }
+  for (const q of G.pops) { const p = fpProj(q.x, q.y, 110); if (!p) continue; ctx.globalAlpha = Math.min(1, q.life * 2); const fs = Math.max(14, Math.min(40, 26 * p.s * 2.2)); ctx.font = fs + 'px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#100814'; ctx.strokeText(q.txt, p.x, p.y); ctx.fillStyle = q.col; ctx.fillText(q.txt, p.x, p.y); }
+  ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+}
+function fpGun(t) {                              // the blaster in your hands + crosshair
+  const c = FPC, p = G.player; if (p.dead > 0) return;
+  const moving = Math.hypot(p.vx || 0, p.vy || 0) > 20, bob = moving ? Math.sin(t * 11) * 5 : Math.sin(t * 2) * 1.5, kick = p.flash > 0 ? 18 * Math.min(1, p.flash / 0.1) : 0, sc = Math.max(0.85, Math.min(1.6, Math.min(VW, VH) / 420));
+  const o = OUTFIT[p.kind] || OUTFIT.perci, bx = VW * (VW > VH ? 0.57 : 0.6), by = VH + 14 + (bob + kick) * sc, tx = VW / 2 + 22 * sc, ty = VH * 0.7 + (bob * 0.5 + kick * 0.8) * sc;
+  ctx.save(); ctx.lineJoin = 'round'; ctx.strokeStyle = '#0c0610'; ctx.lineWidth = 3;
+  ctx.fillStyle = o.top; ctx.beginPath(); ctx.moveTo(bx + 10 * sc, by); ctx.lineTo(bx + 120 * sc, by); ctx.lineTo(bx + 84 * sc, by - 84 * sc); ctx.lineTo(bx + 30 * sc, by - 84 * sc); ctx.closePath(); ctx.fill(); ctx.stroke();   // sleeve
+  const gr = ctx.createLinearGradient(0, ty, 0, by); gr.addColorStop(0, '#6a5a8c'); gr.addColorStop(1, '#241a3c');
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(tx - 9 * sc, ty); ctx.lineTo(tx + 9 * sc, ty); ctx.lineTo(bx + 62 * sc, by - 56 * sc); ctx.lineTo(bx - 18 * sc, by - 56 * sc); ctx.closePath(); ctx.fill(); ctx.stroke();   // barrel and body
+  ctx.fillStyle = '#2a2040'; ctx.beginPath(); ctx.moveTo(tx - 4 * sc, ty + 4 * sc); ctx.lineTo(tx + 4 * sc, ty + 4 * sc); ctx.lineTo(bx + 34 * sc, by - 58 * sc); ctx.lineTo(bx + 10 * sc, by - 58 * sc); ctx.closePath(); ctx.fill();   // top rail
+  ctx.fillStyle = p.stats.shot; ctx.fillRect(tx - 6 * sc, ty - 4 * sc, 12 * sc, 7 * sc);
+  ctx.strokeStyle = p.stats.shot; ctx.globalAlpha = 0.75; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(tx - 12 * sc, ty + 26 * sc); ctx.lineTo(bx - 4 * sc, by - 62 * sc); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = o.skin; ctx.strokeStyle = '#0c0610'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(bx + 40 * sc, by - 54 * sc, 34 * sc, 26 * sc, -0.25, 0, Math.PI * 2); ctx.fill(); ctx.stroke();   // hand
+  if (p.flash > 0) { ctx.globalCompositeOperation = 'lighter'; const s = (100 + Math.random() * 30) * sc; ctx.drawImage(glowSprite(p.stats.shot, 96), tx - s / 2, ty - s / 2 - 6, s, s); ctx.globalCompositeOperation = 'source-over'; }
+  ctx.restore();
+  const cx = VW / 2, cy = c.hz + 14, hot = !!c.lock, col = hot ? '#ff3b55' : 'rgba(255,255,255,0.9)', r = hot ? 11 : 8;
+  ctx.strokeStyle = '#100814'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.moveTo(cx - r - 7, cy); ctx.lineTo(cx - r + 3, cy); ctx.moveTo(cx + r - 3, cy); ctx.lineTo(cx + r + 7, cy); ctx.moveTo(cx, cy - r - 7); ctx.lineTo(cx, cy - r + 3); ctx.moveTo(cx, cy + r - 3); ctx.lineTo(cx, cy + r + 7); ctx.stroke();
+  const at = p.assistTarget;
+  if (at && at.dead <= 0) { const q = fpProj(at.x, at.y, 70); if (q) { const s = Math.max(12, 26 * q.s); ctx.strokeStyle = 'rgba(77,255,190,0.9)'; ctx.lineWidth = 2; for (const dx of [-1, 1]) for (const dy of [-1, 1]) { ctx.beginPath(); ctx.moveTo(q.x + dx * s * 0.55, q.y + dy * s); ctx.lineTo(q.x + dx * s, q.y + dy * s); ctx.lineTo(q.x + dx * s, q.y + dy * s * 0.55); ctx.stroke(); } } }
+}
+function fpArrows() {                            // enemies outside your view: arrows at the edges, nearest one bigger with distance
+  const c = FPC, p = G.player; if (p.dead > 0) return;
+  const near = nearestFoe(p, 1e9), half = Math.atan((VW / 2) / c.f) * 0.95; let i = 0;
+  for (const e of G.ents) {
+    if (e.team === p.team || e.dead > 0) continue;
+    const dx = e.x - c.x, dy = e.y - c.y, d = dx * c.cy + dy * c.sy, r = -dx * c.sy + dy * c.cy, ang = Math.atan2(r, d);
+    if (d > 0 && Math.abs(ang) < half) continue;
+    const side = ang >= 0 ? 1 : -1, isN = e === near, k = isN ? 1.35 : 0.9, ex = side > 0 ? VW - 26 : 26, ey = Math.min(VH * 0.62, VH * 0.34 + (i++ % 3) * 30);
+    ctx.save(); ctx.translate(ex, ey); ctx.scale(k * side, k); ctx.globalAlpha = isN ? 1 : 0.7; ctx.fillStyle = isN ? '#ff3b55' : 'rgba(255,140,40,0.95)'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-8, -9); ctx.lineTo(-4, 0); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    if (isN) { ctx.font = '700 12px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#100814'; ctx.fillStyle = '#fff'; const tx = Math.round(Math.hypot(dx, dy) / 50) + 'm'; ctx.strokeText(tx, ex - side * 2, ey + 28); ctx.fillText(tx, ex - side * 2, ey + 28); }
+    ctx.globalAlpha = 1;
+  }
+}
+function fpHit(dt) {                             // red flash on the side you got shot from
+  const p = G.player; if (!(p.hitT > 0)) return; p.hitT -= dt;
+  const ra = p.hitFrom - FPC.yaw, R = Math.min(VW, VH) * 0.3, x = VW / 2 + Math.sin(ra) * R, y = VH * 0.5 - Math.cos(ra) * R;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ra); ctx.globalAlpha = Math.min(1, p.hitT * 2); ctx.fillStyle = '#ff2d4a'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-18, 12); ctx.lineTo(0, 4); ctx.lineTo(18, 12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+function drawFP(t) {
+  const p = G.player; if (p.yaw === undefined) p.yaw = p.a;
+  FPC = { x: p.x, y: p.y, yaw: p.yaw, cy: Math.cos(p.yaw), sy: Math.sin(p.yaw), f: fpFocal(), hz: Math.round(VH * 0.45), lock: null };
+  const dt = Math.max(0, Math.min(0.1, t - fpPrevT)); fpPrevT = t;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = '#0b0912'; ctx.fillRect(0, 0, VW, VH);
+  const sx = G.shake > 0 ? (Math.random() - 0.5) * 10 : 0, sy = G.shake > 0 ? (Math.random() - 0.5) * 10 : 0;
+  ctx.save(); ctx.translate(sx, sy);
+  fpBackdrop(t); fpWalls(); fpSprites(t); fpGun(t);
+  ctx.restore();
+  fpHit(dt);
+  fpDrawing = true; try { drawTail(t); } finally { fpDrawing = false; }
+}
+document.addEventListener('mousemove', (e) => { if (document.pointerLockElement === cvs) fpLook += e.movementX || 0; });
+cvs.addEventListener('mousedown', () => { if (pov === '1st' && !TOUCH && state === 'play' && cvs.requestPointerLock && document.pointerLockElement !== cvs) { try { cvs.requestPointerLock(); } catch (_) {} } });
+addEventListener('keydown', (e) => { if (e.code === 'KeyV' && !e.repeat && (state === 'play' || state === 'paused')) setPov(pov === '1st' ? '3rd' : '1st'); });
+if ($('povBtn')) { $('povBtn').textContent = pov === '1st' ? '3RD' : '1ST'; $('povBtn').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); setPov(pov === '1st' ? '3rd' : '1st'); }, { passive: false }); $('povBtn').addEventListener('click', () => setPov(pov === '1st' ? '3rd' : '1st')); }
+document.querySelectorAll('#setPov button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === pov); b.onclick = () => setPov(b.dataset.v); });
 
 /* ---------------- HUD ---------------- */
 function hud() {
@@ -1065,7 +1264,7 @@ $('muteBtn').onclick = () => { muted = !muted; localStorage.setItem('ps_muted', 
 $('muteBtn').textContent = muted ? '🔇' : '🔊';
 function syncAutoBtn() { const b = $('autoBtn'); if (!b) return; b.textContent = 'AUTO ' + (autoFire ? 'ON' : 'OFF'); b.classList.toggle('on', autoFire); }
 if ($('autoBtn')) $('autoBtn').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncAutoBtn(); };
-function togglePause() { if (MP.on) { if (state === 'play') mpQuitTap(); return; } if (state === 'play') { state = 'paused'; } else if (state === 'paused') { state = 'play'; } }
+function togglePause() { if (MP.on) { if (state === 'play') mpQuitTap(); return; } if (state === 'play') { state = 'paused'; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); } else if (state === 'paused') { state = 'play'; } }
 $('pauseBtn').onclick = togglePause;
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !MP.on) state = 'paused'; });
 
@@ -1088,7 +1287,7 @@ document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () =>
 document.querySelectorAll('#setAuto button').forEach((b) => (b.onclick = () => { autoFire = b.dataset.v === '1'; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); }));
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
-cvs.addEventListener('mousemove', (e) => { input.mx = e.clientX; input.my = e.clientY; });
+cvs.addEventListener('mousemove', (e) => { input.mx = e.clientX; input.my = e.clientY; input.mouseSeen = true; });
 cvs.addEventListener('mousedown', (e) => { input.mdown = true; input.mx = e.clientX; input.my = e.clientY; if (state === 'paused') state = 'play'; });
 addEventListener('mouseup', () => { input.mdown = false; });
 addEventListener('contextmenu', (e) => { if (state === 'play') e.preventDefault(); });
@@ -1114,7 +1313,7 @@ function drawSticks() {
     ctx.strokeStyle = side === 'aim' ? 'rgba(255,214,10,0.7)' : 'rgba(0,230,255,0.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, 58, 0, Math.PI * 2); ctx.stroke();
     const dx = s ? clamp(s.cx - s.x, -56, 56) : 0, dy = s ? clamp(s.cy - s.y, -56, 56) : 0;
     ctx.fillStyle = side === 'aim' ? 'rgba(255,214,10,0.85)' : 'rgba(0,230,255,0.75)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 24, 0, Math.PI * 2); ctx.fill();
-    if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? 'AIM + FIRE' : 'MOVE', h.x, h.y + 82); }
+    if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? (pov === '1st' ? 'TURN + FIRE' : 'AIM + FIRE') : 'MOVE', h.x, h.y + 82); }
     ctx.globalAlpha = 1;
   }
 }
@@ -1773,17 +1972,19 @@ function drawScreenFx(t) {               // screen space: world look, lights out
     const me = G.player;
     for (const e of G.ents) {
       if (e.dead > 0 || e.team !== me.team) continue;
-      const sx = (e.x - G.cam.x) * Z, sy = (e.y * TILT - 30 - G.cam.y) * Z, r = (e === me ? 230 : 160) * Z;
+      let pr = wproj(e.x, e.y, 30); if (!pr && e === me && fpDrawing) pr = { x: VW / 2, y: VH * 0.62, s: Math.max(0.8, FPC.f / 320) }; if (!pr) continue;
+      const sx = pr.x, sy = pr.y, r = (e === me ? 230 : 160) * pr.s;
       const gr = g.createRadialGradient(sx, sy, r * 0.25, sx, sy, r); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2); g.fill();
     }
-    for (const b of G.bullets) { const sx = (b.x - G.cam.x) * Z, sy = (b.y * TILT - LASER_Z - G.cam.y) * Z; g.fillStyle = 'rgba(0,0,0,0.9)'; g.beginPath(); g.arc(sx, sy, 22 * Z, 0, Math.PI * 2); g.fill(); }
+    for (const b of G.bullets) { const pr = wproj(b.x, b.y, LASER_Z); if (!pr) continue; g.fillStyle = 'rgba(0,0,0,0.9)'; g.beginPath(); g.arc(pr.x, pr.y, 22 * pr.s, 0, Math.PI * 2); g.fill(); }
     ctx.drawImage(DARKC, 0, 0, VW, VH);
   }
   if (G.flipFx > 0) { ctx.fillStyle = `rgba(255,255,255,${G.flipFx * 0.75})`; ctx.fillRect(0, 0, VW, VH); }
   // grade stamps
   for (const s of G.stamps) {
-    const sx = (s.x - G.cam.x) * Z, sy = (s.y * TILT - 110 - G.cam.y) * Z - (1.1 - s.life) * 30, k = s.life > 0.95 ? 1 + (s.life - 0.95) * 6 : 1;
+    const pr = wproj(s.x, s.y, 110); if (!pr) continue;
+    const sx = pr.x, sy = pr.y - (1.1 - s.life) * 30, k = s.life > 0.95 ? 1 + (s.life - 0.95) * 6 : 1;
     ctx.save(); ctx.translate(sx, sy); ctx.rotate(s.rot); ctx.scale(k, k); ctx.globalAlpha = Math.min(1, s.life * 2);
     ctx.font = '34px Anton, Impact'; ctx.textAlign = 'center'; const w = ctx.measureText(s.txt).width + 18;
     ctx.fillStyle = 'rgba(255,250,240,0.92)'; ctx.fillRect(-w / 2, -30, w, 38); ctx.strokeStyle = s.col; ctx.lineWidth = 4; ctx.strokeRect(-w / 2, -30, w, 38);
@@ -2982,6 +3183,7 @@ const COIN = (() => {
       + '<button class="btn alt" id="pmSound"></button>'
       + '<button class="btn alt" id="pmAim"></button>'
       + '<button class="btn alt" id="pmAuto"></button>'
+      + '<button class="btn alt" id="pmPov"></button>'
       + '<button class="btn alt" id="pmCam"></button>'
       + '<button class="btn alt small" id="pmQuit">QUIT MATCH</button>'
       + '<div class="muted" style="font-size:12px;margin-top:4px">' + (TOUCH ? 'Tap RESUME to keep playing' : 'Press P or Esc to resume') + '</div>';
@@ -2991,6 +3193,7 @@ const COIN = (() => {
     $('pmSound').onclick = () => { $('muteBtn').onclick(); sync(); };
     $('pmAim').onclick = () => { aimAssist = aimAssist >= 3 ? 1 : aimAssist + 1; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); sync(); };
     $('pmAuto').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); sync(); };
+    $('pmPov').onclick = () => { setPov(pov === '1st' ? '3rd' : '1st'); sync(); };
     $('pmCam').onclick = () => { camMode = camMode === 'lead' ? 'center' : 'lead'; localStorage.setItem('ps_cam', camMode); sync(); };
     $('pmQuit').onclick = quit;
   }
@@ -2998,6 +3201,7 @@ const COIN = (() => {
     $('pmSound').textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON');
     $('pmAim').textContent = 'AIM ASSIST: ' + (AIM[aimAssist] || 'OFF');
     $('pmAuto').textContent = 'AUTO-FIRE: ' + (autoFire ? 'ON' : 'OFF'); $('pmAuto').style.display = TOUCH ? '' : 'none';
+    $('pmPov').textContent = 'VIEW: ' + (pov === '1st' ? 'FIRST PERSON' : 'THIRD PERSON'); $('pmCam').style.display = pov === '1st' ? 'none' : '';
     $('pmCam').textContent = 'CAMERA: ' + (camMode === 'lead' ? 'FOLLOWS THE FIGHT' : 'CENTERED ON ME');
     $('pmQuit').textContent = quitArm ? 'TAP AGAIN TO QUIT' : 'QUIT MATCH';
     $('pmWhere').textContent = G && G.story ? `Chapter ${G.story.id}: "${G.story.title}"  •  ${G.story.goal.text}` : 'Quick match';

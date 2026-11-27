@@ -152,6 +152,7 @@ body.mp #autoBtn{right:calc(114px + env(safe-area-inset-right))}
 #banner{position:absolute;top:34%;left:0;right:0;text-align:center;font-family:Anton;font-size:clamp(32px,8vw,64px);color:var(--gold);text-shadow:4px 4px 0 var(--ink);opacity:0;transition:opacity .2s,transform .15s}
 .hbtn{position:absolute;top:calc(8px + env(safe-area-inset-top));pointer-events:auto;font-family:Anton;background:#000b;color:#fff;border:2px solid #fff4;border-radius:10px;padding:4px 10px;font-size:16px;min-width:40px;min-height:36px}
 #pauseBtn{right:calc(10px + env(safe-area-inset-right))}#muteBtn{right:calc(62px + env(safe-area-inset-right))}
+#povBtn{right:calc(114px + env(safe-area-inset-right));font-size:13px}@media (pointer:coarse){#povBtn{right:calc(196px + env(safe-area-inset-right))}}@media (max-width:720px){#povBtn{top:calc(52px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right))}}
 #autoBtn{right:calc(114px + env(safe-area-inset-right));display:none;font-size:13px}#autoBtn.on{background:var(--cyan);color:var(--ink)}
 .wm{position:fixed;left:10px;bottom:8px;width:96px;opacity:.85;pointer-events:none;z-index:5}
 body.playing .wm{display:none}
@@ -268,7 +269,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
 <div id="hud">
   <div id="me"></div>
   <div id="scorebar"><div class="t" id="tp">PERCI 0</div><div id="clock">2:00</div><div class="t" id="tb">0 BROKE</div></div>
-  <button class="hbtn" id="autoBtn">AUTO ON</button><button class="hbtn" id="muteBtn">SOUND</button><button class="hbtn" id="pauseBtn">II</button>
+  <button class="hbtn" id="povBtn">1ST</button><button class="hbtn" id="autoBtn">AUTO ON</button><button class="hbtn" id="muteBtn">SOUND</button><button class="hbtn" id="pauseBtn">II</button>
   <div id="feed"></div>
   <div id="abil"></div>
   <div id="banner"></div>
@@ -424,6 +425,9 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <div class="lab">VIEW</div>
     <div class="row diff" id="setView"><button data-v="normal">NORMAL</button><button data-v="wide">WIDE</button><button data-v="widest">WIDEST</button></div>
     <p class="muted" style="margin:6px 0 14px">How much of the arena you can see. WIDEST shows the most; characters get smaller.</p>
+    <div class="lab">CAMERA VIEW</div>
+    <div class="row diff" id="setPov"><button data-v="3rd">3RD PERSON</button><button data-v="1st">1ST PERSON</button></div>
+    <p class="muted" style="margin:6px 0 14px">3RD PERSON sees the whole arena from above. 1ST PERSON looks through your eyes: right thumb (or mouse, Q / E) turns, left thumb moves where you face. Switch any time with the 1ST / 3RD button or the V key.</p>
     <div class="lab">AIM ASSIST</div>
     <div class="row diff" id="setAssist"><button data-v="1">OFF</button><button data-v="2">LIGHT</button><button data-v="3">STRONG</button></div>
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
@@ -513,6 +517,6 @@ const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
 <script src="arenas.js"></script>
-<script src="game.js?v=cam3"></script>
+<script src="game.js?v=pov1"></script>
 </body>
 </html>
