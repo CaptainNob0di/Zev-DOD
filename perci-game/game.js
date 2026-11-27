@@ -27,7 +27,7 @@ const CHARS = {
 const ORDER = ['perci', 'miracle', 'chatgpt', 'jessica', 'mixi'];
 const BOT_NAMES = ['BROKE-pilot', 'A+ Bot', 'The Grader', 'Show-Your-Work', 'Vacuum-Tron'];
 const ALLY = { lead: 0.6, dodge: 1.5 };
-const DIFF = { easy: { acc: 0.13, react: 0.34, mult: 0.75, speed: 1.02, mate: 0.2, lead: 0.0, dodge: 99, rate: 1.0, hp: 3, focus: 0.85 }, normal: { acc: 0.09, react: 0.26, mult: 1, speed: 1.08, mate: 0.22, lead: 0.5, dodge: 1.9, rate: 0.95, hp: 3, focus: 0.75 }, hard: { acc: 0.045, react: 0.15, mult: 1.5, speed: 1.18, mate: 0.26, lead: 0.9, dodge: 1.0, rate: 0.8, hp: 4, focus: 0.6 } };
+const DIFF = { easy: { acc: 0.17, react: 0.42, mult: 0.75, speed: 0.98, mate: 0.2, lead: 0.0, dodge: 99, rate: 1.2, hp: 3, focus: 0.85 }, normal: { acc: 0.12, react: 0.33, mult: 1, speed: 1.02, mate: 0.22, lead: 0.35, dodge: 2.4, rate: 1.08, hp: 3, focus: 0.75 }, hard: { acc: 0.065, react: 0.2, mult: 1.5, speed: 1.1, mate: 0.26, lead: 0.7, dodge: 1.4, rate: 0.9, hp: 4, focus: 0.6 } };
 const MATCH_TIME = 120, RESPAWN = 3, WORLD = { w: 2400, h: 1500 };
 const PICKUPS = {
   shield: { col: '#00e6ff', label: '+1 SHIELD' },
