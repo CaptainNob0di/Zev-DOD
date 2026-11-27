@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#090d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Shadow Protocol | Tactical Co-op Shooter | Zev DOD</title>
+<meta name="description" content="Shadow Protocol: an 8-mission tactical first-person shooter by Zev DOD. Play solo or squad up online with friends. Free in your browser, phone or desktop.">
+<link rel="canonical" href="https://zevsocialconnect.com/games/shadow-protocol/">
+<meta property="og:title" content="Shadow Protocol | Zev DOD">
+<meta property="og:description" content="8 missions. 6 weapons. Solo or online co-op. Free in your browser.">
+<meta property="og:image" content="https://zevsocialconnect.com/games/shadow-protocol/zev_logo.png">
+<link rel="icon" type="image/png" href="../../favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#090d12;--panel:#101a22;--mint:#5ce8b8;--cyan:#38d6ff;--red:#ff4a4a;--gold:#ffd60a;--text:#dff1f0;--muted:#8aa6ad}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Poppins,system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+#view{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;image-rendering:pixelated}
+h1,h2,h3{font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.06em;margin:.2em 0}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;padding:max(18px,env(safe-area-inset-top)) 16px 24px;overflow-y:auto;background:radial-gradient(ellipse at 50% 0,#14303a 0,#090d12 70%);z-index:20}
+.screen.on{display:flex}
+.screen.clear{background:transparent;pointer-events:none}.screen.clear>*{pointer-events:auto}
+.logo{border-radius:14px;width:min(360px,70vw);margin-top:4vh;filter:drop-shadow(0 6px 24px #38d6ff55)}
+h2{font-size:clamp(28px,6vw,44px);color:var(--mint);text-shadow:0 0 18px #5ce8b855}
+.sub{color:var(--muted);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px;text-align:center}
+.btn{font-family:Anton,Impact,sans-serif;letter-spacing:.08em;font-size:20px;color:#06120f;background:var(--mint);border:0;border-radius:6px;padding:12px 28px;min-width:min(320px,86vw);cursor:pointer;box-shadow:0 4px 0 #1d7a60}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #1d7a60}
+.btn.alt{background:#1a2c36;color:var(--text);box-shadow:0 4px 0 #0a141a;border:1px solid #2b4654}
+.btn.red{background:var(--red);box-shadow:0 4px 0 #8b1d1d;color:#fff}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.menu{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+.panel{background:#0c1820cc;border:1px solid #23404c;border-radius:10px;padding:14px 16px;width:min(560px,94vw)}
+.panel p{margin:.3em 0;line-height:1.5;font-size:15px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mis{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid #23404c;border-radius:8px;background:#0c1820;cursor:pointer;width:min(560px,94vw);text-align:left}
+.mis b{font-family:Anton;font-size:20px;letter-spacing:.05em;color:var(--mint);width:34px}.mis small{display:block;color:var(--muted)}
+.mis.locked{opacity:.45;cursor:default}.mis.sel{border-color:var(--mint);background:#12303a}
+.ld{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border:1px solid #23404c;border-radius:8px;background:#0c1820;width:min(560px,94vw)}
+.ld span{color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase;width:90px}.ld b{flex:1;text-align:center;font-weight:600}
+.ld button{background:#1a2c36;color:var(--text);border:1px solid #2b4654;border-radius:6px;width:40px;height:36px;font-size:18px;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 18px;font-size:14px;color:var(--text)}.stats div{color:var(--muted)}.stats b{color:var(--mint);float:right}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}.keys b{color:var(--gold);font-weight:600}
+input.t{font:600 18px Poppins,sans-serif;text-align:center;letter-spacing:.14em;text-transform:uppercase;background:#0c1820;color:var(--text);border:1px solid #2b4654;border-radius:6px;padding:10px;width:min(320px,86vw)}
+.code{font-family:Anton;font-size:64px;letter-spacing:.2em;color:var(--gold);text-shadow:0 0 22px #ffd60a55}
+.pl{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #1b323d;font-size:15px}.pl em{color:var(--mint);font-style:normal;font-size:12px}
+.crew{display:flex;gap:10px;justify-content:center;margin:4px 0}.crew img{width:clamp(44px,13vw,68px);height:clamp(44px,13vw,68px);border-radius:50%;border:3px solid var(--c,#5ce8b8);box-shadow:0 0 14px var(--c,#5ce8b8)}
+.msg{color:var(--gold);min-height:20px;font-size:14px;text-align:center}
+.foot{margin-top:auto;color:#5d7780;font-size:11px;text-align:center;padding-top:10px}
+a.back{color:var(--muted);font-size:13px;text-decoration:none;position:fixed;top:max(8px,env(safe-area-inset-top));left:12px;z-index:30}
+/* HUD */
+#hud{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;font-weight:600}
+#hud.on{display:block}
+#hp{position:absolute;left:max(12px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));width:min(260px,44vw)}
+#hp .bar{height:12px;background:#0007;border:1px solid #fff4;border-radius:3px;overflow:hidden}#hp .bar i{display:block;height:100%;background:linear-gradient(90deg,#34d399,#5ce8b8);width:100%}
+#hp small{font-size:11px;letter-spacing:.1em;color:#cfeee6;text-shadow:0 1px 2px #000}
+#obj{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#000a;border:1px solid #5ce8b866;padding:5px 12px;border-radius:14px;font-size:12px;letter-spacing:.06em;white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+#amm{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));text-align:right;text-shadow:0 2px 4px #000}
+#amm b{font-family:Anton;font-size:44px;line-height:1;color:#fff}#amm span{font-size:18px;color:#9db}#amm small{display:block;font-size:11px;letter-spacing:.1em;color:#cfeee6}
+#note{position:absolute;left:50%;bottom:24%;transform:translateX(-50%);background:#000b;border:1px solid #5ce8b8;color:#baf5de;padding:6px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .25s;text-align:center;max-width:90vw}
+#note.on{opacity:1}
+#xh{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+#xh:before,#xh:after{content:"";position:absolute;background:#fff;opacity:.85}#xh:before{left:10px;top:0;width:2px;height:22px}#xh:after{top:10px;left:0;height:2px;width:22px}
+#xh.hit:before,#xh.hit:after{background:#ff4a4a}
+#team{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(max(10px,env(safe-area-inset-top)) + 58px);font-size:11px;text-shadow:0 1px 2px #000}
+#mini{position:absolute;right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));width:96px;height:96px;border:1px solid #5ce8b866;background:#000a;border-radius:6px}
+#down{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:#4008;font-family:Anton;font-size:34px;color:#fff;letter-spacing:.1em;text-align:center}
+#down small{font-family:Poppins;font-size:13px;letter-spacing:.05em;margin-top:6px}
+/* touch */
+#touch{position:fixed;inset:0;display:none;z-index:11;pointer-events:none}
+body.touch #touch.on{display:block}
+#touch .zone{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
+#zl{left:0;width:42%}#zr{right:0;width:58%}
+#touch .tb{position:absolute;pointer-events:auto;border-radius:50%;border:2px solid #fff6;background:#0a1a2299;color:#fff;font:700 12px Poppins;display:flex;align-items:center;justify-content:center;touch-action:none;letter-spacing:.04em}
+#tFire{right:max(16px,env(safe-area-inset-right));bottom:max(60px,calc(env(safe-area-inset-bottom) + 50px));width:84px;height:84px;background:#ff4a4a99;font-size:14px}
+#tAim{right:112px;bottom:max(100px,calc(env(safe-area-inset-bottom) + 90px));width:56px;height:56px}
+#tRel{right:max(16px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 140px));width:54px;height:54px}
+#tUse{right:112px;bottom:max(24px,calc(env(safe-area-inset-bottom) + 14px));width:56px;height:56px;background:#5ce8b899}
+#tThr{right:max(180px,calc(env(safe-area-inset-right) + 180px));bottom:max(60px,calc(env(safe-area-inset-bottom) + 50px));width:50px;height:50px}
+#tBrc{right:max(180px,calc(env(safe-area-inset-right) + 180px));bottom:max(116px,calc(env(safe-area-inset-bottom) + 106px));width:50px;height:50px}
+#tMed{right:max(16px,env(safe-area-inset-right));bottom:max(214px,calc(env(safe-area-inset-bottom) + 204px));width:46px;height:46px}
+#tPause{left:50%;transform:translateX(-50%);top:max(8px,env(safe-area-inset-top));width:38px;height:28px;border-radius:6px;font-size:14px}
+#stick{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid #fff5;background:#ffffff14;display:none}#stick i{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:#fff8}
+@media (max-height:480px){#tFire{width:70px;height:70px}}
+body.touch #amm{right:auto;left:max(12px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom));text-align:left}
+body.touch #obj{top:calc(max(10px,env(safe-area-inset-top)) + 40px);font-size:10px;padding:3px 10px;max-width:40vw}
+body.touch #hp small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.touch #note{bottom:34%}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<a class="back" href="../" id="backLink">&larr; Games</a>
+
+<div id="hud">
+ <div id="hp" style="display:flex;gap:8px;align-items:center"><img id="hpAv" src="assets/perci.png" style="width:42px;height:42px;border-radius:50%;border:2px solid #5ce8b8"><div style="flex:1"><small id="hpT">OPERATOR</small><div class="bar"><i id="hpB"></i></div></div></div>
+ <div id="team"></div>
+ <div id="obj"></div>
+ <canvas id="mini" width="96" height="96"></canvas>
+ <div id="xh"></div>
+ <div id="note"></div>
+ <div id="amm"><small id="wName">VIPER 9</small><b id="ammo">12</b><span id="res">/72</span><small id="gear">MEDKIT 1 &nbsp; THROW 2 &nbsp; BREACH 3</small></div>
+ <div id="down">DOWN<small id="downS">Hold on. A teammate can revive you.</small></div>
+</div>
+
+<div id="touch">
+ <div class="zone" id="zl"></div><div class="zone" id="zr"></div><div id="stick"><i></i></div>
+ <div class="tb" id="tFire">FIRE</div><div class="tb" id="tAim">AIM</div><div class="tb" id="tRel">RELOAD</div>
+ <div class="tb" id="tUse">USE</div><div class="tb" id="tThr">THROW</div><div class="tb" id="tBrc">BREACH</div><div class="tb" id="tMed">MED</div><div class="tb" id="tPause">II</div>
+</div>
+
+<div class="screen on" id="sSplash">
+ <img class="logo" src="zev_logo.png" alt="Zev DOD">
+ <div class="sub">A Zev DOD production</div>
+ <h2 style="font-size:clamp(34px,9vw,64px);margin:0">SHADOW PROTOCOL</h2>
+ <div class="sub">Tactical first-person shooter &bull; Solo &amp; online co-op</div>
+ <div class="crew" id="crewRow"></div>
+ <div class="sub" style="margin-top:2px">Starring the crew from</div><img src="assets/title.png" alt="Perci Shorti" style="width:min(220px,50vw)">
+ <button class="btn" id="bStart">TAP TO START</button>
+ <div class="foot">Copyright &copy; 2026 Zev DOD. All rights reserved.</div>
+</div>
+
+<div class="screen" id="sMenu">
+ <h2>SHADOW PROTOCOL</h2><div class="sub" id="menuSub">Rank 1 &bull; 0 XP</div>
+ <div class="menu">
+  <button class="btn" id="mCont">CONTINUE CAMPAIGN</button>
+  <button class="btn alt" id="mSel">MISSION SELECT</button>
+  <button class="btn alt" id="mOnline">ONLINE CO-OP</button>
+  <button class="btn alt" id="mLoad">CUSTOM LOADOUT</button>
+  <button class="btn alt" id="mTrain">TRAINING / REPLAY</button>
+  <button class="btn alt" id="mCtl">CONTROLS</button>
+  <button class="btn alt" id="mCred">CREATOR &amp; OWNERSHIP</button>
+ </div>
+</div>
+
+<div class="screen" id="sSelect"><h2>MISSION SELECT</h2><div class="sub" id="selSub"></div><div class="menu" id="selList"></div><button class="btn alt" data-back="sMenu">BACK</button></div>
+
+<div class="screen" id="sLoad"><h2>CUSTOM LOADOUT</h2><div class="sub" id="ldSub"></div><div class="crew" id="ldCrew"></div><div class="menu" id="ldList"></div><div class="panel" id="ldInfo"></div><button class="btn" id="ldDone">SAVE &amp; RETURN</button></div>
+
+<div class="screen" id="sBrief"><h2 id="brT"></h2><div class="sub" id="brP"></div><div class="panel"><p id="brB"></p><p style="color:var(--gold);font-size:13px" id="brO"></p></div><div class="msg" id="brM"></div><button class="btn" id="brGo">DEPLOY</button><button class="btn alt" data-back="sMenu">BACK</button></div>
+
+<div class="screen clear" id="sPause" style="background:#000a;pointer-events:auto"><h2>MISSION PAUSED</h2><div class="sub" id="pauseSub"></div><div class="menu"><button class="btn" id="pResume">RESUME</button><button class="btn alt" id="pRestart">RESTART MISSION</button><button class="btn alt" id="pQuit">RETURN TO HQ</button></div></div>
+
+<div class="screen" id="sResult"><h2 id="rsT"></h2><div class="sub" id="rsS"></div><div class="panel"><div class="stats" id="rsStats"></div><p id="rsText" style="margin-top:12px"></p></div><div class="menu" id="rsBtns"></div></div>
+
+<div class="screen" id="sCtl"><h2>CONTROLS</h2>
+ <div class="panel"><div class="keys">
+  <b>WASD</b><span>Move and strafe</span><b>Mouse / Arrows</b><span>Look (click the game to capture the mouse)</span>
+  <b>Click / Space</b><span>Fire</span><b>Right click / Shift</b><span>Aim sights</span>
+  <b>E</b><span>Use: doors, terminal, extraction, revive a teammate</span><b>R</b><span>Reload</span>
+  <b>G</b><span>Throw (impact, flash or smoke)</span><b>Q</b><span>Breach doors and crates</span>
+  <b>H</b><span>Medkit</span><b>Esc / P</b><span>Pause</span>
+  <b>Phone</b><span>Left thumb moves, right thumb looks. Buttons on the right.</span></div></div>
+ <button class="btn" data-back="sMenu">BACK</button></div>
+
+<div class="screen" id="sCred"><h2>CREATOR &amp; OWNERSHIP</h2><img class="logo" style="width:min(260px,60vw);margin-top:0" src="zev_logo.png" alt="Zev DOD">
+ <div class="panel" style="text-align:center"><p>Created and developed by</p><p><b>Zev Development Operations &amp; Graphics Design</b></p><p style="color:var(--mint)">Zev DOD / Designated project owner</p><p style="font-size:12px;color:var(--muted)">Copyright &copy; 2026 Zev DOD. All rights reserved.</p></div>
+ <button class="btn" data-back="sMenu">RETURN TO HQ</button></div>
+
+<div class="screen" id="sOnline"><h2>ONLINE CO-OP</h2><div class="sub">2 to 4 operators &bull; one mission &bull; shared enemies</div>
+ <div class="menu"><input class="t" id="oName" maxlength="14" placeholder="YOUR CALLSIGN" autocomplete="off">
+ <button class="btn" id="oHost">HOST A SQUAD</button>
+ <div class="sub" style="margin-top:6px">or join a friend</div>
+ <input class="t" id="oCode" maxlength="4" placeholder="ROOM CODE" autocomplete="off">
+ <button class="btn alt" id="oJoin">JOIN SQUAD</button>
+ <div class="msg" id="oMsg"></div>
+ <button class="btn alt" data-back="sMenu">BACK</button></div></div>
+
+<div class="screen" id="sLobby"><div class="sub">Squad room</div><div class="code" id="lCode">----</div><div class="sub" id="lShare"></div>
+ <div class="panel" id="lRoster"></div>
+ <div class="panel" id="lMis" style="text-align:center"></div>
+ <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
+ <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
+
+<script src="game.js?v=1"></script>
+</body>
+</html>
