@@ -47,7 +47,7 @@ h2{font-size:clamp(28px,6vw,44px);color:var(--mint);text-shadow:0 0 18px #5ce8b8
 input.t{font:600 18px Poppins,sans-serif;text-align:center;letter-spacing:.14em;text-transform:uppercase;background:#0c1820;color:var(--text);border:1px solid #2b4654;border-radius:6px;padding:10px;width:min(320px,86vw)}
 .code{font-family:Anton;font-size:64px;letter-spacing:.2em;color:var(--gold);text-shadow:0 0 22px #ffd60a55}
 .pl{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #1b323d;font-size:15px}.pl em{color:var(--mint);font-style:normal;font-size:12px}
-.crew{display:flex;gap:10px;justify-content:center;margin:4px 0}.crew img{width:clamp(44px,13vw,68px);height:clamp(44px,13vw,68px);border-radius:50%;border:3px solid var(--c,#5ce8b8);box-shadow:0 0 14px var(--c,#5ce8b8)}
+.crew{display:flex;gap:10px;justify-content:center;margin:4px 0}
 .msg{color:var(--gold);min-height:20px;font-size:14px;text-align:center}
 .foot{margin-top:auto;color:#5d7780;font-size:11px;text-align:center;padding-top:10px}
 a.back{color:var(--muted);font-size:13px;text-decoration:none;position:fixed;top:max(8px,env(safe-area-inset-top));left:12px;z-index:30}
@@ -96,7 +96,7 @@ body.touch #note{bottom:34%}
 <a class="back" href="../" id="backLink">&larr; Games</a>
 
 <div id="hud">
- <div id="hp" style="display:flex;gap:8px;align-items:center"><img id="hpAv" src="assets/perci.png" style="width:42px;height:42px;border-radius:50%;border:2px solid #5ce8b8"><div style="flex:1"><small id="hpT">OPERATOR</small><div class="bar"><i id="hpB"></i></div></div></div>
+ <div id="hp" style="display:flex;gap:8px;align-items:center"><div id="hpAv" style="width:42px;height:42px"></div><div style="flex:1"><small id="hpT">OPERATOR</small><div class="bar"><i id="hpB"></i></div></div></div>
  <div id="team"></div>
  <div id="obj"></div>
  <canvas id="mini" width="96" height="96"></canvas>
@@ -117,8 +117,6 @@ body.touch #note{bottom:34%}
  <div class="sub">A Zev DOD production</div>
  <h2 style="font-size:clamp(34px,9vw,64px);margin:0">SHADOW PROTOCOL</h2>
  <div class="sub">Tactical first-person shooter &bull; Solo &amp; online co-op</div>
- <div class="crew" id="crewRow"></div>
- <div class="sub" style="margin-top:2px">Starring the crew from</div><img src="assets/title.png" alt="Perci Shorti" style="width:min(220px,50vw)">
  <button class="btn" id="bStart">TAP TO START</button>
  <div class="foot">Copyright &copy; 2026 Zev DOD. All rights reserved.</div>
 </div>
@@ -175,6 +173,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=2"></script>
+<script src="game.js?v=3"></script>
 </body>
 </html>

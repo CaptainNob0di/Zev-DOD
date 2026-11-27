@@ -33,7 +33,7 @@ const ATT = [
   [{ name: 'Factory muzzle', rank: 1 }, { name: 'Stabilizer', rank: 3 }, { name: 'Suppressor', rank: 6 }],
   [{ name: 'Standard magazine', rank: 1 }, { name: 'Extended magazine', rank: 4 }, { name: 'Fast reload kit', rank: 8 }]];
 const THROW = [{ name: 'Impact charge', rank: 1, stock: 2 }, { name: 'Flash pulse', rank: 3, stock: 3 }, { name: 'Smoke screen', rank: 5, stock: 3 }];
-const CREW = [{ k: 'perci', name: 'PERCI', c: '#ffd60a' }, { k: 'miracle', name: 'MIRACLE', c: '#3fe0d8' }, { k: 'chatgpt', name: 'CHATGPT', c: '#00e6ff' }, { k: 'jessica', name: 'JESSICA', c: '#7cff6b' }, { k: 'mixi', name: 'MIXI', c: '#ff78c8' }];
+const CREW = [{ k: 'ghost', name: 'GHOST', c: '#5ce8b8' }, { k: 'raven', name: 'RAVEN', c: '#38d6ff' }, { k: 'nomad', name: 'NOMAD', c: '#ffd60a' }, { k: 'specter', name: 'SPECTER', c: '#c070ff' }, { k: 'ember', name: 'EMBER', c: '#ff8c28' }];
 const WALLSTYLE = ['concrete', 'steel', 'brick', 'steel', 'concrete', 'brick', 'concrete', 'steel'];
 const SB = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', key: 'sb_publishable_8PIP4hO1s-ghNSu-AhMRUQ_uLxPNFev' };
 
@@ -59,7 +59,7 @@ function saveProf() { try { localStorage.setItem('sp_profile_v1', JSON.stringify
 /* ============================== IMAGES, TEXTURES, SPRITES ============================== */
 const IMG = {};
 function loadImgs() {
-  const names = ['perci', 'miracle', 'chatgpt', 'jessica', 'mixi', 'brokepilot', 'aplus', 'zev_wm'];
+  const names = [];
   return Promise.all(names.map((n) => new Promise((res) => { const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = 'assets/' + n + '.png'; })));
 }
 function canvasPx(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); fn(g, w, h); const d = g.getImageData(0, 0, w, h); return { w, h, d: new Uint32Array(d.data.buffer.slice(0)), c }; }
@@ -134,9 +134,10 @@ function humanoid(kind, state, frame, crewIdx) {
       g.fillStyle = lin(g, 9, 0, 39, 0, [[0, '#2b2f37'], [.5, '#4a505b'], [1, '#22252c']]); g.beginPath(); g.arc(24, 17, 14.5, 0, 7); g.fill();
       g.fillStyle = '#0a0b0e'; g.beginPath(); g.roundRect ? g.roundRect(12, 13, 24, 9, 4) : g.rect(12, 13, 24, 9); g.fill();
       g.fillStyle = '#ff3a3a'; g.shadowColor = '#ff3a3a'; g.shadowBlur = 6; g.fillRect(14, 16, 20, 3); g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(12, 6, 24, 2);
-    } else {                                                         // squad operator: crew portrait in a helmet ring
-      g.save(); g.beginPath(); g.arc(24, 16, 15, 0, 7); g.clip(); g.fillStyle = '#10202a'; g.fillRect(0, 0, 48, 40); if (IMG[CREW[crewIdx].k]) g.drawImage(IMG[CREW[crewIdx].k], 8, 0, 32, 32); g.restore();
-      g.strokeStyle = CREW[crewIdx].c; g.lineWidth = 2.5; g.beginPath(); g.arc(24, 16, 15, 0, 7); g.stroke();
+    } else {                                                         // squad operator: helmet with a team-colour visor
+      g.fillStyle = lin(g, 9, 0, 39, 0, [[0, '#26343b'], [.5, '#44585f'], [1, '#1e2a30']]); g.beginPath(); g.arc(24, 17, 14.5, 0, 7); g.fill();
+      g.fillStyle = '#0a0b0e'; g.beginPath(); g.roundRect ? g.roundRect(12, 13, 24, 9, 4) : g.rect(12, 13, 24, 9); g.fill();
+      g.fillStyle = CREW[crewIdx].c; g.shadowColor = CREW[crewIdx].c; g.shadowBlur = 6; g.fillRect(14, 16, 20, 3); g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(12, 6, 24, 2);
     }
   }));
 }
@@ -145,7 +146,7 @@ function spriteTerminal(on) {
   return (SPR[key] = sprCanvas(48, 64, (g) => {
     g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(24, 60, 18, 4, 0, 0, 7); g.fill();
     g.fillStyle = lin(g, 0, 24, 0, 60, [[0, '#26333d'], [1, '#141c23']]); g.fillRect(8, 24, 32, 36); g.fillStyle = lin(g, 0, 18, 0, 44, [[0, '#2f4658'], [1, '#1c2c38']]); g.fillRect(6, 18, 36, 26);
-    g.fillStyle = '#071c26'; g.fillRect(10, 21, 28, 20); g.shadowColor = '#38d6ff'; g.shadowBlur = 8; if (IMG.aplus) g.drawImage(IMG.aplus, 14, 22, 20, 18); g.fillStyle = '#38d6ff'; g.fillRect(12, 46, 24, 3); g.fillRect(12, 51, 24, 2); g.shadowBlur = 0;
+    g.fillStyle = '#071c26'; g.fillRect(10, 21, 28, 20); g.shadowColor = '#38d6ff'; g.shadowBlur = 8; g.fillStyle = '#38d6ff'; g.fillRect(13, 24, 22, 3); g.fillRect(13, 30, 15, 3); g.fillRect(13, 36, 19, 3); g.fillRect(12, 46, 24, 3); g.fillRect(12, 51, 24, 2); g.shadowBlur = 0;
   }));
 }
 function spriteExit() { return SPR.exit || (SPR.exit = sprCanvas(48, 64, (g) => { g.fillStyle = 'rgba(92,232,184,.25)'; g.beginPath(); g.ellipse(24, 56, 22, 6, 0, 0, 7); g.fill(); g.strokeStyle = '#5ce8b8'; g.lineWidth = 3; g.beginPath(); g.ellipse(24, 56, 20, 5, 0, 0, 7); g.stroke(); g.fillStyle = '#5ce8b8'; g.shadowColor = '#5ce8b8'; g.shadowBlur = 8; g.beginPath(); g.moveTo(24, 8); g.lineTo(36, 30); g.lineTo(28, 30); g.lineTo(28, 46); g.lineTo(20, 46); g.lineTo(20, 30); g.lineTo(12, 30); g.fill(); })); }
@@ -726,8 +727,9 @@ function setState(s) {
 }
 function toMenu() { leaveMPQuiet(); G.mode = 'menu'; refreshMenu(); setState('menu'); document.exitPointerLock && document.exitPointerLock(); }
 function refreshMenu() { $('menuSub').textContent = 'RANK ' + rankOf() + '  •  ' + prof.xp + ' XP  •  OPERATOR ' + CREW[prof.crew].name; $('mCont').textContent = prof.cleared >= MISSIONS.length ? 'REPLAY FINAL MISSION' : 'CONTINUE CAMPAIGN'; }
+function badge(i, size) { const c = CREW[i]; return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;border-radius:50%;border:3px solid ' + c.c + ';background:#0c1820;color:' + c.c + ';font:700 ' + Math.round(size * .42) + 'px Anton,sans-serif;letter-spacing:.05em;vertical-align:middle">' + c.name[0] + '</span>'; }
 function crewRow(el, sel, onPick) {
-  el.innerHTML = ''; CREW.forEach((c, i) => { const im = document.createElement('img'); im.src = 'assets/' + c.k + '.png'; im.alt = c.name; im.style.setProperty('--c', c.c); if (onPick) { im.style.cursor = 'pointer'; im.style.opacity = i === sel ? 1 : .45; im.onclick = () => onPick(i); } el.appendChild(im); });
+  el.innerHTML = ''; CREW.forEach((c, i) => { const d = document.createElement('div'); d.innerHTML = badge(i, 56); d.title = c.name; d.style.opacity = onPick && i !== sel ? .45 : 1; if (onPick) { d.style.cursor = 'pointer'; d.onclick = () => onPick(i); } el.appendChild(d); });
 }
 let briefM = 0, briefTrain = false;
 function brief(i, train) { briefM = i; briefTrain = !!train; const m = MISSIONS[i]; $('brT').textContent = 'OPERATION ' + (i + 1) + ': ' + m.name.toUpperCase(); $('brP').textContent = m.place; $('brB').textContent = m.brief; $('brO').textContent = 'OBJECTIVE: reach the terminal, secure the archive, then fight to the extraction point. ' + m.n + ' hostiles on site; a response team is called once the alarm trips.'; $('brM').textContent = train ? 'Training: replay any mission, progress is not saved as campaign clears.' : ''; setState('brief'); }
@@ -760,7 +762,7 @@ function begin(missionIdx, defs, meIdx) {
   G.mission = missionIdx; makeLevel(missionIdx); resetRun();
   G.players = defs.map((d, i) => newPlayer(d, i)); G.me = G.players[meIdx];
   G.enemies.forEach((e) => { e.lw = 0; });
-  notify('Recover the archive. Reach the blue terminal.'); $('hpAv').src = 'assets/' + CREW[G.me.crew].k + '.png'; $('hpAv').style.borderColor = CREW[G.me.crew].c;
+  notify('Recover the archive. Reach the blue terminal.'); $('hpAv').innerHTML = badge(G.me.crew, 42);
   setState('play'); audioInit(); if (AC && AC.state === 'suspended') AC.resume();
 }
 function startSolo(i, train) { G.mode = 'solo'; G.trainMode = !!train; begin(i, [playerDef()], 0); }
@@ -821,7 +823,7 @@ async function mpJoin() {
 function sendHello() { const d = playerDef(); d.name = cleanName($('oName').value) || prof.name || d.name; netSend('hello', d); }
 function renderLobby() {
   $('lCode').textContent = MP.code; $('lShare').textContent = 'Share this code. Friends: zevsocialconnect.com/games → Shadow Protocol → Online co-op';
-  $('lRoster').innerHTML = MP.roster.map((r) => '<div class="pl"><span><img src="assets/' + CREW[r.crew].k + '.png" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:8px;border:2px solid ' + CREW[r.crew].c + '">' + r.name + (r.pid === MP.pid ? ' (you)' : '') + '</span><em>' + WEAPONS[r.gun].name + (r.host ? ' • HOST' : '') + '</em></div>').join('');
+  $('lRoster').innerHTML = MP.roster.map((r) => '<div class="pl"><span><span style="margin-right:8px">' + badge(r.crew, 26) + '</span>' + r.name + (r.pid === MP.pid ? ' (you)' : '') + '</span><em>' + WEAPONS[r.gun].name + (r.host ? ' • HOST' : '') + '</em></div>').join('');
   $('lMis').innerHTML = '<b style="color:var(--mint)">OPERATION ' + (MP.mission + 1) + ': ' + MISSIONS[MP.mission].name.toUpperCase() + '</b><br><small style="color:var(--muted)">' + MISSIONS[MP.mission].place + '</small>';
   $('lHostBtns').style.display = MP.host ? 'flex' : 'none'; $('lStart').style.display = MP.host ? '' : 'none'; $('lMsg').textContent = MP.host ? (MP.roster.length < 2 ? 'You can start solo, or wait for friends.' : '') : 'Waiting for the host to start...';
 }
@@ -965,6 +967,6 @@ addEventListener('resize', resize);
 
 /* ============================== BOOT ============================== */
 loadProf(); resize();
-loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); crewRow($('crewRow'), 0, null); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
+loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
   window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL }; });
 })();
