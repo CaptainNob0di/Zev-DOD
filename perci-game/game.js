@@ -2471,7 +2471,7 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = now / 1000;
   if (state === 'play') { if (MP.on && !MP.host) updateClient(dt); else { update(dt); if (MP.on && MP.host && G && state === 'play') mpHostTick(dt); } if (G) drawWorld(t); }
-  else if (state === 'paused' && G) { drawWorld(t); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '52px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('PAUSED', VW / 2, VH / 2); ctx.font = '600 16px Poppins, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(TOUCH ? 'Tap the screen to resume' : 'Press P or click to resume', VW / 2, VH / 2 + 34); }
+  else if (state === 'paused' && G) { drawWorld(t); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '52px Anton, Impact'; ctx.textAlign = 'center';  }
   else if (state === 'cut') { cutStep(dt); drawCut(t); }
   else drawMenuBg(t);
   requestAnimationFrame(loop);
@@ -2908,6 +2908,56 @@ const COIN = (() => {
   }
   init();
   return { open };
+})();
+
+
+/* =====================================================================================================
+   PAUSE MENU (solo play): P / Esc / the II button opens it. Resume, sound, aim assist, auto-fire, quit.
+   ===================================================================================================== */
+(() => {
+  let pm = null, quitArm = 0;
+  const AIM = { 1: 'OFF', 2: 'LIGHT', 3: 'STRONG' };
+  function build() {
+    if (pm) return;
+    pm = document.createElement('div'); pm.id = 'pauseMenu';
+    pm.style.cssText = 'position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(8,4,16,.74);padding:20px;touch-action:manipulation';
+    pm.innerHTML = '<div class="big" style="color:var(--gold);margin-bottom:6px">PAUSED</div><div id="pmWhere" class="muted" style="margin:-4px 0 8px;text-align:center"></div>'
+      + '<button class="btn" id="pmResume">RESUME</button>'
+      + '<button class="btn alt" id="pmSound"></button>'
+      + '<button class="btn alt" id="pmAim"></button>'
+      + '<button class="btn alt" id="pmAuto"></button>'
+      + '<button class="btn alt small" id="pmQuit">QUIT MATCH</button>'
+      + '<div class="muted" style="font-size:12px;margin-top:4px">' + (TOUCH ? 'Tap RESUME to keep playing' : 'Press P or Esc to resume') + '</div>';
+    document.body.appendChild(pm);
+    for (const b of pm.querySelectorAll('button')) { b.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true }); b.addEventListener('mousedown', (e) => e.stopPropagation()); }
+    $('pmResume').onclick = resume;
+    $('pmSound').onclick = () => { $('muteBtn').onclick(); sync(); };
+    $('pmAim').onclick = () => { aimAssist = aimAssist >= 3 ? 1 : aimAssist + 1; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); sync(); };
+    $('pmAuto').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); sync(); };
+    $('pmQuit').onclick = quit;
+  }
+  function sync() {
+    $('pmSound').textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON');
+    $('pmAim').textContent = 'AIM ASSIST: ' + (AIM[aimAssist] || 'OFF');
+    $('pmAuto').textContent = 'AUTO-FIRE: ' + (autoFire ? 'ON' : 'OFF'); $('pmAuto').style.display = TOUCH ? '' : 'none';
+    $('pmQuit').textContent = quitArm ? 'TAP AGAIN TO QUIT' : 'QUIT MATCH';
+    $('pmWhere').textContent = G && G.story ? `Chapter ${G.story.id}: "${G.story.title}"  •  ${G.story.goal.text}` : 'Quick match';
+  }
+  function resume() { quitArm = 0; input.mdown = false; if (state === 'paused') state = 'play'; hide(); }
+  function quit() {
+    if (!quitArm) { quitArm = 1; sync(); setTimeout(() => { quitArm = 0; if (pm && pm.style.display !== 'none') sync(); }, 3000); return; }
+    quitArm = 0; hide();
+    const story = G && G.story; if (storyDiffSave) { diff = storyDiffSave; storyDiffSave = null; }
+    state = 'menu'; $('hud').classList.remove('on'); document.body.classList.remove('playing', 'story');
+    if (story) { renderChapters(); showScreen('sStory'); } else { showScreen('sTitle'); }
+  }
+  function hide() { if (pm) pm.style.display = 'none'; }
+  function show() { build(); quitArm = 0; sync(); pm.style.display = 'flex'; }
+  setInterval(() => {
+    const want = state === 'paused' && G && !MP.on;
+    const on = pm && pm.style.display !== 'none';
+    if (want && !on) show(); else if (!want && on) hide();
+  }, 80);
 })();
 
 })();
