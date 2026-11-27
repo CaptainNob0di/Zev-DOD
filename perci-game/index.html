@@ -206,6 +206,18 @@ body.playing .previewTag{display:none}
 .way.sel{border-color:var(--gold);background:#2c2050}.way.off{opacity:.5}
 #payEl{margin:8px 0}#payMsg{min-height:20px;text-align:center;font-weight:700;color:var(--gold)}
 .btn:disabled{opacity:.45;filter:grayscale(.7);cursor:not-allowed}
+
+/* short screens (phones held sideways) and tiny phones: tighter layout so everything fits or scrolls */
+@media (max-height:520px){
+  .title-img{width:min(300px,36vh)}
+  .btn{font-size:18px;padding:5px 18px;margin:4px;min-width:170px;border-width:3px}.btn.small{font-size:15px;padding:4px 12px}
+  .vs{font-size:20px}.tag{font-size:16px}h2{font-size:26px}.big{font-size:clamp(30px,9vh,52px)}
+  .screen{padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .panel{padding:10px;margin:4px 0}.card img{width:64px;height:64px}.cards{gap:8px}
+  #pauseMenu{gap:4px!important}
+}
+@media (max-width:380px){.btn{min-width:170px;font-size:19px;padding:8px 18px}.cards{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+@media (min-width:1100px) and (min-height:700px){.title-img{width:min(560px,50vh)}}
 </style>
 </head>
 <body>

@@ -13,7 +13,7 @@ function resize() {
   Z = Math.max(0.36, Z * ({ normal: 1, wide: 0.8, widest: 0.66 }[localStorage.getItem('ps_view') || 'wide'] || 0.8));   // VIEW setting: see more of the arena
   buildVignette();
 }
-addEventListener('resize', resize);
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250)); if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 
 /* ---------------- data ---------------- */
 const CHARS = {
@@ -1746,7 +1746,7 @@ function drawScreenFx(t) {               // screen space: world look, lights out
   ctx.fillStyle = real ? 'rgba(60,50,40,0.85)' : 'rgba(80,30,150,0.85)'; ctx.fillRect(bx - 3, by, 112, 24);
   ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 1.5; ctx.strokeRect(bx - 3, by, 112, 24);
   ctx.font = '14px Anton, Impact'; ctx.textAlign = 'left'; ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff';
-  ctx.fillText((real ? 'REAL ' : 'DREAM ') + Math.max(0, Math.ceil(G.flipT)) + 's', bx + 4, by + 17);
+  ctx.fillText((real ? 'REAL' : 'DREAM') + (G.flipT > 5000 ? '' : ' ' + Math.max(0, Math.ceil(G.flipT)) + 's'), bx + 4, by + 17);
   ctx.save(); ctx.translate(bx + 92, by + 12); ctx.rotate(t * (real ? 1 : 6)); ctx.fillStyle = '#c8a2ff'; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 2); ctx.lineTo(0, 8); ctx.lineTo(-7, 2); ctx.closePath(); ctx.fill(); ctx.restore();
 }
 
@@ -2667,31 +2667,30 @@ const NIGHT = (() => {
   function hudCanvas(t, d) {
     const n = G.night; let real = G.world === 'real'; if (G.lieBadge) real = !real;
     let clock = clockString(); if (G.lie && G.lie.clock) clock = (1 + (n.lieSeed % 11)) + ':' + String(n.lieSeed % 60).padStart(2, '0') + ' AM';
-    const w = 128, h = 40, x = 10, y = 48;
-    ctx.fillStyle = 'rgba(11,9,18,0.85)'; ctx.fillRect(x, y, w, h); ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
-    ctx.textAlign = 'left'; ctx.font = '16px Anton, Impact'; ctx.fillStyle = '#fff'; ctx.fillText(clock, x + 9, y + 17);
-    ctx.font = '12px Anton, Impact'; ctx.fillStyle = real ? '#e8d8b0' : '#c070ff'; ctx.fillText(real ? 'AWAKE' : 'LAYER ' + Math.max(1, d), x + 9, y + 33);
-    const mw = Math.min(250, VW * 0.5), mx = (VW - mw) / 2, my = 134, f = n.doubt / 100;
+    const mw = Math.min(250, VW * 0.62), mx = (VW - mw) / 2, my = 158, f = n.doubt / 100;
+    ctx.textAlign = 'center'; ctx.font = '15px Anton, Impact'; const cl = clock + '  \u2022  ' + (real ? 'AWAKE' : 'LAYER ' + Math.max(1, d)), cw = ctx.measureText(cl).width + 20;
+    ctx.fillStyle = 'rgba(11,9,18,0.8)'; ctx.fillRect(VW / 2 - cw / 2, my - 40, cw, 20); ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 2; ctx.strokeRect(VW / 2 - cw / 2, my - 40, cw, 20);
+    ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff'; ctx.fillText(cl, VW / 2, my - 25);
     ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, my - 4, mw + 8, 18);
     ctx.fillStyle = n.doubt >= 70 ? '#ff3b55' : n.doubt >= 40 ? '#ff8c28' : '#3fe0d8'; ctx.fillRect(mx, my, mw * f, 10);
-    ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText('DOUBT ' + Math.floor(n.doubt) + (n.doubt >= 40 ? '   HUD MAY LIE' : ''), VW / 2, my - 7);
+    ctx.font = '11px Anton, Impact'; ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText('DOUBT ' + Math.floor(n.doubt) + (n.doubt >= 40 ? '   HUD MAY LIE' : ''), VW / 2, my + 24);
     if (G.world === 'real' && G.story.night.battery) {
-      const by = my + 36; ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, by - 4, mw + 8, 18);
+      const by = my + 52; ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, by - 4, mw + 8, 18);
       ctx.fillStyle = n.bat < 20 ? '#ff3b55' : '#7cff6b'; ctx.fillRect(mx, by, mw * n.bat / 100, 10);
-      ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', VW / 2, by - 7);
+      ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', VW / 2, by + 24);
     }
     if (n.kick > 0) {
       ctx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 8)); ctx.fillStyle = '#ff3b55'; ctx.font = '54px Anton, Impact'; ctx.fillText('KICK  ' + Math.ceil(n.kick), VW / 2, VH * 0.3);
       ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.font = '16px Anton, Impact'; ctx.fillText("DON'T GET TAGGED", VW / 2, VH * 0.3 + 26); ctx.globalAlpha = 1;
     }
     if (n.receiptT > 0) {
-      const rw = 190, rh = 170, rx = VW - rw - 10, ry = 150;
+      const rw = Math.min(190, Math.max(150, VW * 0.46)), rh = 170, rx = VW - rw - 8, ry = VW < 500 ? 226 : 124;
       ctx.fillStyle = 'rgba(244,239,224,0.97)'; ctx.fillRect(rx, ry, rw, rh); ctx.strokeStyle = '#1c0f33'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
       ctx.textAlign = 'left'; ctx.fillStyle = '#1c0f33'; ctx.font = '13px Anton, Impact';
-      ctx.fillText('MIGHT BE CASTLE', rx + 12, ry + 22); ctx.fillText('BURGER ...... $2.49', rx + 12, ry + 46); ctx.fillText('FRIES ....... $1.51', rx + 12, ry + 64); ctx.fillText('SHAKE ....... $1.00', rx + 12, ry + 82);
+      ctx.font = (rw < 170 ? 11 : 13) + 'px Anton, Impact'; ctx.fillText('MIGHT BE CASTLE', rx + 12, ry + 22); ctx.fillText('BURGER ...... $2.49', rx + 12, ry + 46); ctx.fillText('FRIES ....... $1.51', rx + 12, ry + 64); ctx.fillText('SHAKE ....... $1.00', rx + 12, ry + 82);
       ctx.fillText('TOTAL ....... $5.00' + (G.world === 'real' ? '*maybe' : ''), rx + 12, ry + 108);
       ctx.fillStyle = G.world === 'real' ? '#2a9e50' : '#8232dc'; ctx.fillText(G.world === 'real' ? 'YOU ARE AWAKE' : 'YOU ARE DREAMING (L' + Math.max(1, d) + ')', rx + 12, ry + 132);
-      ctx.fillStyle = '#6a5a80'; ctx.font = '10px Poppins, sans-serif'; ctx.fillText('*maybe = awake. none = dream', rx + 12, ry + 154);
+      ctx.fillStyle = '#6a5a80'; ctx.font = '10px Poppins, sans-serif'; ctx.fillText('*maybe = awake', rx + 12, ry + 154);
     }
     ctx.textAlign = 'left';
   }
@@ -2839,7 +2838,7 @@ const COIN = (() => {
     if (el) return;
     el = document.createElement('div'); el.id = 'coinCatch';
     el.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;background:#0c0618;align-items:center;justify-content:center;touch-action:none';
-    el.innerHTML = '<canvas id="ccCv" width="720" height="720" style="max-width:100vw;max-height:100vh;aspect-ratio:1;touch-action:none"></canvas><button class="btn alt small" id="ccQuit" style="position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px">QUIT</button>';
+    el.innerHTML = '<canvas id="ccCv" width="720" height="720" style="width:min(100vw,100vh);height:min(100vw,100vh);touch-action:none"></canvas><button class="btn alt small" id="ccQuit" style="position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px">QUIT</button>';
     document.body.appendChild(el); cv = $('ccCv'); g = cv.getContext('2d');
     $('ccQuit').onclick = close;
     const mv = (e) => { if (!M || M.phase !== 'play') return; const r = cv.getBoundingClientRect(), x = ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width * 720; M.x = Math.max(50, Math.min(670, x)); };
@@ -2920,7 +2919,7 @@ const COIN = (() => {
   function build() {
     if (pm) return;
     pm = document.createElement('div'); pm.id = 'pauseMenu';
-    pm.style.cssText = 'position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(8,4,16,.74);padding:20px;touch-action:manipulation';
+    pm.style.cssText = 'position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:safe center;overflow-y:auto;gap:10px;background:rgba(8,4,16,.74);padding:20px;touch-action:manipulation';
     pm.innerHTML = '<div class="big" style="color:var(--gold);margin-bottom:6px">PAUSED</div><div id="pmWhere" class="muted" style="margin:-4px 0 8px;text-align:center"></div>'
       + '<button class="btn" id="pmResume">RESUME</button>'
       + '<button class="btn alt" id="pmSound"></button>'
