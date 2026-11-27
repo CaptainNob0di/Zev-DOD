@@ -253,6 +253,10 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   .cov{width:44px;height:44px;font-size:16px;border-radius:12px;background:rgba(30,40,50,.6)}.cov small{display:none}
   #hud .hbtn{opacity:.85}
 }
+
+/* special-power button: centered between the two sticks */
+#hud .ab{right:auto;left:calc(50% - 39px);bottom:71px;width:78px;height:78px}
+@media (max-width:380px){#hud .ab{width:70px;height:70px;left:calc(50% - 35px);bottom:75px}}
 </style>
 </head>
 <body>
@@ -509,6 +513,6 @@ const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
 <script src="arenas.js"></script>
-<script src="game.js?v=cam2"></script>
+<script src="game.js?v=ab1"></script>
 </body>
 </html>
