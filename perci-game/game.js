@@ -894,13 +894,13 @@ function drawArrows() {
   }
 }
 function drawMinimap() {
-  const w = TOUCH ? 108 : 150, h = w * WORLD.h / WORLD.w, x = 10, y = TOUCH ? 74 : VH - h - 12, k = w / WORLD.w;
+  const w = TOUCH ? 84 : 150, h = w * WORLD.h / WORLD.w, x = 10, y = TOUCH ? 74 : VH - h - 12, k = w / WORLD.w; ctx.save(); if (TOUCH) ctx.globalAlpha = 0.6;
   ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(x - 3, y - 3, w + 6, h + 6); ctx.strokeStyle = 'rgba(160,100,255,0.6)'; ctx.lineWidth = 1.5; ctx.strokeRect(x - 3, y - 3, w + 6, h + 6);
   ctx.fillStyle = 'rgba(220,190,120,0.55)'; for (const wl of SOLID) ctx.fillRect(x + wl.x * k, y + wl.y * k, Math.max(1.5, wl.w * k), Math.max(1.5, wl.h * k));
   ctx.fillStyle = '#ff3cc8'; ctx.fillRect(x + (G.lineShown || midX()) * k - 1, y, 2, h);
   for (const pk of G.pickups) { ctx.fillStyle = PICKUPS[pk.kind].col; ctx.fillRect(x + pk.x * k - 1.5, y + pk.y * k - 1.5, 3, 3); }
   for (const e of G.ents) { if (e.dead > 0) continue; ctx.fillStyle = e.isPlayer ? '#ffd60a' : e.team === 'P' ? '#ff4b65' : '#ff8c28'; ctx.beginPath(); ctx.arc(x + e.x * k, y + e.y * k, e.isPlayer ? 3.5 : 2.5, 0, Math.PI * 2); ctx.fill(); }
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + G.cam.x * k, y + (G.cam.y / TILT) * k, (VW / Z) * k, (VH / Z / TILT) * k);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x + G.cam.x * k, y + (G.cam.y / TILT) * k, (VW / Z) * k, (VH / Z / TILT) * k); ctx.restore();
 }
 let menuBgT = 0;
 function drawMenuBg(t) {
@@ -1060,7 +1060,7 @@ function drawSticks() {
     ctx.strokeStyle = side === 'aim' ? 'rgba(255,214,10,0.7)' : 'rgba(0,230,255,0.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, 58, 0, Math.PI * 2); ctx.stroke();
     const dx = s ? clamp(s.cx - s.x, -56, 56) : 0, dy = s ? clamp(s.cy - s.y, -56, 56) : 0;
     ctx.fillStyle = side === 'aim' ? 'rgba(255,214,10,0.85)' : 'rgba(0,230,255,0.75)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 24, 0, Math.PI * 2); ctx.fill();
-    if (!s) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? 'AIM + FIRE' : 'MOVE', h.x, h.y + 82); }
+    if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? 'AIM + FIRE' : 'MOVE', h.x, h.y + 82); }
     ctx.globalAlpha = 1;
   }
 }
@@ -1741,13 +1741,13 @@ function drawScreenFx(t) {               // screen space: world look, lights out
   ctx.fillStyle = '#ff3b55'; ctx.fillRect(mx, my, mw * f, 10); ctx.fillStyle = '#ff8c28'; ctx.fillRect(mx + mw * f, my, mw * (1 - f), 10);
   ctx.fillStyle = '#ffffff'; ctx.fillRect(mx + mw * f - 2, my - 4, 4, 18);
   ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd60a'; ctx.fillText('PUSH THE LINE', VW / 2, my - 7);
-  const bx = 10, by = (TOUCH ? 74 : VH - 12 - (150 * WORLD.h / WORLD.w)) + (TOUCH ? 108 * WORLD.h / WORLD.w + 10 : -34);
+  const bx = 10, by = (TOUCH ? 74 : VH - 12 - (150 * WORLD.h / WORLD.w)) + (TOUCH ? 84 * WORLD.h / WORLD.w + 8 : -34);
   const real = isReal();
-  ctx.fillStyle = real ? 'rgba(60,50,40,0.85)' : 'rgba(80,30,150,0.85)'; ctx.fillRect(bx - 3, by, 112, 24);
-  ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 1.5; ctx.strokeRect(bx - 3, by, 112, 24);
-  ctx.font = '14px Anton, Impact'; ctx.textAlign = 'left'; ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff';
-  ctx.fillText((real ? 'REAL' : 'DREAM') + (G.flipT > 5000 ? '' : ' ' + Math.max(0, Math.ceil(G.flipT)) + 's'), bx + 4, by + 17);
-  ctx.save(); ctx.translate(bx + 92, by + 12); ctx.rotate(t * (real ? 1 : 6)); ctx.fillStyle = '#c8a2ff'; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 2); ctx.lineTo(0, 8); ctx.lineTo(-7, 2); ctx.closePath(); ctx.fill(); ctx.restore();
+  ctx.fillStyle = real ? 'rgba(60,50,40,0.85)' : 'rgba(80,30,150,0.85)'; ctx.fillRect(bx - 3, by, TOUCH ? 84 : 112, TOUCH ? 20 : 24);
+  ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 1.5; ctx.strokeRect(bx - 3, by, TOUCH ? 84 : 112, TOUCH ? 20 : 24);
+  ctx.font = (TOUCH ? 12 : 14) + 'px Anton, Impact'; ctx.textAlign = 'left'; ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff';
+  ctx.fillText((real ? 'REAL' : 'DREAM') + (G.flipT > 5000 ? '' : ' ' + Math.max(0, Math.ceil(G.flipT)) + 's'), bx + 4, by + (TOUCH ? 15 : 17));
+  ctx.save(); ctx.translate(bx + (TOUCH ? 68 : 92), by + (TOUCH ? 10 : 12)); ctx.rotate(t * (real ? 1 : 6)); ctx.fillStyle = '#c8a2ff'; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 2); ctx.lineTo(0, 8); ctx.lineTo(-7, 2); ctx.closePath(); ctx.fill(); ctx.restore();
 }
 
 // ----- BROKE-pilot report card ----------------------------------------------------------------------------
@@ -2667,24 +2667,25 @@ const NIGHT = (() => {
   function hudCanvas(t, d) {
     const n = G.night; let real = G.world === 'real'; if (G.lieBadge) real = !real;
     let clock = clockString(); if (G.lie && G.lie.clock) clock = (1 + (n.lieSeed % 11)) + ':' + String(n.lieSeed % 60).padStart(2, '0') + ' AM';
-    const mw = Math.min(250, VW * 0.62), mx = (VW - mw) / 2, my = 158, f = n.doubt / 100;
-    ctx.textAlign = 'center'; ctx.font = '15px Anton, Impact'; const cl = clock + '  \u2022  ' + (real ? 'AWAKE' : 'LAYER ' + Math.max(1, d)), cw = ctx.measureText(cl).width + 20;
-    ctx.fillStyle = 'rgba(11,9,18,0.8)'; ctx.fillRect(VW / 2 - cw / 2, my - 40, cw, 20); ctx.strokeStyle = real ? '#e8d8b0' : '#c070ff'; ctx.lineWidth = 2; ctx.strokeRect(VW / 2 - cw / 2, my - 40, cw, 20);
-    ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff'; ctx.fillText(cl, VW / 2, my - 25);
-    ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, my - 4, mw + 8, 18);
-    ctx.fillStyle = n.doubt >= 70 ? '#ff3b55' : n.doubt >= 40 ? '#ff8c28' : '#3fe0d8'; ctx.fillRect(mx, my, mw * f, 10);
-    ctx.font = '11px Anton, Impact'; ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText('DOUBT ' + Math.floor(n.doubt) + (n.doubt >= 40 ? '   HUD MAY LIE' : ''), VW / 2, my + 24);
+    const mw = Math.min(150, VW * 0.4), mx = (VW - mw) / 2, top = VW < 720 ? 124 : 88, f = n.doubt / 100;
+    const shadow = (s, x, y) => { ctx.strokeStyle = 'rgba(10,6,20,0.9)'; ctx.lineWidth = 3; ctx.strokeText(s, x, y); ctx.fillText(s, x, y); };
+    ctx.textAlign = 'center'; ctx.font = '13px Anton, Impact'; ctx.fillStyle = real ? '#f4e8d0' : '#e8d0ff';
+    shadow(clock + '  \u2022  ' + (real ? 'AWAKE' : 'LAYER ' + Math.max(1, d)), VW / 2, top + 11);
+    ctx.fillStyle = 'rgba(10,6,20,0.65)'; ctx.fillRect(mx - 2, top + 16, mw + 4, 9);
+    ctx.fillStyle = n.doubt >= 70 ? '#ff3b55' : n.doubt >= 40 ? '#ff8c28' : '#3fe0d8'; ctx.fillRect(mx, top + 18, mw * f, 5);
+    let y2 = top + 36; ctx.font = '10px Anton, Impact'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    if (n.doubt >= 40) { shadow('DOUBT ' + Math.floor(n.doubt) + ' \u2022 HUD MAY LIE', VW / 2, y2); y2 += 12; }
     if (G.world === 'real' && G.story.night.battery) {
-      const by = my + 52; ctx.fillStyle = 'rgba(10,6,20,0.75)'; ctx.fillRect(mx - 4, by - 4, mw + 8, 18);
-      ctx.fillStyle = n.bat < 20 ? '#ff3b55' : '#7cff6b'; ctx.fillRect(mx, by, mw * n.bat / 100, 10);
-      ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', VW / 2, by + 24);
+      ctx.fillStyle = 'rgba(10,6,20,0.65)'; ctx.fillRect(mx - 2, y2 - 8, mw + 4, 9);
+      ctx.fillStyle = n.bat < 20 ? '#ff3b55' : '#7cff6b'; ctx.fillRect(mx, y2 - 6, mw * n.bat / 100, 5);
+      if (n.bat < 25) { ctx.fillStyle = '#ff9aa8'; shadow('BATTERY LOW', VW / 2, y2 + 10); }
     }
     if (n.kick > 0) {
       ctx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 8)); ctx.fillStyle = '#ff3b55'; ctx.font = '54px Anton, Impact'; ctx.fillText('KICK  ' + Math.ceil(n.kick), VW / 2, VH * 0.3);
       ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.font = '16px Anton, Impact'; ctx.fillText("DON'T GET TAGGED", VW / 2, VH * 0.3 + 26); ctx.globalAlpha = 1;
     }
     if (n.receiptT > 0) {
-      const rw = Math.min(190, Math.max(150, VW * 0.46)), rh = 170, rx = VW - rw - 8, ry = VW < 500 ? 226 : 124;
+      const rw = Math.min(190, Math.max(150, VW * 0.46)), rh = 170, rx = VW - rw - 8, ry = VW < 500 ? 190 : 124;
       ctx.fillStyle = 'rgba(244,239,224,0.97)'; ctx.fillRect(rx, ry, rw, rh); ctx.strokeStyle = '#1c0f33'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
       ctx.textAlign = 'left'; ctx.fillStyle = '#1c0f33'; ctx.font = '13px Anton, Impact';
       ctx.font = (rw < 170 ? 11 : 13) + 'px Anton, Impact'; ctx.fillText('MIGHT BE CASTLE', rx + 12, ry + 22); ctx.fillText('BURGER ...... $2.49', rx + 12, ry + 46); ctx.fillText('FRIES ....... $1.51', rx + 12, ry + 64); ctx.fillText('SHAKE ....... $1.00', rx + 12, ry + 82);

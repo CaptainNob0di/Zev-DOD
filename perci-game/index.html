@@ -245,6 +245,13 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   #sStore h2{margin:0}#storeChars{margin:0}.tok{width:56px;padding:3px}.tok img{width:34px;height:34px}.lab{margin:2px 0}
   .item{padding:6px}.item .ic{font-size:22px;width:28px}.item b{font-size:14px}.item small{font-size:10px}.pack{padding:8px 4px;font-size:18px}
 }
+
+/* phones: calmer HUD (empty item slots fade, smaller cover buttons without labels) */
+@media (pointer:coarse){
+  #inv .slot:not(.full){opacity:.38;border-color:#5a4f7088}
+  .cov{width:44px;height:44px;font-size:16px;border-radius:12px;background:rgba(30,40,50,.6)}.cov small{display:none}
+  #hud .hbtn{opacity:.85}
+}
 </style>
 </head>
 <body>
