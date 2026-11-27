@@ -38,14 +38,14 @@ const WALLSTYLE = ['concrete', 'steel', 'brick', 'steel', 'concrete', 'brick', '
 const SB = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', key: 'sb_publishable_8PIP4hO1s-ghNSu-AhMRUQ_uLxPNFev' };
 
 /* ============================== PROFILE ============================== */
-const prof = { xp: 0, unlocked: 1, gun: 0, armor: 0, cleared: 0, thr: 0, crew: 0, b: WEAPONS.map(() => [0, 0, 0]), name: '' };
+const prof = { xp: 0, unlocked: 1, gun: 0, armor: 0, cleared: 0, thr: 0, crew: 0, b: WEAPONS.map(() => [0, 0, 0]), name: '', sens: 1 };
 function rankOf(xp) { return Math.min(100, 1 + Math.floor((xp === undefined ? prof.xp : xp) / 100)); }
 function loadProf() {
   try {
     const o = JSON.parse(localStorage.getItem('sp_profile_v1') || '{}');
     for (const k of ['xp', 'unlocked', 'gun', 'armor', 'cleared', 'thr', 'crew']) if (typeof o[k] === 'number') prof[k] = o[k];
     if (Array.isArray(o.b)) o.b.forEach((r, i) => { if (prof.b[i] && Array.isArray(r)) prof.b[i] = [r[0] | 0, r[1] | 0, r[2] | 0]; });
-    if (typeof o.name === 'string') prof.name = o.name;
+    if (typeof o.name === 'string') prof.name = o.name; if (typeof o.sens === 'number') prof.sens = clamp(o.sens, .4, 2.5);
   } catch (e) {}
   prof.xp = clamp(prof.xp | 0, 0, 999999); prof.unlocked = clamp(prof.unlocked | 0, 1, MISSIONS.length);
   prof.gun = clamp(prof.gun | 0, 0, WEAPONS.length - 1); prof.armor = clamp(prof.armor | 0, 0, GEAR.length - 1); prof.crew = clamp(prof.crew | 0, 0, CREW.length - 1);
@@ -173,7 +173,8 @@ const G = { mode: 'menu', state: 'splash', mission: 0, trainMode: false, grid: n
   hitmark: 0, killmark: 0, flash: 0, hurt: 0, shake: 0, pressure: 0, radio: 0, msgT: 0, paused: false, stats: {} };
 let mapStyle = 'concrete';
 const tile = (x, y) => { const row = G.grid[Math.floor(y) + 1]; return row ? (row[Math.floor(x) + 1] === undefined ? 1 : row[Math.floor(x) + 1]) : 1; };
-const free = (x, y) => tile(x - .17, y - .17) === 0 && tile(x + .17, y - .17) === 0 && tile(x - .17, y + .17) === 0 && tile(x + .17, y + .17) === 0;
+const RAD = .21;
+const free = (x, y) => tile(x - RAD, y - RAD) === 0 && tile(x + RAD, y - RAD) === 0 && tile(x - RAD, y + RAD) === 0 && tile(x + RAD, y + RAD) === 0;
 function move(o, dx, dy) { if (free(o.x + dx, o.y)) o.x += dx; if (free(o.x, o.y + dy)) o.y += dy; }
 function ray(x, y, a, maxd) {
   const dx = Math.cos(a), dy = Math.sin(a); maxd = maxd || 24;
@@ -379,7 +380,7 @@ function showResult(win, kills) {
 
 /* ============================== LOCAL PLAYER ============================== */
 let keys = new Set(), mouseDown = false, mouseAim = false, lookX = 0, lockedPtr = false;
-const touch = { mx: 0, my: 0, fire: false, aim: false, look: 0 };
+const touch = { mx: 0, my: 0, fire: false, aim: false, look: 0, sprint: false };
 let footClock = 0;
 function capOf(p) { return p.cap; }
 function reloadGun(p) {
@@ -393,7 +394,7 @@ function fireLocal() {
   const w = WEAPONS[p.gun]; p.ammo--; G.stats.fired++; p.cooldown = w.rate; G.flash = .075; G.pressure = Math.min(1, G.pressure + .07); G.shake = Math.min(1, G.shake + .22);
   p.recoil = Math.min(1, p.recoil + w.recoil * (p.att[1] === 1 ? .7 : p.att[1] === 2 ? .85 : 1));
   sfx(shotName(), p.att[1] === 2 ? .45 : .9);
-  const ang = p.a + (rnd() - .5) * (.018 + .045 * (1 - p.aim) + .025 * p.moving + .025 * p.recoil) * (1 - p.aim * p.att[0] * .12);
+  const ang = p.a + (rnd() - .5) * (.018 + .045 * (1 - p.aim) + .025 * p.moving + .035 * (p.sprint || 0) + .025 * p.recoil) * (1 - p.aim * p.att[0] * .12);
   if (G.mode === 'guest') G.out.push({ s: ++G.seq, t: 'f', a: r2(ang), x: r2(p.x), y: r2(p.y) }); else { const before = G.kills; hostShoot(p, ang); if (G.hitmark > 0) G.stats.hits++; void before; }
   if (p.ammo <= 0 && p.reserve > 0) setTimeout(() => G.me && reloadGun(G.me), 120);
 }
@@ -407,18 +408,32 @@ function updatePlayer(dt) {
   const p = G.me; if (!p) return;
   p.cooldown = Math.max(0, p.cooldown - dt); p.recoil = Math.max(0, p.recoil - dt * 3.4);
   if (p.reload > 0) { p.reload -= dt; if (p.reload <= 0) { const n = Math.min(p.cap - p.ammo, p.reserve); p.ammo += n; p.reserve -= n; } }
-  if (p.dead) { p.moving = 0; return; }
-  let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - touch.my;
-  let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + touch.mx;
-  let turn = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
-  const aiming = keys.has('ShiftLeft') || keys.has('ShiftRight') || mouseAim || touch.aim;
+  if (p.dead) { p.moving = 0; p.vx = p.vy = 0; return; }
+  // ---- input -> desired move vector (local space: f forward, s strafe right)
+  const dz = (v) => { const m = Math.abs(v); return m < .12 ? 0 : Math.sign(v) * Math.pow((m - .12) / .88, 1.25); };
+  let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - dz(touch.my);
+  let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + dz(touch.mx);
+  const mag = Math.hypot(f, s); if (mag > 1) { f /= mag; s /= mag; }
+  const aiming = keys.has('KeyZ') || mouseAim || touch.aim;
+  const wantSprint = (keys.has('ShiftLeft') || keys.has('ShiftRight') || touch.sprint) && f > .3 && !aiming && p.reload <= 0;
+  p.sprint = clamp((p.sprint || 0) + (wantSprint ? 1 : -1) * dt * 6, 0, 1);
   p.aim = clamp(p.aim + (aiming ? 1 : -1) * dt * 7, 0, 1);
-  p.a = angN(p.a + turn * (2.3 - p.aim * .9) * dt + lookX * (1 - p.aim * .5) + touch.look * (1 - p.aim * .4)); lookX = 0; touch.look = 0;
-  const sp = GEAR[p.armor].speed * (1 - p.aim * .55), mag = Math.hypot(f, s), norm = Math.max(1, mag);
-  p.moving = Math.min(1, mag); p.stride += dt * p.moving * 8;
-  move(p, (Math.cos(p.a) * f - Math.sin(p.a) * s) * sp * dt / norm, (Math.sin(p.a) * f + Math.cos(p.a) * s) * sp * dt / norm);
-  if (p.moving > .2) { footClock -= dt; if (footClock <= 0) { sfx('step', .35); footClock = .42 + p.aim * .23; } } else footClock = 0;
-  if (mouseDown || touch.fire || keys.has('Space')) fireLocal();
+  // ---- look: keyboard turn ramps up so short taps are precise, holds turn fast
+  const tk = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
+  p.turnV = tk ? clamp((p.turnV || 0) + tk * dt * 9, -1, 1) : (p.turnV || 0) * Math.max(0, 1 - dt * 14);
+  const sens = prof.sens * (1 - p.aim * .5);
+  p.a = angN(p.a + p.turnV * 2.5 * (1 - p.aim * .4) * dt + lookX * sens + touch.look * sens); lookX = 0; touch.look = 0;
+  // ---- velocity with acceleration and friction (frame-rate independent), then wall-sliding collision
+  const base = GEAR[p.armor].speed, top = base * (1 + .42 * p.sprint) * (1 - p.aim * .55);
+  const dxw = (Math.cos(p.a) * f - Math.sin(p.a) * s) * top, dyw = (Math.sin(p.a) * f + Math.cos(p.a) * s) * top;
+  const k = 1 - Math.exp(-dt * (mag > .02 ? 10 : 16));
+  p.vx = (p.vx || 0) + (dxw - (p.vx || 0)) * k; p.vy = (p.vy || 0) + (dyw - (p.vy || 0)) * k;
+  const steps = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / .1)), sx = p.vx * dt / steps, sy = p.vy * dt / steps; let hit = false;     // sub-steps so fast moves can't tunnel through walls
+  for (let i = 0; i < steps; i++) { const ox = p.x, oy = p.y; move(p, sx, sy); if (Math.abs(p.x - ox - sx) > 1e-6) { p.vx *= .2; hit = true; } if (Math.abs(p.y - oy - sy) > 1e-6) { p.vy *= .2; hit = true; } }
+  void hit;
+  const spd = Math.hypot(p.vx, p.vy); p.speedNow = spd; p.moving = Math.min(1, spd / base); p.stride += dt * spd * 3.1;
+  if (spd > .35) { footClock -= dt; if (footClock <= 0) { sfx('step', .3 + p.sprint * .2); footClock = Math.max(.22, .46 - spd * .045) + p.aim * .2; } } else footClock = 0;
+  if (mouseDown || touch.fire || keys.has('Space')) { if (p.sprint < .5) fireLocal(); }
   G.pressure = Math.max(0, G.pressure - dt * .16);
   if (p.hp / p.maxhp < .36 || G.pressure > .6) { G.heart = (G.heart || 0) - dt; if (G.heart <= 0) { sfx('pulse', .45); G.heart = .85 - G.pressure * .35; } }
 }
@@ -911,7 +926,7 @@ setInterval(() => { if (MP.on && MP.host && G.state === 'lobby') { const now2 = 
 setInterval(() => { if (MP.on && !MP.host && MP.joined && G.state !== 'play') { sendHello(); if (Date.now() - (MP.heard.host || Date.now()) > 9000) { leaveMP(); toMenu(); $('oMsg').textContent = 'Lost the host.'; } } }, 2000);
 
 /* ============================== INPUT ============================== */
-const GAMEKEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight']);
+const GAMEKEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyZ']);
 addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT') return;
   if (G.state === 'play') {
@@ -937,8 +952,8 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
 (function () {
   const zl = $('zl'), zr = $('zr'), st = $('stick'); let lid = null, lx0 = 0, ly0 = 0, rid = null, rx = 0;
   zl.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); const t = e.changedTouches[0]; lid = t.identifier; lx0 = t.clientX; ly0 = t.clientY; st.style.display = 'block'; st.style.left = (lx0 - 55) + 'px'; st.style.top = (ly0 - 55) + 'px'; }, { passive: false });
-  zl.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === lid) { const dx = t.clientX - lx0, dy = t.clientY - ly0, m = Math.min(1, Math.hypot(dx, dy) / 50), a = Math.atan2(dy, dx); touch.mx = Math.cos(a) * m; touch.my = -Math.sin(a) * m; st.firstElementChild.style.transform = 'translate(' + Math.cos(a) * m * 30 + 'px,' + Math.sin(a) * m * 30 + 'px)'; } }, { passive: false });
-  const lend = (e) => { for (const t of e.changedTouches) if (t.identifier === lid) { lid = null; touch.mx = touch.my = 0; st.style.display = 'none'; st.firstElementChild.style.transform = ''; } };
+  zl.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === lid) { const dx = t.clientX - lx0, dy = t.clientY - ly0, m = Math.min(1, Math.hypot(dx, dy) / 50), a = Math.atan2(dy, dx); touch.mx = Math.cos(a) * m; touch.my = -Math.sin(a) * m; touch.sprint = m > .93 && Math.hypot(dx, dy) > 62; st.firstElementChild.style.transform = 'translate(' + Math.cos(a) * m * 30 + 'px,' + Math.sin(a) * m * 30 + 'px)'; } }, { passive: false });
+  const lend = (e) => { for (const t of e.changedTouches) if (t.identifier === lid) { lid = null; touch.mx = touch.my = 0; touch.sprint = false; st.style.display = 'none'; st.firstElementChild.style.transform = ''; } };
   zl.addEventListener('touchend', lend); zl.addEventListener('touchcancel', lend);
   zr.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); const t = e.changedTouches[0]; rid = t.identifier; rx = t.clientX; }, { passive: false });
   zr.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === rid) { touch.look += (t.clientX - rx) * .0085; rx = t.clientX; } }, { passive: false });
@@ -951,7 +966,8 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
 // buttons
 $('bStart').onclick = () => { audioInit(); toMenu(); };
 $('mCont').onclick = () => brief(Math.min(prof.unlocked - 1, MISSIONS.length - 1));
-$('mSel').onclick = () => buildSelect(false); $('mTrain').onclick = () => buildSelect(true); $('mLoad').onclick = () => buildLoadout(); $('mCtl').onclick = () => setState('ctl'); $('mCred').onclick = () => setState('cred');
+$('mSel').onclick = () => buildSelect(false); $('mTrain').onclick = () => buildSelect(true); $('mLoad').onclick = () => buildLoadout(); $('mCtl').onclick = () => { $('sensR').value = prof.sens; $('sensV').textContent = prof.sens.toFixed(2) + 'x'; setState('ctl'); };
+$('sensR').oninput = () => { prof.sens = parseFloat($('sensR').value); $('sensV').textContent = prof.sens.toFixed(2) + 'x'; saveProf(); }; $('mCred').onclick = () => setState('cred');
 $('mOnline').onclick = () => { $('oName').value = prof.name || ''; $('oMsg').textContent = ''; setState('online'); };
 $('ldDone').onclick = () => { saveProf(); toMenu(); };
 $('brGo').onclick = () => { audioInit(); startSolo(briefM, briefTrain); };
@@ -968,5 +984,5 @@ addEventListener('resize', resize);
 /* ============================== BOOT ============================== */
 loadProf(); resize();
 loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
-  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL }; });
+  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL, keys, free, doBreach, openCell, timers, GEAR }; });
 })();

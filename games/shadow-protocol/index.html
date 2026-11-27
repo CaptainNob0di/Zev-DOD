@@ -10,7 +10,7 @@
 <link rel="canonical" href="https://zevsocialconnect.com/games/shadow-protocol/">
 <meta property="og:title" content="Shadow Protocol | Zev DOD">
 <meta property="og:description" content="8 missions. 6 weapons. Solo or online co-op. Free in your browser.">
-<meta property="og:image" content="https://zevsocialconnect.com/games/shadow-protocol/zev_logo.png">
+<meta property="og:image" content="https://zevsocialconnect.com/games/shadow-protocol/og.jpg">
 <link rel="icon" type="image/png" href="../../favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -112,13 +112,10 @@ body.touch #note{bottom:34%}
  <div class="tb" id="tUse">USE</div><div class="tb" id="tThr">THROW</div><div class="tb" id="tBrc">BREACH</div><div class="tb" id="tMed">MED</div><div class="tb" id="tPause">II</div>
 </div>
 
-<div class="screen on" id="sSplash">
- <img class="logo" src="zev_logo.png" alt="Zev DOD">
- <div class="sub">A Zev DOD production</div>
- <h2 style="font-size:clamp(34px,9vw,64px);margin:0">SHADOW PROTOCOL</h2>
- <div class="sub">Tactical first-person shooter &bull; Solo &amp; online co-op</div>
+<div class="screen on" id="sSplash" style="background:linear-gradient(#0000 85%,#0009 100%),url(key-art.jpg) center/cover no-repeat;justify-content:flex-end;align-items:center;padding-bottom:max(34px,env(safe-area-inset-bottom))">
+ <img class="logo" src="zev_logo.png" alt="Zev DOD" style="position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;width:92px;margin:0;border-radius:8px">
  <button class="btn" id="bStart">TAP TO START</button>
- <div class="foot">Copyright &copy; 2026 Zev DOD. All rights reserved.</div>
+ <div class="foot" style="margin-top:6px;color:#9fb7bd">Copyright &copy; 2026 Zev DOD. All rights reserved.</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -147,11 +144,11 @@ body.touch #note{bottom:34%}
 <div class="screen" id="sCtl"><h2>CONTROLS</h2>
  <div class="panel"><div class="keys">
   <b>WASD</b><span>Move and strafe</span><b>Mouse / Arrows</b><span>Look (click the game to capture the mouse)</span>
-  <b>Click / Space</b><span>Fire</span><b>Right click / Shift</b><span>Aim sights</span>
+  <b>Click / Space</b><span>Fire</span><b>Right click / Z</b><span>Aim sights (slower, steadier)</span><b>Shift</b><span>Sprint (moving forward; no firing while sprinting)</span>
   <b>E</b><span>Use: doors, terminal, extraction, revive a teammate</span><b>R</b><span>Reload</span>
   <b>G</b><span>Throw (impact, flash or smoke)</span><b>Q</b><span>Breach doors and crates</span>
   <b>H</b><span>Medkit</span><b>Esc / P</b><span>Pause</span>
-  <b>Phone</b><span>Left thumb moves, right thumb looks. Buttons on the right.</span></div></div>
+  <b>Phone</b><span>Left thumb moves (push the stick all the way out to sprint), right thumb looks. Buttons on the right.</span></div><div style="margin-top:14px"><b style="color:var(--text);font-weight:600">Look sensitivity</b> <span id="sensV" style="color:var(--mint)">1.00x</span><br><input id="sensR" type="range" min="0.4" max="2.5" step="0.05" value="1" style="width:100%"></div></div>
  <button class="btn" data-back="sMenu">BACK</button></div>
 
 <div class="screen" id="sCred"><h2>CREATOR &amp; OWNERSHIP</h2><img class="logo" style="width:min(260px,60vw);margin-top:0" src="zev_logo.png" alt="Zev DOD">
@@ -173,6 +170,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=3"></script>
+<script src="game.js?v=5"></script>
 </body>
 </html>
