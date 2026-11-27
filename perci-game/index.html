@@ -230,6 +230,21 @@ body.playing .previewTag{display:none}
 /* owner preview badge: tiny, title screen only */
 .previewTag{font-size:10px!important;padding:3px 10px!important;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:.85}
 body:not([data-screen="sTitle"]) .previewTag{display:none!important}
+
+/* store, horizontal layout: wide / landscape screens put the upgrades and the coin packs side by side */
+.storeCols{display:block;width:100%}
+@media (min-width:640px) and (orientation:landscape), (min-width:900px){
+  #storeBody{width:min(1120px,100%)}
+  .storeCols{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:8px 20px;align-items:start}
+  #storeItems{max-width:none;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start}
+  #packs{max-width:none;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .item{height:100%}
+  #storeChars{flex-wrap:nowrap;overflow-x:auto}
+}
+@media (max-height:520px) and (orientation:landscape){
+  #sStore h2{margin:0}#storeChars{margin:0}.tok{width:56px;padding:3px}.tok img{width:34px;height:34px}.lab{margin:2px 0}
+  .item{padding:6px}.item .ic{font-size:22px;width:28px}.item b{font-size:14px}.item small{font-size:10px}.pack{padding:8px 4px;font-size:18px}
+}
 </style>
 </head>
 <body>
@@ -372,10 +387,10 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <div id="storeBody">
     <div class="lab" style="text-align:center">UPGRADES FOR</div>
     <div class="tokrow" id="storeChars"></div>
-    <div id="storeItems"></div>
-    <p id="storeMsg"></p>
-    <div class="lab" style="text-align:center;margin-top:10px">GET ZEV COINS</div>
-    <div id="packs"></div>
+    <div class="storeCols">
+      <div><div id="storeItems"></div><p id="storeMsg"></p></div>
+      <div><div class="lab" style="text-align:center;margin-top:10px">GET ZEV COINS</div><div id="packs"></div></div>
+    </div>
     <p class="muted fine">ZEV Coins are for this game only and have no cash value. Coins you buy are added after your payment clears. All sales final except where the law says otherwise.</p>
   </div>
   <button class="btn alt small" id="bStoreBack">BACK</button>
