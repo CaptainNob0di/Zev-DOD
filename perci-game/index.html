@@ -256,6 +256,8 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
 }
 
 /* special-power button: centered between the two sticks */
+#fireBtn{position:absolute;right:calc(56px + env(safe-area-inset-right));bottom:176px;width:76px;height:76px;border-radius:50%;background:rgba(255,59,85,.88);border:4px solid var(--ink);font-family:Anton;font-size:17px;color:#fff;display:none;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}#fireBtn.on{background:#fff;color:#c81e32}
+@media (pointer:coarse){#hud.on #fireBtn{display:flex}}
 #hud .ab{right:auto;left:calc(50% - 39px);bottom:71px;width:78px;height:78px}
 @media (max-width:380px){#hud .ab{width:70px;height:70px;left:calc(50% - 35px);bottom:75px}}
 </style>
@@ -275,6 +277,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <div id="banner"></div>
   <div id="goal" style="display:none"></div>
   <div class="ab" id="abBtn">POWER</div>
+  <div id="fireBtn">FIRE</div>
   <div id="inv"><button class="slot"></button><button class="slot"></button><button class="slot"></button><button class="slot"></button></div>
 </div>
 
@@ -517,6 +520,6 @@ const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
 <script src="arenas.js"></script>
-<script src="game.js?v=pov2"></script>
+<script src="game.js?v=fire1"></script>
 </body>
 </html>

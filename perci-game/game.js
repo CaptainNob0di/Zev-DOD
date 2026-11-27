@@ -275,7 +275,7 @@ function beginMatch(ents, me) {
   if (!MP.on) applyLoadout(me, myLoadout(me.kind));   // weapon, level perks and store upgrades
   me.inv = MP.on ? null : [null, null, null, null];   // item slots (solo); online keeps instant power-ups
   G = { ents, player: me, slowTeam: 'B', pkId: 0, bullets: [], parts: [], rings: [], pops: [], pickups: [], score: { P: 0, B: 0 }, time: MATCH_TIME, slow: 0, pickupT: 3, cam: { x: 0, y: 0 }, shake: 0, t: 0 };
-  me.yaw = me.team === 'P' ? 0 : Math.PI;   // first person: start facing the enemy side
+  input.fireBtn = false; me.yaw = me.team === 'P' ? 0 : Math.PI;   // first person: start facing the enemy side
   G.cam.x = G.player.x - VW / Z / 2; G.cam.y = G.player.y * TILT - 40 - VH / Z / 2;
   showScreen(null); $('hud').classList.add('on'); document.body.classList.add('playing'); if (document.activeElement) document.activeElement.blur(); state = 'play';
   feed('Map: ' + MAPNAME); feed(MP.on && MP.mode === 'versus' ? 'Team vs team! Most tags wins.' : "Match start! Tag BROKE-pilot's bots!"); banner('FIGHT!');
@@ -563,10 +563,20 @@ function controlLocal(e, dt, shoot, ability) {
       const t = autoFire ? autoTarget(e) : null;
       if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
     } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
+    if (input.fireBtn) { firing = true; if (!FP && !(input.touchAim && input.touchAim.m > 0.25)) { const t0 = autoTarget(e); if (t0) raw = Math.atan2(t0.y - e.y, t0.x - e.x); } }
     e.rawAim = raw; e.a = raw; e.assistTarget = null;
     if (aimAssist > 1) {
       const cone = aimAssist === 3 ? 0.48 : 0.28, t = autoTarget(e, raw, cone);
       if (t) { const off = ((Math.atan2(t.y - e.y, t.x - e.x) - raw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; e.a = raw + off * (aimAssist === 3 ? 0.85 : 0.55); e.assistTarget = t; }
+    }
+    if (!G.story) {   // laser battery (quick match + online): every shot drains it, it recharges when you stop shooting
+      G.qbat = G.qbat === undefined ? 100 : G.qbat; G.qIdle = (G.qIdle || 0) + dt; G.qMsg = Math.max(0, (G.qMsg || 0) - dt);
+      if (G.qLock && G.qbat >= 25) G.qLock = false;
+      if (firing && e.cool <= 0) {
+        if (G.qLock || G.qbat < 2.5) { G.qLock = true; firing = false; if (G.qMsg <= 0) { banner('BATTERY EMPTY'); G.qMsg = 1.6; } }
+        else { G.qbat = Math.max(0, G.qbat - 3 * (e.rapid > 0 ? 0.5 : 1)); G.qIdle = 0; }
+      }
+      if (G.qIdle > 0.45) G.qbat = Math.min(100, G.qbat + (G.qLock ? 16 : 22) * dt);
     }
     if (firing) shoot(e, e.a);
     if (input.ability) { input.ability = false; ability(e); }
@@ -932,6 +942,8 @@ function drawTail(t) {
   drawScreenFx(t);
   if (G.dark < 0.5) { if (fpDrawing) fpArrows(); else drawArrows(); }
   drawMinimap();
+  if (!G.story && G.qbat !== undefined && TOUCH) { const bw = 76, bx = VW - 56 - 38 - bw / 2, by = VH - 176 - 76 - 16, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 12); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 6); ctx.font = '10px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER', bx + bw / 2, by - 6); }
+  else if (!G.story && G.qbat !== undefined) { const bw = 120, bx = VW - bw - 18, by = VH - 26, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 14); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 8); ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', bx + bw / 2, by - 6); }
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
   drawSticks();
 }
@@ -1293,6 +1305,12 @@ addEventListener('mouseup', () => { input.mdown = false; });
 addEventListener('contextmenu', (e) => { if (state === 'play') e.preventDefault(); });
 $('abBtn').addEventListener('touchstart', (e) => { e.preventDefault(); input.ability = true; }, { passive: false });
 $('abBtn').addEventListener('click', () => { input.ability = true; });
+(function () {   // FIRE button: hold to shoot (at the nearest enemy in 3rd person, straight ahead in 1st person)
+  const fb = $('fireBtn'); if (!fb) return; const set = (v) => { input.fireBtn = v; fb.classList.toggle('on', v); };
+  fb.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); set(true); }, { passive: false });
+  for (const t of ['touchend', 'touchcancel']) fb.addEventListener(t, (e) => { e.preventDefault(); set(false); }, { passive: false });
+  fb.addEventListener('mousedown', (e) => { e.stopPropagation(); set(true); }); addEventListener('mouseup', () => set(false));
+})();
 // twin sticks: fixed home spots that follow your thumb
 const sticks = {};
 const stickHome = (side) => side === 'move' ? { x: 96, y: VH - 110 } : { x: VW - 96, y: VH - 110 };
