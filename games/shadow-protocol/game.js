@@ -1,6 +1,6 @@
 /* SHADOW PROTOCOL (web edition) - Copyright (c) 2026 Zev DOD. All rights reserved.
    Created and developed by Zev Development Operations & Graphics Design (Zev DOD).
-   Canvas raycaster. Solo campaign + online co-op (host-authoritative, Supabase Realtime broadcast). */
+   True 3D (three.js) with first and third person cameras; classic raycaster fallback. Solo campaign + online co-op (host-authoritative, Supabase Realtime broadcast). */
 (() => {
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -569,9 +569,13 @@ function timers(dt) {
 /* ============================== RENDER ============================== */
 const view = $('view'), vctx = view.getContext('2d'), glc = $('gl');
 let BW = 320, BH = 240, buf, buf32, bufCanvas, bctx, imgData, zbuf, VW = 0, VH = 0, focal = 240;
-let useGL = false, resScale = 1, GL = null;
+let useGL = false, resScale = 1, GL = null, use3D = false, R3 = null, camView = 3; const r3c = $('r3');
+try { const v = localStorage.getItem('sp_view'); if (v === '1' || v === '3') camView = +v; } catch (e) {}
+function setView(v) { camView = v; try { localStorage.setItem('sp_view', String(v)); } catch (e) {} notify(v === 1 ? 'FIRST PERSON' : 'THIRD PERSON'); const b = $('pView'); if (b) b.textContent = 'CAMERA: ' + (v === 1 ? 'FIRST PERSON' : 'THIRD PERSON'); }
+function toggleView() { setView(camView === 1 ? 3 : 1); }
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, useGL ? 1.25 : 1.5) * (useGL ? resScale : 1); VW = Math.max(160, Math.floor(innerWidth * dpr)); VH = Math.max(120, Math.floor(innerHeight * dpr)); view.width = VW; view.height = VH;
+  if (use3D) { r3c.style.display = 'block'; glc.style.display = 'none'; return; }
   if (useGL) { glc.width = VW; glc.height = VH; glc.style.display = 'block'; return; }
   glc.style.display = 'none';
   BH = 240; BW = clamp(Math.round(BH * VW / VH), 220, 440); if (innerWidth < 600) { BH = 200; BW = clamp(Math.round(BH * VW / VH), 200, 420); }
@@ -793,7 +797,7 @@ function renderCPU() {
   drawOverlay(me);
 }
 
-function render() { if (!G.me) return; if (useGL) renderGL(); else renderCPU(); }
+function render() { if (!G.me) return; if (use3D) { try { R3.render(G.me, camView, VW, VH); } catch (e) { console.error('3D renderer failed, using the classic renderer', e); use3D = false; r3c.style.display = 'none'; useGL = glInit(); resize(); return; } vctx.clearRect(0, 0, VW, VH); drawOverlay(G.me); return; } if (useGL) renderGL(); else renderCPU(); }
 function drawOverlay(me) {
   const c = vctx, w = VW, h = VH, sc = h / 360;
   // damage vignette + flash/blast
@@ -803,7 +807,7 @@ function drawOverlay(me) {
   // threat arcs
   for (const t of G.threats) { const rel = angN(t.a - me.a), px_ = w / 2 + Math.sin(rel) * h * .42, py_ = h / 2 - Math.cos(rel) * h * .42; c.save(); c.translate(px_, py_); c.rotate(rel); c.fillStyle = t.hit ? 'rgba(255,60,60,' + (t.life * 1.8).toFixed(2) + ')' : 'rgba(255,200,60,' + (t.life * 1.4).toFixed(2) + ')'; c.beginPath(); c.moveTo(0, -18 * sc); c.lineTo(-9 * sc, 8 * sc); c.lineTo(9 * sc, 8 * sc); c.fill(); c.restore(); }
   // weapon
-  if (!me.dead) drawWeapon(c, w, h, me);
+  if (!me.dead && !use3D) drawWeapon(c, w, h, me);
   // hit marker
   const xh = $('xh'); xh.classList.toggle('hit', G.hitmark > 0 || G.killmark > 0); xh.style.opacity = me.aim > .6 ? '.35' : '1';
   if (me.reload > 0) { const pct = 1 - me.reload / me.reloadTotal; c.fillStyle = '#0008'; c.fillRect(w / 2 - 60 * sc, h * .66, 120 * sc, 8 * sc); c.fillStyle = '#cdbd82'; c.fillRect(w / 2 - 60 * sc, h * .66, 120 * sc * pct, 8 * sc); }
@@ -1058,7 +1062,7 @@ function frame(now) {
   if (MP.on && MP.host && G.state === 'lobby') { /* host keeps its own roster entry fresh */ const h = MP.roster.find((r) => r.host); if (h) Object.assign(h, playerDef(), { name: h.name, host: true }); }
 }
 let emaDt = .016, adaptT = 0;
-function adapt(dt) { if (!useGL) return; emaDt += (dt - emaDt) * .05; adaptT += dt; if (adaptT < 2.5) return; adaptT = 0;
+function adapt(dt) { if (!useGL && !use3D) return; emaDt += (dt - emaDt) * .05; adaptT += dt; if (adaptT < 2.5) return; adaptT = 0;
   if (emaDt > .034 && resScale > .55) { resScale = Math.max(.55, resScale - .15); resize(); } else if (emaDt < .0185 && resScale < 1) { resScale = Math.min(1, resScale + .1); resize(); } }
 // host lobby loop must also run while in lobby (G.mode is 'menu' there): drive it separately
 setInterval(() => { if (MP.on && MP.host && G.state === 'lobby') { const now2 = Date.now(); MP.roster = MP.roster.filter((r) => r.host || now2 - (MP.heard[r.pid] || now2) < 12000); pushLobby(); renderLobby(); } }, 1000);
@@ -1072,6 +1076,7 @@ addEventListener('keydown', (e) => {
     if (GAMEKEYS.has(e.code)) { keys.add(e.code); e.preventDefault(); }
     if (e.repeat) return;
     if (e.code === 'KeyE') localEvent('u'); else if (e.code === 'KeyR') localEvent('r'); else if (e.code === 'KeyG') localEvent('g'); else if (e.code === 'KeyQ') localEvent('b'); else if (e.code === 'KeyH') localEvent('h');
+    else if (e.code === 'KeyV' || e.code === 'KeyC') toggleView();
     else if (e.code === 'Escape' || e.code === 'KeyP') pause(true);
   } else if (G.state === 'pause' && (e.code === 'Escape' || e.code === 'KeyP')) pause(false);
   else if (G.state === 'splash' && (e.code === 'Enter' || e.code === 'Space')) { audioInit(); toMenu(); }
@@ -1100,7 +1105,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
   const hold = (id, k) => { const el = $(id); el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); touch[k] = true; }, { passive: false }); const off = (e) => { e.preventDefault(); touch[k] = false; }; el.addEventListener('touchend', off); el.addEventListener('touchcancel', off); };
   hold('tFire', 'fire'); hold('tAim', 'aim');
   const tap = (id, f) => $(id).addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); f(); }, { passive: false });
-  tap('tRel', () => localEvent('r')); tap('tUse', () => localEvent('u')); tap('tThr', () => localEvent('g')); tap('tBrc', () => localEvent('b')); tap('tMed', () => localEvent('h')); tap('tPause', () => pause(true));
+  tap('tRel', () => localEvent('r')); tap('tUse', () => localEvent('u')); tap('tThr', () => localEvent('g')); tap('tBrc', () => localEvent('b')); tap('tMed', () => localEvent('h')); tap('tPause', () => pause(true)); tap('tView', () => toggleView());
 })();
 // buttons
 $('bStart').onclick = () => { audioInit(); toMenu(); };
@@ -1110,7 +1115,7 @@ $('sensR').oninput = () => { prof.sens = parseFloat($('sensR').value); $('sensV'
 $('mOnline').onclick = () => { $('oName').value = prof.name || ''; $('oMsg').textContent = ''; setState('online'); };
 $('ldDone').onclick = () => { saveProf(); toMenu(); };
 $('brGo').onclick = () => { audioInit(); startSolo(briefM, briefTrain); };
-$('pResume').onclick = () => pause(false); $('pRestart').onclick = () => startSolo(G.mission, G.trainMode); $('pQuit').onclick = () => { if (G.mode !== 'solo') leaveMP(); toMenu(); };
+$('pResume').onclick = () => pause(false); $('pView').onclick = () => setView(camView === 1 ? 3 : 1); $('pView').textContent = 'CAMERA: ' + (camView === 1 ? 'FIRST PERSON' : 'THIRD PERSON'); $('pRestart').onclick = () => startSolo(G.mission, G.trainMode); $('pQuit').onclick = () => { if (G.mode !== 'solo') leaveMP(); toMenu(); };
 for (const b of document.querySelectorAll('[data-back]')) b.onclick = () => { if (b.dataset.back === 'sMenu') { saveProf(); refreshMenu(); setState('menu'); } };
 $('oHost').onclick = () => { audioInit(); mpHost(); }; $('oJoin').onclick = () => { audioInit(); mpJoin(); };
 $('lStart').onclick = () => { audioInit(); hostStart(); };
@@ -1122,6 +1127,8 @@ addEventListener('resize', resize);
 
 /* ============================== BOOT ============================== */
 loadProf(); resize();
-loadImgs().then(() => { buildStaticTex(); buildWallTex(mapStyle); useGL = glInit(); resize(); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
-  window.__SP = { G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL, keys, touch, humanoid, soldier, free, doBreach, openCell, timers, GEAR }; });
+loadImgs().then(async () => { buildStaticTex(); buildWallTex(mapStyle);
+  try { if (!/[?&]classic=1/.test(location.search)) { const mod = await import('./r3d.js?v=1'); R3 = mod.create({ canvas: r3c, G, WEAPONS, CREW, TEX, ray, tile, style: () => mapStyle }); use3D = true; } } catch (e) { console.warn('3D renderer unavailable, using the classic renderer', e); R3 = null; use3D = false; }
+  if (!use3D) useGL = glInit(); resize(); refreshMenu(); const rq = new URLSearchParams(location.search).get('room'); if (rq) { $('oCode').value = rq.toUpperCase().slice(0, 4); } requestAnimationFrame(frame);
+  window.__SP = { setView, toggleView, G, MP, startSolo, prof, begin, render, hostTick, doUse, fireLocal, localEvent, hostShoot, updatePlayer, onSnap, sendSnapshot, onGuestInput, newPlayer, isGL: () => useGL, keys, touch, humanoid, soldier, free, doBreach, openCell, timers, GEAR }; });
 })();

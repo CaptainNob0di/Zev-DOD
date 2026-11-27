@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0c09">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Shadow Protocol | Tactical Co-op Shooter | Zev DOD</title>
-<meta name="description" content="Shadow Protocol: an 8-mission tactical first-person shooter by Zev DOD. Play solo or squad up online with friends. Free in your browser, phone or desktop.">
+<meta name="description" content="Shadow Protocol: an 8-mission realistic 3D tactical shooter by Zev DOD, with first and third person cameras. Play solo or squad up online with friends. Free in your browser, phone or desktop.">
 <link rel="canonical" href="https://zevsocialconnect.com/games/shadow-protocol/">
 <meta property="og:title" content="Shadow Protocol | Zev DOD">
 <meta property="og:description" content="8 missions. 6 weapons. Solo or online co-op. Free in your browser.">
@@ -19,7 +19,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'Barlow Condensed',system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 input{-webkit-user-select:text;user-select:text}
-#gl,#view{position:fixed;inset:0;width:100%;height:100%;display:block}#view{z-index:1}
+#r3,#gl,#view{position:fixed;inset:0;width:100%;height:100%;display:block}#view{z-index:1}
 h1,h2,h3{font-family:Teko,Impact,sans-serif;font-weight:400;letter-spacing:.06em;margin:.2em 0}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;padding:max(18px,env(safe-area-inset-top)) 16px 24px;overflow-y:auto;background:radial-gradient(ellipse at 50% 0,#1b1e13 0,#0a0c09 70%);z-index:20}
 .screen.on{display:flex}
@@ -82,6 +82,7 @@ body.touch #touch.on{display:block}
 #tThr{right:max(180px,calc(env(safe-area-inset-right) + 180px));bottom:max(60px,calc(env(safe-area-inset-bottom) + 50px));width:50px;height:50px}
 #tBrc{right:max(180px,calc(env(safe-area-inset-right) + 180px));bottom:max(116px,calc(env(safe-area-inset-bottom) + 106px));width:50px;height:50px}
 #tMed{right:max(16px,env(safe-area-inset-right));bottom:max(214px,calc(env(safe-area-inset-bottom) + 204px));width:46px;height:46px}
+#tView{left:calc(50% + 34px);top:max(8px,env(safe-area-inset-top));width:50px;height:28px;border-radius:2px;font-size:11px}
 #tPause{left:50%;transform:translateX(-50%);top:max(8px,env(safe-area-inset-top));width:38px;height:28px;border-radius:2px;font-size:14px}
 #stick{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid #fff5;background:#ffffff14;display:none}#stick i{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:#fff8}
 @media (max-height:480px){#tFire{width:70px;height:70px}}
@@ -92,7 +93,7 @@ body.touch #note{bottom:34%}
 </style>
 </head>
 <body>
-<canvas id="gl"></canvas><canvas id="view"></canvas>
+<canvas id="r3"></canvas><canvas id="gl"></canvas><canvas id="view"></canvas>
 <a class="back" href="../" id="backLink">&larr; Games</a>
 
 <div id="hud">
@@ -109,7 +110,7 @@ body.touch #note{bottom:34%}
 <div id="touch">
  <div class="zone" id="zl"></div><div class="zone" id="zr"></div><div id="stick"><i></i></div>
  <div class="tb" id="tFire">FIRE</div><div class="tb" id="tAim">AIM</div><div class="tb" id="tRel">RELOAD</div>
- <div class="tb" id="tUse">USE</div><div class="tb" id="tThr">THROW</div><div class="tb" id="tBrc">BREACH</div><div class="tb" id="tMed">MED</div><div class="tb" id="tPause">II</div>
+ <div class="tb" id="tUse">USE</div><div class="tb" id="tThr">THROW</div><div class="tb" id="tBrc">BREACH</div><div class="tb" id="tMed">MED</div><div class="tb" id="tView">VIEW</div><div class="tb" id="tPause">II</div>
 </div>
 
 <div class="screen on" id="sSplash" style="background:linear-gradient(#0000 85%,#0009 100%),url(key-art.jpg) center/cover no-repeat;justify-content:flex-end;align-items:flex-end;padding-bottom:max(60px,env(safe-area-inset-bottom));padding-right:max(24px,5vw)">
@@ -137,7 +138,7 @@ body.touch #note{bottom:34%}
 
 <div class="screen" id="sBrief"><h2 id="brT"></h2><div class="sub" id="brP"></div><div class="panel"><p id="brB"></p><p style="color:var(--gold);font-size:13px" id="brO"></p></div><div class="msg" id="brM"></div><button class="btn" id="brGo">DEPLOY</button><button class="btn alt" data-back="sMenu">BACK</button></div>
 
-<div class="screen clear" id="sPause" style="background:#000a;pointer-events:auto"><h2>MISSION PAUSED</h2><div class="sub" id="pauseSub"></div><div class="menu"><button class="btn" id="pResume">RESUME</button><button class="btn alt" id="pRestart">RESTART MISSION</button><button class="btn alt" id="pQuit">RETURN TO HQ</button></div></div>
+<div class="screen clear" id="sPause" style="background:#000a;pointer-events:auto"><h2>MISSION PAUSED</h2><div class="sub" id="pauseSub"></div><div class="menu"><button class="btn" id="pResume">RESUME</button><button class="btn alt" id="pView">CAMERA: THIRD PERSON</button><button class="btn alt" id="pRestart">RESTART MISSION</button><button class="btn alt" id="pQuit">RETURN TO HQ</button></div></div>
 
 <div class="screen" id="sResult"><h2 id="rsT"></h2><div class="sub" id="rsS"></div><div class="panel"><div class="stats" id="rsStats"></div><p id="rsText" style="margin-top:12px"></p></div><div class="menu" id="rsBtns"></div></div>
 
@@ -147,8 +148,8 @@ body.touch #note{bottom:34%}
   <b>Click / Space</b><span>Fire</span><b>Right click / Z</b><span>Aim sights (slower, steadier)</span><b>Shift</b><span>Sprint (moving forward; no firing while sprinting)</span>
   <b>E</b><span>Use: doors, terminal, extraction, revive a teammate</span><b>R</b><span>Reload</span>
   <b>G</b><span>Throw (impact, flash or smoke)</span><b>Q</b><span>Breach doors and crates</span>
-  <b>H</b><span>Medkit</span><b>Esc / P</b><span>Pause</span>
-  <b>Phone</b><span>Left thumb moves (push the stick all the way out to sprint), right thumb looks. Buttons on the right.</span></div><div style="margin-top:14px"><b style="color:var(--text);font-weight:600">Look sensitivity</b> <span id="sensV" style="color:var(--mint)">1.00x</span><br><input id="sensR" type="range" min="0.4" max="2.5" step="0.05" value="1" style="width:100%"></div></div>
+  <b>H</b><span>Medkit</span><b>V</b><span>Switch between first person and third person camera</span><b>Esc / P</b><span>Pause</span>
+  <b>Phone</b><span>Left thumb moves (push the stick all the way out to sprint), right thumb looks. Buttons on the right; VIEW at the top switches first / third person.</span></div><div style="margin-top:14px"><b style="color:var(--text);font-weight:600">Look sensitivity</b> <span id="sensV" style="color:var(--mint)">1.00x</span><br><input id="sensR" type="range" min="0.4" max="2.5" step="0.05" value="1" style="width:100%"></div></div>
  <button class="btn" data-back="sMenu">BACK</button></div>
 
 <div class="screen" id="sCred"><h2>CREATOR &amp; OWNERSHIP</h2><img class="logo" style="width:min(260px,60vw);margin-top:0" src="zev_logo.png" alt="Zev DOD">
@@ -170,6 +171,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=8"></script>
+<script src="game.js?v=9"></script>
 </body>
 </html>
