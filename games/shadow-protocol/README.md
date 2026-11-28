@@ -3,10 +3,10 @@
 Tactical shooter at zevsocialconnect.com/games/shadow-protocol/. Code: `game.js` (game, input, online co-op),
 `r3d.js` (three.js renderer), `index.html` (HUD, menus, touch layout).
 
-## Phone controls (build 10)
-Same scheme as Perci Shorti:
-- **MOVE** (left, cyan): grab it at its spot or anywhere on the left side. Push all the way out to sprint.
-- **LOOK** (bottom right, yellow): a joystick, not a swipe. Push sideways to turn; the further you push, the
+## Phone controls (build 11)
+Tick-marked tactical rings in the game's tan / olive / signal-red palette, square knobs, Teko labels.
+- **MOVE** (left, tan): grab it at its spot or anywhere on the left side. Push all the way out to sprint.
+- **LOOK** (bottom right, olive): a joystick, not a swipe. Push sideways to turn; the further you push, the
   faster you turn. Turning slows down when your crosshair is on an enemy so you can stop on them.
 - **FIRE** (right above LOOK, red): hold to shoot. Drag it sideways to turn while you shoot. While you hold
   it, the crosshair eases onto a visible enemy right next to it (within ~9 degrees, 16 m).

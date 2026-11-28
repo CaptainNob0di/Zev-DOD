@@ -1110,7 +1110,7 @@ function enableTouch() { if (touchMode) return; touchMode = true; document.body.
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
 // touch controls
 (function () {
-  // phone sticks, same scheme as Perci Shorti: MOVE (left), LOOK (bottom right), FIRE (right above LOOK).
+  // phone sticks: MOVE (left), LOOK (bottom right), FIRE (right above LOOK).
   // Touch near a stick's home to grab it there; touch anywhere else on that side and the stick appears under your thumb.
   const zl = $('zl'), zr = $('zr'), R = 50, FR = 40;
   const home = (k) => { const W = innerWidth, H = innerHeight;
