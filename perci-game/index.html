@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<script>
+/* auto-update: phones love to keep an old saved copy of the game. On every open, ask the server for the newest
+   build number (never cached); if this page is older, reload it once with the new number so the new code loads.
+   When you ship an update, bump BUILD here AND in version.json (and the ?v= on game.js / arenas.js). */
+(function () {
+  var BUILD = '14c';
+  try {
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+      if (!v || !v.build || v.build === BUILD) return;
+      var k = 'ps_upd_' + v.build; if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1');
+      var u = new URL(location.href); u.searchParams.set('v', v.build); location.replace(u.toString());
+    }).catch(function () {});
+  } catch (e) {}
+})();
+</script>
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#141217">
@@ -520,7 +536,7 @@ const LEADERBOARD = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', anonKey: 
 const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
-<script src="arenas.js?v=14b"></script>
-<script src="game.js?v=14b"></script>
+<script src="arenas.js?v=14c"></script>
+<script src="game.js?v=14c"></script>
 </body>
 </html>

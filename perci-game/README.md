@@ -154,3 +154,8 @@ To remove a troll entry, delete the row in Supabase's Table Editor.
   AI, player controls, 2.5D renderer, HUD, leaderboard, online multiplayer, launch lock
 - `assets/`: character art from the show (made by ZEV DOD)
 - `leaderboard-setup.sql`: one-time database setup for the public board
+
+## Shipping an update (so phones actually get it)
+Phones keep an old saved copy of the page. `index.html` checks `version.json` (never cached) every time it
+opens and reloads itself once if a newer build is out. When you ship: bump `BUILD` in the `<head>` script of
+`index.html`, the `build` in `version.json`, and the `?v=` on `game.js` / `arenas.js` (all the same value).
