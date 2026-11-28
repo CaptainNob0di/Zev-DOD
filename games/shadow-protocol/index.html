@@ -7,7 +7,7 @@
 /* auto-update: phones keep old saved copies. On every open, check version.json (never cached) and reload once if a
    newer build is out. When you ship: bump BUILD here, "build" in version.json, and the ?v= on game.js (same value). */
 (function () {
-  var BUILD = '11';
+  var BUILD = '12';
   try {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
       if (!v || !v.build || v.build === BUILD) return;
@@ -120,6 +120,20 @@ body.touch #amm{right:auto;left:max(12px,env(safe-area-inset-left));bottom:max(1
 body.touch #obj{top:calc(max(10px,env(safe-area-inset-top)) + 40px);font-size:10px;padding:3px 10px;max-width:40vw}
 body.touch #hp small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.touch #note{bottom:34%}
+/* portrait phones: sticks in the bottom corners (FIRE over LOOK, AIM over MOVE), RELOAD + USE between them,
+   MED / THROW / BREACH in one small row above AIM, ammo under the minimap */
+@media (orientation:portrait){
+ body.touch #mvS,body.touch #lkS{width:104px;height:104px}body.touch #frS{width:86px;height:86px}
+ body.touch #touch .tb{right:auto!important;transform:none}
+ body.touch #tAim{left:calc(max(12px,env(safe-area-inset-left)) + 48px);bottom:calc(max(0px,env(safe-area-inset-bottom)) + 188px);width:58px;height:58px}
+ body.touch #tRel{left:calc(50% - 27px);bottom:calc(max(0px,env(safe-area-inset-bottom)) + 30px);width:54px;height:54px}
+ body.touch #tUse{left:calc(50% - 27px);bottom:calc(max(0px,env(safe-area-inset-bottom)) + 96px);width:54px;height:54px}
+ body.touch #tMed,body.touch #tThr,body.touch #tBrc{bottom:calc(max(0px,env(safe-area-inset-bottom)) + 262px);width:44px;height:44px;font-size:13px}
+ body.touch #tMed{left:14px}body.touch #tThr{left:64px}body.touch #tBrc{left:114px}
+ body.touch #amm{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 104px);bottom:auto;text-align:right}
+ body.touch #amm b{font-size:34px}
+ body.touch #hp{width:calc(50vw - 36px)}
+}
 </style>
 </head>
 <body>
@@ -202,6 +216,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=11"></script>
+<script src="game.js?v=12"></script>
 </body>
 </html>

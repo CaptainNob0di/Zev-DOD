@@ -1114,6 +1114,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
   // Touch near a stick's home to grab it there; touch anywhere else on that side and the stick appears under your thumb.
   const zl = $('zl'), zr = $('zr'), R = 50, FR = 40;
   const home = (k) => { const W = innerWidth, H = innerHeight;
+    if (H > W) return k === 'mv' ? { x: 78, y: H - 104 } : k === 'lk' ? { x: W - 78, y: H - 104 } : { x: W - 78, y: H - 216 };   // portrait
     return k === 'mv' ? { x: 124, y: H - 150 } : k === 'lk' ? { x: W - 100, y: H - 118 } : { x: W - 100, y: H - 118 - 124 }; };
   const el = { mv: $('mvS'), lk: $('lkS'), fr: $('frS') }, S = {};
   const place = () => { for (const k in el) { const s0 = S[k], h = s0 || home(k); el[k].style.left = h.x + 'px'; el[k].style.top = h.y + 'px'; el[k].classList.toggle('on', !!s0); if (!s0) el[k].firstElementChild.style.transform = 'translate(-50%,-50%)'; } };
