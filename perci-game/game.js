@@ -248,21 +248,17 @@ function moveEnt(e, dx, dy) { const s = Math.max(1, Math.ceil(Math.max(Math.abs(
 /* ---------------- state ---------------- */
 let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = localStorage.getItem('ps_diff') || 'normal';
 let aimAssist = +(localStorage.getItem('ps_assist') || (TOUCH ? 3 : 2));   // 1 off, 2 light, 3 strong
-// FIRE MODE (phones): how you shoot, so moving and shooting never needs a third thumb
-//   auto    = (default) just move: the game aims (leading moving bots) and shoots any bot in range and in sight;
-//             no bot = no shot, so it never wastes battery. Push the aim stick to pick a different target.
-//   hold    = twin-stick: push the aim stick and you shoot while you aim (default); smart trigger: it only shoots
-//             when a bot is in your sights, so pushing the stick while you walk around never wastes battery
-//   release = Brawl Stars style: drag to aim (aim line shows), let go to shoot
-//   button  = the aim stick only aims; the FIRE button shoots
-// In hold and release, a quick TAP on the aim side fires at the best target (led for its movement).
-if (!localStorage.getItem('ps_firemode_v2')) { localStorage.setItem('ps_firemode_v2', '1'); localStorage.setItem('ps_firemode', 'auto'); }   // AUTO is the new phone default
+// PHONE CONTROLS: left stick moves, AIM stick (bottom right) only looks around (turns you and pans the camera),
+// FIRE stick (right above it) shoots. FIRE MODE:
+//   auto   = (default) also shoot the closest bot in range and in sight while you're NOT on the FIRE stick
+//            (aimed ahead of where it's running, stays locked on it); no bot = no shot, so no wasted battery
+//   manual = only the FIRE stick shoots
+if (!localStorage.getItem('ps_firemode_v3')) { localStorage.setItem('ps_firemode_v3', '1'); if (localStorage.getItem('ps_firemode') !== 'auto') localStorage.setItem('ps_firemode', localStorage.getItem('ps_firemode') ? 'manual' : 'auto'); }
 let fireMode = localStorage.getItem('ps_firemode') || 'auto';
-if (!['auto', 'hold', 'release', 'button'].includes(fireMode)) fireMode = 'auto';
-let autoFire = TOUCH && fireMode === 'auto';   // shoot the best bot while you're only moving
+if (!['auto', 'manual'].includes(fireMode)) fireMode = 'auto';
+let autoFire = TOUCH && fireMode === 'auto';
 function setFireMode(v) {
-  if (fireMode !== 'auto') localStorage.setItem('ps_firemode_last', fireMode);
-  fireMode = v; autoFire = TOUCH && v === 'auto'; localStorage.setItem('ps_firemode', v);
+  fireMode = v === 'auto' ? 'auto' : 'manual'; autoFire = TOUCH && fireMode === 'auto'; localStorage.setItem('ps_firemode', fireMode);
   if (typeof syncFireBtn === 'function') { syncFireBtn(); syncAutoBtn(); syncSettings(); }
 }
 const aimTap = { t0: 0, max: 0, quick: 0, shot: 0, shotA: 0 };   // tap / release-shot timers
@@ -613,12 +609,13 @@ function controlLocal(e, dt, shoot, ability) {
       if (e.yaw === undefined) e.yaw = e.a;
       let turn = 0;
       if (input.touchAim && input.touchAim.m > 0.12) turn += Math.sign(input.touchAim.dx) * Math.pow(Math.abs(input.touchAim.dx), 1.3) * 3.4;
+      if (input.touchFire && input.touchFire.m > 0.12) turn += Math.sign(input.touchFire.dx) * Math.pow(Math.abs(input.touchFire.dx), 1.3) * 3.4;   // FIRE stick also turns
       if (k.KeyQ || k.ArrowLeft) turn -= 2.4; if (k.KeyE || k.ArrowRight) turn += 2.4;
       if (!TOUCH && input.mouseSeen && document.pointerLockElement !== cvs) { const o = (input.mx - VW / 2) / (VW / 2); if (Math.abs(o) > 0.18) turn += Math.sign(o) * (Math.abs(o) - 0.18) * 3.6; }
       if (aimAssist > 1 && turn) { const pk = assistPick(e, e.yaw, 0.12); if (pk) turn *= aimAssist === 3 ? 0.5 : 0.7; }   // friction: slow down over a target
       e.yaw += turn * dt + fpLook * 0.0026; fpLook = 0; e.yaw = Math.atan2(Math.sin(e.yaw), Math.cos(e.yaw));
       // FIRE MODE AUTO in 1st person: when a bot is roughly in front of you, your view turns onto it (led for its movement)
-      if (TOUCH && fireMode !== 'button' && !turn) { const ft = autoTarget(e, e.yaw, 0.6); if (ft) { const L = leadPoint(e, ft, laserSpeed(e)); e.yaw += angDiff(Math.atan2(L.y - e.y, L.x - e.x), e.yaw) * Math.min(1, dt * 6); } }
+      if (TOUCH && autoFire && !turn) { const ft = autoTarget(e, e.yaw, 0.6); if (ft) { const L = leadPoint(e, ft, laserSpeed(e)); e.yaw += angDiff(Math.atan2(L.y - e.y, L.x - e.x), e.yaw) * Math.min(1, dt * 6); } }
       const fw = -my, rt = mx, cyw = Math.cos(e.yaw), syw = Math.sin(e.yaw); mx = cyw * fw - syw * rt; my = syw * fw + cyw * rt;
     }
     const spd = e.stats.speed * (e.fast > 0 ? 1.35 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 0.5 : 1) * worldSpeed(e);
@@ -632,16 +629,16 @@ function controlLocal(e, dt, shoot, ability) {
     e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
-    if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && fireMode !== 'button' && autoTarget(e, e.yaw, autoFire ? 0.6 : 0.35))); }
+    if (FP) { raw = e.yaw; firing = !!(input.mdown || input.touchFire || (TOUCH && autoFire && !(input.touchAim && input.touchAim.m > 0.12) && autoTarget(e, e.yaw, 0.6))); }
     let quick = null;   // FIRE with the aim stick let go: shoot the best bot, led for its movement (like a quick-fire tap)
     const aiming = !FP && input.touchAim && input.touchAim.m > 0.15;
-    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); if (autoFire) { const pk = assistPick(e, raw, 1.15); if (pk) { quick = pk.t; firing = true; } } firing = firing || (fireMode === 'hold' && input.touchAim.m > 0.3 && !!assistPick(e, raw, 0.35)); }   // smart trigger: HOLD only shoots when a bot is in your sights, so walking around never drains the battery
+    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); }   // the AIM stick only looks around; the FIRE stick shoots
     else if (FP) { /* set above */ }
     else if (TOUCH) {
       // AUTO lock: stay on the same bot while it's alive, in range and in sight (no flip-flopping between bots);
       // otherwise pick the closest one in range and in sight
       let t = null;
-      if (autoFire) {
+      if (autoFire && !input.touchAim) {   // looking around with the AIM stick pauses auto-shooting
         const L0 = e.autoLock;
         if (L0 && L0.dead <= 0 && L0.team !== e.team && dist(e, L0) <= e.stats.range && los(e, L0)) t = L0;
         else t = autoTarget(e);
@@ -649,13 +646,21 @@ function controlLocal(e, dt, shoot, ability) {
       }
       if (t) { quick = t; firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
     } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
-    // quick tap on the aim stick: shoot the best target for a moment; release mode: the shot you let go of
+    // quick tap on the FIRE stick: shoot the best target for a moment
     if (aimTap.quick > 0) { aimTap.quick -= dt; if (!FP && !aiming) { const t0 = autoTarget(e); if (t0) { quick = t0; firing = true; } } }   // no bot in range = no shot, no battery used
-    if (aimTap.shot > 0) { aimTap.shot -= dt; if (!aiming && !quick) { raw = aimTap.shotA; } firing = true; }
+    // FIRE joystick (phones): drag = shoot that way, snapping onto a bot near that direction; hold the middle = closest bot
+    const fs = !FP && input.touchFire;
+    if (fs) {
+      firing = true; quick = null;
+      if (fs.m > 0.15) {
+        raw = Math.atan2(fs.dy / TILT, fs.dx);
+        const pk = aimAssist > 1 ? assistPick(e, raw, aimAssist === 3 ? 0.55 : 0.35) : null; if (pk) quick = pk.t;
+      } else { const t0 = (e.autoLock && e.autoLock.dead <= 0 && dist(e, e.autoLock) <= e.stats.range && los(e, e.autoLock)) ? e.autoLock : autoTarget(e); if (t0) quick = t0; else firing = false; }
+    }
     if (input.fireBtn) { firing = true; if (!FP && !aiming) { const t0 = autoTarget(e); if (t0) quick = t0; } }
     if (quick) { const L = leadPoint(e, quick, laserSpeed(e)); raw = Math.atan2(L.y - e.y, L.x - e.x); }
     // smooth the stick a little so the aim never jitters or snaps (fast enough that it never feels laggy)
-    if (aiming && e.rawAim !== undefined) raw = e.rawAim + angDiff(raw, e.rawAim) * (1 - Math.exp(-dt * 28));
+    if ((aiming || (fs && fs.m > 0.15 && !quick)) && e.rawAim !== undefined) raw = e.rawAim + angDiff(raw, e.rawAim) * (1 - Math.exp(-dt * 28));
     e.rawAim = raw; e.a = raw; e.assistTarget = quick;
     if (!quick) { const as = assistAim(e, raw, aimAssist); e.a = as.a; e.assistTarget = as.t; }
     if (!G.story) {   // laser battery (quick match + online): every shot drains it, it recharges when you stop shooting
@@ -739,6 +744,10 @@ function cameraStep(dt) {
     if (foe) { fx += clamp((foe.x - p.x) * 0.32, -vw * 0.26, vw * 0.26); fy += clamp((foe.y - p.y) * TILT * 0.32, -vh * 0.22, vh * 0.22); }
     if (p.flash > 0 || p.cool > 0) { fx += Math.cos(p.a) * vw * 0.06; fy += Math.sin(p.a) * vh * 0.05; }
     fx = clamp(fx, -vw * 0.3, vw * 0.3); fy = clamp(fy, -vh * 0.24, vh * 0.24);
+  }
+  // phones: pushing the AIM stick looks that way (the camera slides ahead so you can see what's coming)
+  if (TOUCH && pov !== '1st' && p.dead <= 0 && input.touchAim && input.touchAim.m > 0.15) {
+    const ta = input.touchAim; fx = clamp(fx * 0.3 + ta.dx * vw * 0.36, -vw * 0.4, vw * 0.4); fy = clamp(fy * 0.3 + ta.dy * vh * 0.32, -vh * 0.34, vh * 0.34);
   }
   const co = G.camOff || (G.camOff = { x: 0, y: 0 }); const k0 = Math.min(1, dt * 3);
   co.x += (fx - co.x) * k0; co.y += (fy - co.y) * k0;
@@ -1039,7 +1048,7 @@ function drawTail(t) {
   drawScreenFx(t);
   if (G.dark < 0.5) { if (fpDrawing) fpArrows(); else drawArrows(); }
   drawMinimap();
-  if (!G.story && G.qbat !== undefined && TOUCH) { const fr0 = $('fireBtn').getBoundingClientRect(), fr = fr0.width ? fr0 : { left: VW - 96 - 38, width: 76, top: VH - 110 - 74 }, bw = 76, bx = fr.left + fr.width / 2 - bw / 2, by = fr.top - 12, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 12); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 6); ctx.font = '10px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER', bx + bw / 2, by - 6); }
+  if (!G.story && G.qbat !== undefined && TOUCH) { const fh = stickHome('fire'), fr = { left: fh.x - 38, width: 76, top: fh.y - FIRE_R - 8 }, bw = 76, bx = fr.left + fr.width / 2 - bw / 2, by = fr.top - 12, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 12); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 6); ctx.font = '10px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER', bx + bw / 2, by - 6); }
   else if (!G.story && G.qbat !== undefined) { const bw = 120, bx = VW - bw - 18, by = VH - 26, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 14); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 8); ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', bx + bw / 2, by - 6); }
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
   drawSticks();
@@ -1072,6 +1081,17 @@ function drawArrows() {
     const ex = clamp(VW / 2 + Math.cos(a) * VW, m, VW - m), ey = clamp(VH / 2 + Math.sin(a) * VH, m + 40, VH - m);
     ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.scale(k, k); ctx.globalAlpha = isN ? 1 : 0.7; ctx.fillStyle = isN ? '#ff3b55' : 'rgba(255,140,40,0.95)'; ctx.strokeStyle = '#100814'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-8, -9); ctx.lineTo(-4, 0); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     if (isN) { const dm = Math.round(Math.hypot(e.x - p.x, e.y - p.y) / 50); ctx.font = '12px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#100814'; ctx.fillStyle = '#fff'; const tx = clamp(ex - Math.cos(a) * 26, 20, VW - 20), ty = clamp(ey - Math.sin(a) * 26 + 4, 60, VH - 8); ctx.strokeText(dm + 'm', tx, ty); ctx.fillText(dm + 'm', tx, ty); }
+    ctx.globalAlpha = 1;
+  }
+  if (state !== 'play') return;
+  {   // FIRE joystick, right above the aim stick
+    const s = sticks.fire, h = stickHome('fire'), R = FIRE_R;
+    ctx.globalAlpha = s ? 0.95 : 0.6;
+    ctx.fillStyle = s ? 'rgba(255,59,85,0.35)' : 'rgba(10,6,20,0.45)'; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,59,85,0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.stroke();
+    const dx = s ? clamp(s.cx - s.x, -R + 4, R - 4) : 0, dy = s ? clamp(s.cy - s.y, -R + 4, R - 4) : 0;
+    ctx.fillStyle = s ? '#fff' : 'rgba(255,59,85,0.92)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 21, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = s ? '#c81e32' : '#fff'; ctx.font = '15px Anton, Impact'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FIRE', h.x + dx, h.y + dy + 1); ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;
   }
 }
@@ -1373,7 +1393,7 @@ $('bSubmit').onclick = submitScore; $('bShare').onclick = share;
 $('muteBtn').onclick = () => { muted = !muted; localStorage.setItem('ps_muted', muted ? '1' : '0'); $('muteBtn').textContent = muted ? '🔇' : '🔊'; };
 $('muteBtn').textContent = muted ? '🔇' : '🔊';
 function syncAutoBtn() { const b = $('autoBtn'); if (!b) return; b.textContent = 'AUTO ' + (autoFire ? 'ON' : 'OFF'); b.classList.toggle('on', autoFire); }
-if ($('autoBtn')) $('autoBtn').onclick = () => setFireMode(fireMode === 'auto' ? (localStorage.getItem('ps_firemode_last') || 'hold') : 'auto');
+if ($('autoBtn')) $('autoBtn').onclick = () => setFireMode(fireMode === 'auto' ? 'manual' : 'auto');
 function togglePause() { if (MP.on) { if (state === 'play') mpQuitTap(); return; } if (state === 'play') { state = 'paused'; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); } else if (state === 'paused') { state = 'play'; } }
 $('pauseBtn').onclick = togglePause;
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !MP.on) state = 'paused'; });
@@ -1395,7 +1415,7 @@ function syncSettings() {
 }
 document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
 document.querySelectorAll('#setFireMode button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === fireMode); b.onclick = () => setFireMode(b.dataset.v); });
-function syncFireBtn() { document.body.classList.toggle('stickfire', fireMode !== 'button'); }   // FIRE button only in BUTTON mode (1st person shoots automatically too)
+function syncFireBtn() { document.body.classList.add('stickfire'); }   // the red FIRE button is replaced by the FIRE joystick above the aim stick
 syncFireBtn();
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
@@ -1413,15 +1433,20 @@ $('abBtn').addEventListener('click', () => { input.ability = true; });
 })();
 // twin sticks: fixed home spots that follow your thumb
 const sticks = {};
-const stickHome = (side) => side === 'move' ? { x: 96, y: VH - 110 } : { x: VW - 96, y: VH - 110 };
+const stickHome = (side) => side === 'move' ? { x: 96, y: VH - 110 } : side === 'fire' ? { x: VW - 96, y: VH - 110 - FIRE_GAP } : { x: VW - 96, y: VH - 110 };
+// FIRE joystick: sits right above the aim stick. Drag it to shoot that way (snaps onto a bot near that direction,
+// aimed ahead of where it's running); press and hold the middle to shoot the closest bot; quick tap = short burst.
+const FIRE_R = 46, FIRE_GAP = 128;
+const fireZone = (x, y) => { const f = stickHome('fire'), a = stickHome('aim'), df = Math.hypot(x - f.x, y - f.y); return df < FIRE_R + 26 && df < Math.hypot(x - a.x, y - a.y); };
+const fireTap = { t0: 0, max: 0 };
 // radial dead zone, rescaled so the stick responds as soon as you leave it (no jump at the edge of the dead zone)
 function stickFrom(t, s) { const dx = t.clientX - s.x, dy = t.clientY - s.y, raw = Math.min(1, Math.hypot(dx, dy) / 56), m = raw < 0.14 ? 0 : (raw - 0.14) / 0.86, a = Math.atan2(dy, dx); return { dx: Math.cos(a) * m, dy: Math.sin(a) * m, m }; }
 cvs.addEventListener('touchstart', (e) => {
   e.preventDefault(); if (state === 'paused') { state = 'play'; return; }
-  for (const t of e.changedTouches) { const side = t.clientX < VW / 2 ? 'move' : 'aim'; if (!sticks[side]) { const near = Math.hypot(t.clientX - stickHome(side).x, t.clientY - stickHome(side).y) < 90; const o = near ? stickHome(side) : { x: t.clientX, y: t.clientY }; sticks[side] = { id: t.identifier, x: o.x, y: o.y, cx: t.clientX, cy: t.clientY }; const v = stickFrom(t, sticks[side]); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.t0 = performance.now(); aimTap.max = v.m; } } }
+  for (const t of e.changedTouches) { if (t.clientX >= VW / 2 && !sticks.fire && fireZone(t.clientX, t.clientY)) { const f = stickHome('fire'); sticks.fire = { id: t.identifier, x: f.x, y: f.y, cx: t.clientX, cy: t.clientY }; input.touchFire = stickFrom(t, sticks.fire); fireTap.t0 = performance.now(); fireTap.max = input.touchFire.m; continue; } const side = t.clientX < VW / 2 ? 'move' : 'aim'; if (!sticks[side]) { const near = Math.hypot(t.clientX - stickHome(side).x, t.clientY - stickHome(side).y) < 90; const o = near ? stickHome(side) : { x: t.clientX, y: t.clientY }; sticks[side] = { id: t.identifier, x: o.x, y: o.y, cx: t.clientX, cy: t.clientY }; const v = stickFrom(t, sticks[side]); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.t0 = performance.now(); aimTap.max = v.m; } } }
 }, { passive: false });
 const aimHist = [];   // recent aim-stick readings: [time, reading]
-cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.max = Math.max(aimTap.max, v.m); aimHist.push([performance.now(), v]); if (aimHist.length > 12) aimHist.shift(); } } } }, { passive: false });
+cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) { const sf = sticks.fire; if (sf && sf.id === t.identifier) { sf.cx = t.clientX; sf.cy = t.clientY; input.touchFire = stickFrom(t, sf); fireTap.max = Math.max(fireTap.max, input.touchFire.m); } } for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.max = Math.max(aimTap.max, v.m); aimHist.push([performance.now(), v]); if (aimHist.length > 12) aimHist.shift(); } } } }, { passive: false });
 // letting go of the aim stick: thumbs slide as they lift, so if the last moment swung the aim (more than ~25 degrees),
 // go back to the steady direction from before the final 120 ms
 function settleAim() {
@@ -1432,14 +1457,9 @@ function settleAim() {
   const a0 = Math.atan2(steady[1].dy / TILT, steady[1].dx), a1 = Math.atan2(last[1].dy / TILT, last[1].dx);
   if (Math.abs(angDiff(a1, a0)) > 0.45) { p.rawAim = a0; p.a = a0; }
 }
-const tend = (e) => { for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else { settleAim(); input.touchAim = null; aimLift(); } } } };
+const tend = (e) => { for (const t of e.changedTouches) { const sf = sticks.fire; if (sf && sf.id === t.identifier) { delete sticks.fire; input.touchFire = null; if (state === 'play' && performance.now() - fireTap.t0 < 220 && fireTap.max < 0.4) aimTap.quick = Math.max(aimTap.quick, 0.28); } } for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else { settleAim(); input.touchAim = null; aimLift(); } } } };
 // what lifting the aim thumb does: a short tap fires at the best target; in RELEASE mode a drag fires where you aimed
-function aimLift() {
-  if (fireMode === 'button' || state !== 'play' || pov === '1st') return;
-  const held = performance.now() - aimTap.t0, p = G && G.player;
-  if (held < 220 && aimTap.max < 0.4) { aimTap.quick = 0.28; return; }
-  if (fireMode === 'release' && p && aimTap.max >= 0.3) { aimTap.shot = 0.18; aimTap.shotA = p.rawAim !== undefined ? p.rawAim : p.a; }
-}
+function aimLift() {}   // the AIM stick only looks around now (taps and quick bursts live on the FIRE stick)
 cvs.addEventListener('touchend', tend); cvs.addEventListener('touchcancel', tend);
 function drawSticks() {
   if (!TOUCH) return;
@@ -2885,7 +2905,7 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { leadPoint, assistAim, aimTap, aimLift, get fireMode() { return fireMode; }, setFireMode, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { leadPoint, assistAim, stickHome, get sticks() { return sticks; }, aimTap, aimLift, get fireMode() { return fireMode; }, setFireMode, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 
 /* =====================================================================================================
    NIGHT TRIAL (story mode 2): one night in Lincoln, 7 PM to 7 AM. Somnus Civic runs a city-wide sleep experiment.
@@ -3329,7 +3349,7 @@ const COIN = (() => {
     $('pmResume').onclick = resume;
     $('pmSound').onclick = () => { $('muteBtn').onclick(); sync(); };
     $('pmAim').onclick = () => { aimAssist = aimAssist >= 3 ? 1 : aimAssist + 1; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); sync(); };
-    $('pmAuto').onclick = () => { setFireMode(fireMode === 'auto' ? (localStorage.getItem('ps_firemode_last') || 'hold') : 'auto'); sync(); };
+    $('pmAuto').onclick = () => { setFireMode(fireMode === 'auto' ? 'manual' : 'auto'); sync(); };
     $('pmPov').onclick = () => { setPov(pov === '1st' ? '3rd' : '1st'); sync(); };
     $('pmCam').onclick = () => { camMode = camMode === 'lead' ? 'center' : 'lead'; localStorage.setItem('ps_cam', camMode); sync(); };
     $('pmQuit').onclick = quit;

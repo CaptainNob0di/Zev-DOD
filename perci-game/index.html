@@ -8,7 +8,7 @@
    build number (never cached); if this page is older, reload it once with the new number so the new code loads.
    When you ship an update, bump BUILD here AND in version.json (and the ?v= on game.js / arenas.js). */
 (function () {
-  var BUILD = '14e';
+  var BUILD = '14g';
   try {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
       if (!v || !v.build || v.build === BUILD) return;
@@ -163,6 +163,7 @@ body.mp #autoBtn{right:calc(114px + env(safe-area-inset-right))}
 #me{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));font-size:13px;font-weight:700;background:#000a;padding:6px 10px;border-radius:10px}
 #feed{position:absolute;top:calc(58px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));font-size:13px;text-align:right;max-width:46vw}
 #feed div{background:#000a;margin:3px 0;padding:3px 8px;border-radius:8px;animation:fade 3.5s forwards}
+@media (pointer:coarse) and (max-height:460px){#feed div:nth-child(n+3){display:none}}
 @keyframes fade{0%,80%{opacity:1}100%{opacity:0}}
 #abil{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-family:Anton;font-size:16px;background:#000a;padding:4px 14px;border-radius:10px;white-space:nowrap}
 #banner{position:absolute;top:34%;left:0;right:0;text-align:center;font-family:Anton;font-size:clamp(32px,8vw,64px);color:var(--gold);text-shadow:4px 4px 0 var(--ink);opacity:0;transition:opacity .2s,transform .15s}
@@ -315,7 +316,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <img class="title-img" src="assets/title.png" alt="Perci Shorti">
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
-  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14e</div>
+  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14g</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
   <button class="btn story" id="bStory">STORY MODE</button>
   <button class="btn" id="bPlay">QUICK MATCH</button>
@@ -453,14 +454,14 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <div class="row diff" id="setAssist"><button data-v="1">OFF</button><button data-v="2">LIGHT</button><button data-v="3">STRONG</button></div>
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
     <div class="lab">FIRE MODE (PHONES)</div>
-    <div class="row diff" id="setFireMode"><button data-v="auto">AUTO</button><button data-v="hold">HOLD</button><button data-v="release">RELEASE</button><button data-v="button">BUTTON</button></div>
-    <p class="muted" style="margin:6px 0 14px">AUTO (best): you shoot any bot in range and in sight while you move, aimed ahead of where it's running, and stay locked on it until it's tagged. Push the right stick toward a different bot to switch to it (it fires as soon as one is roughly that way). HOLD: push the aim stick to shoot (only fires with a bot in your sights). RELEASE: drag to aim, let go to shoot. BUTTON: the old red FIRE button. The FIRE button only shows in BUTTON mode; 1st person shoots bots in front of you automatically.</p>
+    <div class="row diff" id="setFireMode"><button data-v="auto">AUTO</button><button data-v="manual">MANUAL</button></div>
+    <p class="muted" style="margin:6px 0 14px">Phone controls: left stick moves, the yellow AIM stick only looks around (turns you and slides the camera that way), and the red FIRE stick right above it shoots. Drag FIRE toward a bot to shoot that way (it snaps on and aims ahead of where the bot is running), hold its middle to shoot the closest bot, tap for a quick burst. AUTO: you also shoot the closest bot in sight while you're off the FIRE stick (no bot = no shot, no wasted battery). MANUAL: only the FIRE stick shoots.</p>
     <div class="lab">MATURE CONTENT (STORY MODE)</div>
     <div class="row diff matSet"><button data-v="1">ON</button><button data-v="0">OFF</button></div>
     <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
   </div>
   <div class="panel how">
-    <p><b>Phone:</b> left thumb moves &bull; you shoot automatically at bots in sight while you move, right thumb picks a target (change it in SETTINGS &gt; FIRE MODE) &bull; yellow button = your power.</p>
+    <p><b>Phone:</b> left thumb moves &bull; yellow AIM stick looks around &bull; red FIRE stick above it shoots &bull; yellow button = your power.</p>
     <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
   </div>
   <button class="btn" id="bBack5">DONE</button>
@@ -471,7 +472,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <h2>HOW TO PLAY</h2>
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves and you shoot automatically at any bot in sight (FIRE MODE: AUTO); push the right stick to pick a target. Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves, yellow AIM stick looks around, red FIRE stick above it shoots (drag toward a bot, or hold the middle for the closest one). Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
     <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power, <b>1-4</b> to use items, <b>P</b> pauses.</p>
     <p><b>Maps:</b> every match builds a brand-new arena (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn, Dream Grid, School Gym), so no two games play the same.</p>
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
@@ -537,7 +538,7 @@ const LEADERBOARD = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', anonKey: 
 const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
-<script src="arenas.js?v=14e"></script>
-<script src="game.js?v=14e"></script>
+<script src="arenas.js?v=14g"></script>
+<script src="game.js?v=14g"></script>
 </body>
 </html>

@@ -25,14 +25,15 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   Dashed aim line stops at walls; a ring shows the lead point when locked on. On phones the camera can scroll past
   map edges so you're never under the sticks/buttons. Bench (strafing bot, simulated thumb):
   Strong 3-12% -> 85-97% hits, Light 0-9% -> 32-50%. Online guests' lasers don't curve (host-side only).
-- **FIRE MODE (V14, phones, SETTINGS):** moving and shooting never needs a third thumb.
-  **AUTO** (default, also the HUD AUTO button): just move with the left thumb; you shoot any bot in range and in
-  sight, aimed ahead of where it's running, and stay locked on it until it's tagged, out of range or out of
-  sight (no flip-flopping). Push the right stick roughly toward another bot (within ~65 degrees) to switch to it
-  and fire. No bot = no shot, so it never wastes battery. **HOLD**: push the aim stick to shoot, smart trigger
-  only fires with a bot in your sights. **RELEASE**: drag to aim, let go to shoot. **BUTTON**: the old red FIRE
-  button. The FIRE button only shows in BUTTON mode, in every view; 1st person turns onto and shoots bots in
-  front of you automatically. A quick tap on the right side fires at the closest bot. (Replaces AUTO FIRE.)
+- **Phone controls (V14g):** left stick moves. Yellow **AIM** stick (bottom right) only looks around: it turns
+  you and slides the camera that way so you can see what's coming while you move; it never shoots. Red **FIRE**
+  joystick right above it shoots: drag toward a bot (snaps onto bots near that direction, aimed ahead of where
+  they're running), hold its middle to shoot the closest bot, tap for a quick burst. Battery bar sits above it.
+  **FIRE MODE** (SETTINGS, or the HUD AUTO button): **AUTO** (default) also shoots the closest bot in range and
+  sight while you're off the FIRE stick and not looking around (locks on until it's tagged; no bot = no shot,
+  no wasted battery); **MANUAL** = only the FIRE stick shoots. The old red FIRE button is gone. 1st person: AIM
+  turns, FIRE stick shoots straight ahead (and also turns). Kill feed shows 2 lines on landscape phones so it
+  never covers the FIRE stick.
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
 - **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
