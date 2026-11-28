@@ -30,7 +30,7 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   sights (green aim line), so roaming the map never drains the laser battery. **RELEASE**: drag to aim, let go
   to shoot (Brawl Stars style). **BUTTON**: old layout, the aim stick only aims and FIRE shoots. In HOLD and
   RELEASE the FIRE button is hidden and a quick tap on the right side fires at the closest bot (no bot in
-  range = no shot). 1st person always keeps the FIRE button. Test: tests/test_firemode.py.
+  range = no shot). 1st person always keeps the FIRE button.
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
 - **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",
