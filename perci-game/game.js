@@ -250,6 +250,7 @@ let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = lo
 if (!localStorage.getItem('ps_auto_v2')) { localStorage.setItem('ps_auto_v2', '1'); localStorage.setItem('ps_auto', '0'); }   // FIRE button now exists: auto-fire starts OFF for everyone
 let autoFire = TOUCH && localStorage.getItem('ps_auto') === '1';
 let aimAssist = +(localStorage.getItem('ps_assist') || (TOUCH ? 3 : 2));   // 1 off, 2 light, 3 strong
+let aimStickFires = localStorage.getItem('ps_aimfire') === '1';   // classic twin-stick: push the aim stick far to shoot (FIRE button still works)
 let G = null;
 const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim: null, ability: false, coverL: false, coverR: false };
 
@@ -300,7 +301,8 @@ function fire(e, ang) {
   for (let i = 0; i < n; i++) {   // the Scatter Gun fires a fan of lasers
     const spread = (Math.random() - 0.5) * 2 * (s.spread + (e.human ? 0 : e.kind === 'bot' ? DIFF[diff].acc : DIFF[diff].mate));
     const a = ang + spread + (n > 1 ? (i / (n - 1) - 0.5) * (s.cone || 0) : 0);
-    G.bullets.push({ x: e.x + Math.cos(a) * (e.r + 14), y: e.y + Math.sin(a) * (e.r + 14), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, owner: e, team: e.team, dmg: s.dmg, col: s.shot, bounce: (+s.bounce || 0) + (isReal() ? 1 : 0), beam, age: 0 });
+    G.bullets.push({ x: e.x + Math.cos(a) * (e.r + 14), y: e.y + Math.sin(a) * (e.r + 14), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, owner: e, team: e.team, dmg: s.dmg, col: s.shot, bounce: (+s.bounce || 0) + (isReal() ? 1 : 0), beam, age: 0,
+      home: e.isPlayer && aimAssist > 1 && e.assistTarget ? e.assistTarget : null, homeRate: aimAssist === 3 ? 1.6 : 0.8, pad: e.human ? 8 : 4 });
   }
   e.shots++; e.flash = 0.06;
   if (e.isPlayer) (beam ? SFX.beam : SFX.pew)();
@@ -518,6 +520,60 @@ function autoTarget(p, coneDir, coneLimit) {
   return best;
 }
 
+function drawAimLine(t) {
+  const p = G.player; if (!p || p.dead > 0 || pov === '1st') return;
+  const active = (input.touchAim && input.touchAim.m > 0.15) || input.fireBtn || (!TOUCH && input.mouseSeen);
+  if (!active) return;
+  const len = p.stats.range * 0.92, x0 = p.x + Math.cos(p.a) * (p.r + 10), y0 = p.y + Math.sin(p.a) * (p.r + 10);
+  let ex = x0, ey = y0;   // stop the line at the first wall
+  for (let d = 0; d < len; d += 18) { const x = x0 + Math.cos(p.a) * d, y = y0 + Math.sin(p.a) * d; if (WALLS.some((w) => x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h)) break; ex = x; ey = y; }
+  const lock = !!(p.assistTarget && p.assistTarget.dead <= 0);
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = lock ? 'rgba(77,255,190,0.75)' : 'rgba(255,214,10,0.6)'; ctx.lineWidth = 3; ctx.setLineDash([10, 9]); ctx.lineDashOffset = -t * 60;
+  ctx.beginPath(); ctx.moveTo(x0, y0 * TILT - LASER_Z); ctx.lineTo(ex, ey * TILT - LASER_Z); ctx.stroke();
+  ctx.setLineDash([]); ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(ex, ey * TILT - LASER_Z, 4, 0, Math.PI * 2); ctx.fill();
+  if (lock) { const L = leadPoint(p, p.assistTarget, laserSpeed(p)); ctx.strokeStyle = 'rgba(77,255,190,0.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.x, L.y * TILT - LASER_Z, 9, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* ---------------- aiming helpers ----------------
+   Lasers are slow enough that a moving bot walks out of the shot, so the assist aims at where the bot will be
+   (intercept point), pulls your aim smoothly toward it (never a snap, and it fades out at the edge of the cone),
+   and your own lasers curve a little toward the bot you were aiming at. */
+const laserSpeed = (e) => ((e.stats.beam !== undefined ? e.stats.beam : e.kind === 'chatgpt') ? 1500 : 950);
+function leadPoint(p, t, speed) {
+  const dx = t.x - p.x, dy = t.y - p.y, vx = t.svx || t.vx || 0, vy = t.svy || t.vy || 0;
+  const a = vx * vx + vy * vy - speed * speed, b = 2 * (dx * vx + dy * vy), c = dx * dx + dy * dy;
+  let tt = Math.sqrt(c) / speed;
+  if (Math.abs(a) > 1e-6) { const disc = b * b - 4 * a * c; if (disc >= 0) { const q = Math.sqrt(disc), r1 = (-b - q) / (2 * a), r2 = (-b + q) / (2 * a); const r = Math.min(r1, r2) > 0 ? Math.min(r1, r2) : Math.max(r1, r2); if (r > 0) tt = r; } }
+  tt = Math.min(tt, 1.0);
+  return { x: t.x + vx * tt, y: t.y + vy * tt };
+}
+const angDiff = (a, b) => ((a - b + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+// the best bot to help with: inside the cone around your aim, closest in angle and distance, visible
+function assistPick(p, dir, cone) {
+  let best = null, bs = 1e9, bAng = 0;
+  for (const e of G.ents) {
+    if (e.team === p.team || e.dead > 0) continue;
+    const d = dist(p, e); if (d > p.stats.range * 1.05) continue;
+    const L = leadPoint(p, e, laserSpeed(p)), ang = Math.atan2(L.y - p.y, L.x - p.x), da = Math.abs(angDiff(ang, dir));
+    const width = cone + Math.atan2(e.r, Math.max(d, 1));   // close bots are bigger targets
+    if (da > width) continue; if (!los(p, e)) continue;
+    const sc = da / width + d / 2400;
+    if (sc < bs) { bs = sc; best = e; bAng = ang; }
+  }
+  return best ? { t: best, ang: bAng } : null;
+}
+// how much of the way toward the bot the assist pulls: full near the middle, nothing at the edge of the cone
+function assistAim(p, raw, level) {
+  if (level <= 1) return { a: raw, t: null };
+  const cone = level === 3 ? 0.42 : 0.24, maxPull = level === 3 ? 0.9 : 0.6;
+  const pk = assistPick(p, raw, cone); if (!pk) return { a: raw, t: null };
+  const off = angDiff(pk.ang, raw), width = cone + Math.atan2(pk.t.r, Math.max(dist(p, pk.t), 1));
+  const k = maxPull * (1 - Math.pow(Math.min(1, Math.abs(off) / width), 2));
+  return { a: raw + off * k, t: pk.t };
+}
+
 /* ---------------- local player control (solo, host and online guests) ---------------- */
 function seekCover(e, side) {
   let best = null, bd = 230;
@@ -544,6 +600,7 @@ function controlLocal(e, dt, shoot, ability) {
       if (input.touchAim && input.touchAim.m > 0.12) turn += Math.sign(input.touchAim.dx) * Math.pow(Math.abs(input.touchAim.dx), 1.3) * 3.4;
       if (k.KeyQ || k.ArrowLeft) turn -= 2.4; if (k.KeyE || k.ArrowRight) turn += 2.4;
       if (!TOUCH && input.mouseSeen && document.pointerLockElement !== cvs) { const o = (input.mx - VW / 2) / (VW / 2); if (Math.abs(o) > 0.18) turn += Math.sign(o) * (Math.abs(o) - 0.18) * 3.6; }
+      if (aimAssist > 1 && turn) { const pk = assistPick(e, e.yaw, 0.12); if (pk) turn *= aimAssist === 3 ? 0.5 : 0.7; }   // friction: slow down over a target
       e.yaw += turn * dt + fpLook * 0.0026; fpLook = 0; e.yaw = Math.atan2(Math.sin(e.yaw), Math.cos(e.yaw));
       const fw = -my, rt = mx, cyw = Math.cos(e.yaw), syw = Math.sin(e.yaw); mx = cyw * fw - syw * rt; my = syw * fw + cyw * rt;
     }
@@ -559,17 +616,20 @@ function controlLocal(e, dt, shoot, ability) {
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
     if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.4))); }
-    else if (input.touchAim && input.touchAim.m > 0.25) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && autoTarget(e, raw, 0.4)); }
+    let quick = null;   // FIRE with the aim stick let go: shoot the best bot, led for its movement (like a quick-fire tap)
+    const aiming = !FP && input.touchAim && input.touchAim.m > 0.15;
+    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && assistPick(e, raw, 0.4)) || (aimStickFires && input.touchAim.m > 0.55); }
+    else if (FP) { /* set above */ }
     else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
-      if (t) { raw = Math.atan2(t.y - e.y, t.x - e.x); firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
+      if (t) { quick = t; firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
     } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
-    if (input.fireBtn) { firing = true; if (!FP && !(input.touchAim && input.touchAim.m > 0.25)) { const t0 = autoTarget(e); if (t0) raw = Math.atan2(t0.y - e.y, t0.x - e.x); } }
-    e.rawAim = raw; e.a = raw; e.assistTarget = null;
-    if (aimAssist > 1) {
-      const cone = aimAssist === 3 ? 0.48 : 0.28, t = autoTarget(e, raw, cone);
-      if (t) { const off = ((Math.atan2(t.y - e.y, t.x - e.x) - raw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; e.a = raw + off * (aimAssist === 3 ? 0.85 : 0.55); e.assistTarget = t; }
-    }
+    if (input.fireBtn) { firing = true; if (!FP && !aiming) { const t0 = autoTarget(e); if (t0) quick = t0; } }
+    if (quick) { const L = leadPoint(e, quick, laserSpeed(e)); raw = Math.atan2(L.y - e.y, L.x - e.x); }
+    // smooth the stick a little so the aim never jitters or snaps (fast enough that it never feels laggy)
+    if (aiming && e.rawAim !== undefined) raw = e.rawAim + angDiff(raw, e.rawAim) * (1 - Math.exp(-dt * 28));
+    e.rawAim = raw; e.a = raw; e.assistTarget = quick;
+    if (!quick) { const as = assistAim(e, raw, aimAssist); e.a = as.a; e.assistTarget = as.t; }
     if (!G.story) {   // laser battery (quick match + online): every shot drains it, it recharges when you stop shooting
       G.qbat = G.qbat === undefined ? 100 : G.qbat; G.qIdle = (G.qIdle || 0) + dt; G.qMsg = Math.max(0, (G.qMsg || 0) - dt);
       if (G.qLock && G.qbat >= 25) G.qLock = false;
@@ -592,6 +652,7 @@ function update(dt) {
   if (!G.story && G.pushWin) return endMatch();
   const p = G.player;
   for (const e of G.ents) {
+    e.svx = (e.svx || 0) + ((e.vx || 0) - (e.svx || 0)) * Math.min(1, dt * 10); e.svy = (e.svy || 0) + ((e.vy || 0) - (e.svy || 0)) * Math.min(1, dt * 10);
     e.cool = Math.max(0, e.cool - dt); e.abilityCd = Math.max(0, e.abilityCd - dt); e.rapid = Math.max(0, e.rapid - dt); e.shield = Math.max(0, e.shield - dt); e.frozen = Math.max(0, e.frozen - dt); e.fast = Math.max(0, e.fast - dt); e.flash = Math.max(0, e.flash - dt); e.hurt = Math.max(0, e.hurt - dt);
     if (e.dead > 0) { e.dead -= dt; if (e.dead <= 0) { e.hp = e.maxhp; e.x = e.spawn.x; e.y = e.spawn.y; e.tx = undefined; e.coverGoal = null; e.life++; e.shield = 1.5 + (e.spawnShield || 0); e.ai.path = []; G.rings.push({ x: e.x, y: e.y, r: 6, life: 0.4, col: '#ffffff' }); } continue; }
     if (e.frozen > 0) continue;
@@ -602,6 +663,10 @@ function update(dt) {
   // bullets
   for (const b of G.bullets) {
     b.age += dt; const steps = 3;
+    if (b.home && b.home.dead <= 0) {   // bullet magnetism: curve gently toward the bot you were aiming at, only if it's still roughly ahead
+      const want = Math.atan2(b.home.y - b.y, b.home.x - b.x), cur = Math.atan2(b.vy, b.vx), off = angDiff(want, cur);
+      if (Math.abs(off) < 0.5) { const turn = clamp(off, -b.homeRate * dt, b.homeRate * dt), sp = Math.hypot(b.vx, b.vy); b.vx = Math.cos(cur + turn) * sp; b.vy = Math.sin(cur + turn) * sp; } else b.home = null;
+    }
     for (let s = 0; s < steps && b.life > 0; s++) {
       const nx = b.x + (b.vx * dt) / steps, ny = b.y + (b.vy * dt) / steps;
       let wall = null; for (const w of WALLS) if (nx > w.x && nx < w.x + w.w && ny > w.y && ny < w.y + w.h) { wall = w; break; }
@@ -611,7 +676,7 @@ function update(dt) {
         break;
       }
       b.x = nx; b.y = ny;
-      for (const e of G.ents) { if (e.team === b.team || e.dead > 0) continue; if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 4) ** 2) { hitEnt(e, b); b.life = 0; break; } }
+      for (const e of G.ents) { if (e.team === b.team || e.dead > 0) continue; if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + (b.pad || 4)) ** 2) { hitEnt(e, b); b.life = 0; break; } }
     }
     b.life -= dt;
   }
@@ -649,7 +714,9 @@ function cameraStep(dt) {
   }
   const co = G.camOff || (G.camOff = { x: 0, y: 0 }); const k0 = Math.min(1, dt * 3);
   co.x += (fx - co.x) * k0; co.y += (fy - co.y) * k0;
-  const tx = clamp(p.x + co.x - vw / 2, -80, WORLD.w - vw + 80), ty = clamp(p.y * TILT - 40 + co.y - vh / 2, -140, fh - vh + 80);
+  // phones: the sticks and buttons cover the screen edges, so the camera may scroll past the map edge to keep you clear of them
+  const mx = TOUCH ? Math.max(80, vw * 0.3) : 80, myT = TOUCH ? Math.max(140, vh * 0.22) : 140, myB = TOUCH ? Math.max(80, vh * 0.3) : 80;
+  const tx = clamp(p.x + co.x - vw / 2, -mx, WORLD.w - vw + mx), ty = clamp(p.y * TILT - 40 + co.y - vh / 2, -myT, fh - vh + myB);
   G.cam.x += ((vw > WORLD.w + 160 ? (WORLD.w - vw) / 2 : tx) - G.cam.x) * Math.min(1, dt * 8);
   G.cam.y += ((vh > fh + 220 ? (fh - vh) / 2 - 40 : ty) - G.cam.y) * Math.min(1, dt * 8);
 }
@@ -910,6 +977,7 @@ function drawWorld(t) {
   items.sort((a, b) => a[0] - b[0]);
   for (const [, kind, o] of items) { if (kind === 0) drawWall(o, t); else if (kind === 1) drawPickupIcon(o, t); else drawEnt(o, t); }
   drawMarkers(t);
+  drawAimLine(t);
   const at = G.player.assistTarget;
   if (G.player.dead <= 0 && at && at.dead <= 0) {
     const x = at.x, y = at.y * TILT - LASER_Z; ctx.strokeStyle = 'rgba(77,255,190,0.85)'; ctx.lineWidth = 2;
@@ -1297,6 +1365,7 @@ function syncSettings() {
   document.querySelectorAll('#setAuto button').forEach((b) => b.classList.toggle('sel', (b.dataset.v === '1') === autoFire));
 }
 document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
+document.querySelectorAll('#setAimFire button').forEach((b) => { b.classList.toggle('sel', (b.dataset.v === '1') === aimStickFires); b.onclick = () => { aimStickFires = b.dataset.v === '1'; localStorage.setItem('ps_aimfire', aimStickFires ? '1' : '0'); document.querySelectorAll('#setAimFire button').forEach((x) => x.classList.toggle('sel', x === b)); }; });
 document.querySelectorAll('#setAuto button').forEach((b) => (b.onclick = () => { autoFire = b.dataset.v === '1'; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); }));
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
@@ -1315,13 +1384,25 @@ $('abBtn').addEventListener('click', () => { input.ability = true; });
 // twin sticks: fixed home spots that follow your thumb
 const sticks = {};
 const stickHome = (side) => side === 'move' ? { x: 96, y: VH - 110 } : { x: VW - 96, y: VH - 110 };
-function stickFrom(t, s) { const dx = t.clientX - s.x, dy = t.clientY - s.y, m = Math.min(1, Math.hypot(dx, dy) / 56), a = Math.atan2(dy, dx); return { dx: Math.cos(a) * m, dy: Math.sin(a) * m, m }; }
+// radial dead zone, rescaled so the stick responds as soon as you leave it (no jump at the edge of the dead zone)
+function stickFrom(t, s) { const dx = t.clientX - s.x, dy = t.clientY - s.y, raw = Math.min(1, Math.hypot(dx, dy) / 56), m = raw < 0.14 ? 0 : (raw - 0.14) / 0.86, a = Math.atan2(dy, dx); return { dx: Math.cos(a) * m, dy: Math.sin(a) * m, m }; }
 cvs.addEventListener('touchstart', (e) => {
   e.preventDefault(); if (state === 'paused') { state = 'play'; return; }
   for (const t of e.changedTouches) { const side = t.clientX < VW / 2 ? 'move' : 'aim'; if (!sticks[side]) { const near = Math.hypot(t.clientX - stickHome(side).x, t.clientY - stickHome(side).y) < 90; const o = near ? stickHome(side) : { x: t.clientX, y: t.clientY }; sticks[side] = { id: t.identifier, x: o.x, y: o.y, cx: t.clientX, cy: t.clientY }; const v = stickFrom(t, sticks[side]); if (side === 'move') input.touchMove = v; else input.touchAim = v; } }
 }, { passive: false });
-cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else input.touchAim = v; } } }, { passive: false });
-const tend = (e) => { for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else input.touchAim = null; } } };
+const aimHist = [];   // recent aim-stick readings: [time, reading]
+cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimHist.push([performance.now(), v]); if (aimHist.length > 12) aimHist.shift(); } } } }, { passive: false });
+// letting go of the aim stick: thumbs slide as they lift, so if the last moment swung the aim (more than ~25 degrees),
+// go back to the steady direction from before the final 120 ms
+function settleAim() {
+  const p = G && G.player, now = performance.now();
+  const steady = aimHist.filter(([t]) => now - t > 120).pop(), last = aimHist[aimHist.length - 1];
+  aimHist.length = 0;
+  if (!p || !steady || !last || steady[1].m < 0.15) return;
+  const a0 = Math.atan2(steady[1].dy / TILT, steady[1].dx), a1 = Math.atan2(last[1].dy / TILT, last[1].dx);
+  if (Math.abs(angDiff(a1, a0)) > 0.45) { p.rawAim = a0; p.a = a0; }
+}
+const tend = (e) => { for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else { settleAim(); input.touchAim = null; } } } };
 cvs.addEventListener('touchend', tend); cvs.addEventListener('touchcancel', tend);
 function drawSticks() {
   if (!TOUCH) return;
@@ -2767,7 +2848,7 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { leadPoint, assistAim, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 
 /* =====================================================================================================
    NIGHT TRIAL (story mode 2): one night in Lincoln, 7 PM to 7 AM. Somnus Civic runs a city-wide sleep experiment.
