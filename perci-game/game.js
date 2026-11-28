@@ -617,6 +617,8 @@ function controlLocal(e, dt, shoot, ability) {
       if (!TOUCH && input.mouseSeen && document.pointerLockElement !== cvs) { const o = (input.mx - VW / 2) / (VW / 2); if (Math.abs(o) > 0.18) turn += Math.sign(o) * (Math.abs(o) - 0.18) * 3.6; }
       if (aimAssist > 1 && turn) { const pk = assistPick(e, e.yaw, 0.12); if (pk) turn *= aimAssist === 3 ? 0.5 : 0.7; }   // friction: slow down over a target
       e.yaw += turn * dt + fpLook * 0.0026; fpLook = 0; e.yaw = Math.atan2(Math.sin(e.yaw), Math.cos(e.yaw));
+      // FIRE MODE AUTO in 1st person: when a bot is roughly in front of you, your view turns onto it (led for its movement)
+      if (TOUCH && autoFire && !turn) { const ft = autoTarget(e, e.yaw, 0.6); if (ft) { const L = leadPoint(e, ft, laserSpeed(e)); e.yaw += angDiff(Math.atan2(L.y - e.y, L.x - e.x), e.yaw) * Math.min(1, dt * 6); } }
       const fw = -my, rt = mx, cyw = Math.cos(e.yaw), syw = Math.sin(e.yaw); mx = cyw * fw - syw * rt; my = syw * fw + cyw * rt;
     }
     const spd = e.stats.speed * (e.fast > 0 ? 1.35 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 0.5 : 1) * worldSpeed(e);
@@ -1029,7 +1031,7 @@ function drawTail(t) {
   drawScreenFx(t);
   if (G.dark < 0.5) { if (fpDrawing) fpArrows(); else drawArrows(); }
   drawMinimap();
-  if (!G.story && G.qbat !== undefined && TOUCH) { const fr = $('fireBtn').getBoundingClientRect(), bw = 76, bx = fr.left + fr.width / 2 - bw / 2, by = fr.top - 12, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 12); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 6); ctx.font = '10px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER', bx + bw / 2, by - 6); }
+  if (!G.story && G.qbat !== undefined && TOUCH) { const fr0 = $('fireBtn').getBoundingClientRect(), fr = fr0.width ? fr0 : { left: VW - 96 - 38, width: 76, top: VH - 110 - 74 }, bw = 76, bx = fr.left + fr.width / 2 - bw / 2, by = fr.top - 12, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 12); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 6); ctx.font = '10px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER', bx + bw / 2, by - 6); }
   else if (!G.story && G.qbat !== undefined) { const bw = 120, bx = VW - bw - 18, by = VH - 26, f = G.qbat / 100, low = f < 0.25 || G.qLock; ctx.fillStyle = 'rgba(10,6,20,0.7)'; ctx.fillRect(bx - 3, by - 3, bw + 6, 14); ctx.fillStyle = low ? (Math.floor(G.t * 6) % 2 ? '#ff3b55' : '#ff8c28') : '#ffd60a'; ctx.fillRect(bx, by, bw * f, 8); ctx.font = '11px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('LASER BATTERY', bx + bw / 2, by - 6); }
   if (G.player.dead > 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#ffd60a'; ctx.font = '40px Anton, Impact'; ctx.textAlign = 'center'; ctx.fillText('RESPAWN IN ' + Math.ceil(G.player.dead), VW / 2, VH / 2 + 70); }
   drawSticks();
