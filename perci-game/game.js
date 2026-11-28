@@ -618,7 +618,7 @@ function controlLocal(e, dt, shoot, ability) {
       if (aimAssist > 1 && turn) { const pk = assistPick(e, e.yaw, 0.12); if (pk) turn *= aimAssist === 3 ? 0.5 : 0.7; }   // friction: slow down over a target
       e.yaw += turn * dt + fpLook * 0.0026; fpLook = 0; e.yaw = Math.atan2(Math.sin(e.yaw), Math.cos(e.yaw));
       // FIRE MODE AUTO in 1st person: when a bot is roughly in front of you, your view turns onto it (led for its movement)
-      if (TOUCH && autoFire && !turn) { const ft = autoTarget(e, e.yaw, 0.6); if (ft) { const L = leadPoint(e, ft, laserSpeed(e)); e.yaw += angDiff(Math.atan2(L.y - e.y, L.x - e.x), e.yaw) * Math.min(1, dt * 6); } }
+      if (TOUCH && fireMode !== 'button' && !turn) { const ft = autoTarget(e, e.yaw, 0.6); if (ft) { const L = leadPoint(e, ft, laserSpeed(e)); e.yaw += angDiff(Math.atan2(L.y - e.y, L.x - e.x), e.yaw) * Math.min(1, dt * 6); } }
       const fw = -my, rt = mx, cyw = Math.cos(e.yaw), syw = Math.sin(e.yaw); mx = cyw * fw - syw * rt; my = syw * fw + cyw * rt;
     }
     const spd = e.stats.speed * (e.fast > 0 ? 1.35 : 1) * (G.slow > 0 && e.team === G.slowTeam ? 0.5 : 1) * worldSpeed(e);
@@ -632,13 +632,21 @@ function controlLocal(e, dt, shoot, ability) {
     e.vx = (e.x - ox) / dt; e.vy = (e.y - oy) / dt;
     // aim: your raw aim, then aim assist pulls it toward a bot near that direction (Off / Light / Strong)
     let raw = e.rawAim !== undefined ? e.rawAim : e.a, firing = false;
-    if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.4))); }
+    if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && fireMode !== 'button' && autoTarget(e, e.yaw, autoFire ? 0.6 : 0.35))); }
     let quick = null;   // FIRE with the aim stick let go: shoot the best bot, led for its movement (like a quick-fire tap)
     const aiming = !FP && input.touchAim && input.touchAim.m > 0.15;
-    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && assistPick(e, raw, 0.4)) || (fireMode === 'hold' && input.touchAim.m > 0.3 && !!assistPick(e, raw, 0.35)); }   // smart trigger: HOLD only shoots when a bot is in your sights, so walking around never drains the battery
+    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); if (autoFire) { const pk = assistPick(e, raw, 1.15); if (pk) { quick = pk.t; firing = true; } } firing = firing || (fireMode === 'hold' && input.touchAim.m > 0.3 && !!assistPick(e, raw, 0.35)); }   // smart trigger: HOLD only shoots when a bot is in your sights, so walking around never drains the battery
     else if (FP) { /* set above */ }
     else if (TOUCH) {
-      const t = autoFire ? autoTarget(e) : null;
+      // AUTO lock: stay on the same bot while it's alive, in range and in sight (no flip-flopping between bots);
+      // otherwise pick the closest one in range and in sight
+      let t = null;
+      if (autoFire) {
+        const L0 = e.autoLock;
+        if (L0 && L0.dead <= 0 && L0.team !== e.team && dist(e, L0) <= e.stats.range && los(e, L0)) t = L0;
+        else t = autoTarget(e);
+        e.autoLock = t;
+      }
       if (t) { quick = t; firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
     } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
     // quick tap on the aim stick: shoot the best target for a moment; release mode: the shot you let go of
@@ -1387,7 +1395,7 @@ function syncSettings() {
 }
 document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
 document.querySelectorAll('#setFireMode button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === fireMode); b.onclick = () => setFireMode(b.dataset.v); });
-function syncFireBtn() { document.body.classList.toggle('stickfire', fireMode !== 'button' && pov !== '1st'); }   // 1st person still needs FIRE
+function syncFireBtn() { document.body.classList.toggle('stickfire', fireMode !== 'button'); }   // FIRE button only in BUTTON mode (1st person shoots automatically too)
 syncFireBtn();
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');

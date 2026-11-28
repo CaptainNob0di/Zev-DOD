@@ -27,11 +27,12 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   Strong 3-12% -> 85-97% hits, Light 0-9% -> 32-50%. Online guests' lasers don't curve (host-side only).
 - **FIRE MODE (V14, phones, SETTINGS):** moving and shooting never needs a third thumb.
   **AUTO** (default, also the HUD AUTO button): just move with the left thumb; you shoot any bot in range and in
-  sight, aimed ahead of where it's running; no bot = no shot, so it never wastes battery. Push the aim stick to
-  pick a different target. **HOLD**: push the aim stick to shoot, smart trigger only fires with a bot in your
-  sights (green aim line). **RELEASE**: drag to aim, let go to shoot (Brawl Stars style). **BUTTON**: old layout,
-  the aim stick only aims and FIRE shoots. Outside BUTTON the FIRE button is hidden and a quick tap on the right
-  side fires at the closest bot. 1st person always keeps the FIRE button. (Replaces the old AUTO FIRE setting.)
+  sight, aimed ahead of where it's running, and stay locked on it until it's tagged, out of range or out of
+  sight (no flip-flopping). Push the right stick roughly toward another bot (within ~65 degrees) to switch to it
+  and fire. No bot = no shot, so it never wastes battery. **HOLD**: push the aim stick to shoot, smart trigger
+  only fires with a bot in your sights. **RELEASE**: drag to aim, let go to shoot. **BUTTON**: the old red FIRE
+  button. The FIRE button only shows in BUTTON mode, in every view; 1st person turns onto and shoots bots in
+  front of you automatically. A quick tap on the right side fires at the closest bot. (Replaces AUTO FIRE.)
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
 - **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",

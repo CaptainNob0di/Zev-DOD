@@ -8,7 +8,7 @@
    build number (never cached); if this page is older, reload it once with the new number so the new code loads.
    When you ship an update, bump BUILD here AND in version.json (and the ?v= on game.js / arenas.js). */
 (function () {
-  var BUILD = '14d';
+  var BUILD = '14e';
   try {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
       if (!v || !v.build || v.build === BUILD) return;
@@ -315,7 +315,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <img class="title-img" src="assets/title.png" alt="Perci Shorti">
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
-  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14d</div>
+  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14e</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
   <button class="btn story" id="bStory">STORY MODE</button>
   <button class="btn" id="bPlay">QUICK MATCH</button>
@@ -454,7 +454,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
     <div class="lab">FIRE MODE (PHONES)</div>
     <div class="row diff" id="setFireMode"><button data-v="auto">AUTO</button><button data-v="hold">HOLD</button><button data-v="release">RELEASE</button><button data-v="button">BUTTON</button></div>
-    <p class="muted" style="margin:6px 0 14px">AUTO (best for moving + shooting): just move with your left thumb; you shoot any bot in range and in sight, aimed ahead of where it's running. Push the aim stick to pick a different target. HOLD: push the aim stick to shoot while you aim (only fires with a bot in your sights). RELEASE: drag to aim, let go to shoot. BUTTON: the aim stick only aims and the FIRE button shoots. A quick tap on the right side fires at the closest bot (no bot in range = no shot).</p>
+    <p class="muted" style="margin:6px 0 14px">AUTO (best): you shoot any bot in range and in sight while you move, aimed ahead of where it's running, and stay locked on it until it's tagged. Push the right stick toward a different bot to switch to it (it fires as soon as one is roughly that way). HOLD: push the aim stick to shoot (only fires with a bot in your sights). RELEASE: drag to aim, let go to shoot. BUTTON: the old red FIRE button. The FIRE button only shows in BUTTON mode; 1st person shoots bots in front of you automatically.</p>
     <div class="lab">MATURE CONTENT (STORY MODE)</div>
     <div class="row diff matSet"><button data-v="1">ON</button><button data-v="0">OFF</button></div>
     <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
@@ -537,7 +537,7 @@ const LEADERBOARD = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', anonKey: 
 const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
-<script src="arenas.js?v=14d"></script>
-<script src="game.js?v=14d"></script>
+<script src="arenas.js?v=14e"></script>
+<script src="game.js?v=14e"></script>
 </body>
 </html>
