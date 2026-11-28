@@ -257,7 +257,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
 
 /* special-power button: centered between the two sticks */
 #fireBtn{position:absolute;left:calc(58px + env(safe-area-inset-left));bottom:176px;width:76px;height:76px;border-radius:50%;background:rgba(255,59,85,.88);border:4px solid var(--ink);font-family:Anton;font-size:17px;color:#fff;display:none;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}#fireBtn.on{background:#fff;color:#c81e32}
-@media (pointer:coarse){#hud.on #fireBtn{display:flex}}
+@media (pointer:coarse){#hud.on #fireBtn{display:flex}body.stickfire #hud.on #fireBtn{display:none}}
 @media (max-height:460px){#fireBtn{bottom:166px;width:62px;height:62px;font-size:14px;left:calc(66px + env(safe-area-inset-left))}}
 #hud .ab{right:auto;left:calc(50% - 39px);bottom:71px;width:78px;height:78px}
 @media (max-width:380px){#hud .ab{width:70px;height:70px;left:calc(50% - 35px);bottom:75px}}
@@ -435,9 +435,9 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <div class="lab">AIM ASSIST</div>
     <div class="row diff" id="setAssist"><button data-v="1">OFF</button><button data-v="2">LIGHT</button><button data-v="3">STRONG</button></div>
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
-    <div class="lab">AIM STICK FIRES</div>
-    <div class="row diff" id="setAimFire"><button data-v="0">OFF</button><button data-v="1">ON</button></div>
-    <p class="muted" style="margin:6px 0 14px">ON: push the aim stick most of the way to shoot (classic twin-stick). OFF: the aim stick only aims and the FIRE button shoots.</p>
+    <div class="lab">FIRE MODE (PHONES)</div>
+    <div class="row diff" id="setFireMode"><button data-v="hold">HOLD</button><button data-v="release">RELEASE</button><button data-v="button">BUTTON</button></div>
+    <p class="muted" style="margin:6px 0 14px">HOLD: push the aim stick and you shoot while you aim (one thumb does both); it only fires when a bot is in your sights (green aim line), so roaming the map never wastes battery. RELEASE: drag to aim, let go to shoot. BUTTON: the aim stick only aims and the FIRE button shoots. In HOLD and RELEASE, a quick tap on the right side fires at the closest bot (no bot in range = no shot).</p>
     <div class="lab">AUTO FIRE (PHONES)</div>
     <div class="row diff" id="setAuto"><button data-v="0">OFF</button><button data-v="1">ON</button></div>
     <p class="muted" style="margin:6px 0 14px">When on, you shoot the closest bot while you're only moving.</p>
@@ -446,7 +446,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
   </div>
   <div class="panel how">
-    <p><b>Phone:</b> left thumb moves &bull; right thumb aims (look) and the red FIRE button shoots &bull; yellow button = your power.</p>
+    <p><b>Phone:</b> left thumb moves &bull; right thumb aims and shoots (push the aim stick, or tap it to fire at the closest bot; change it in SETTINGS &gt; FIRE MODE) &bull; yellow button = your power.</p>
     <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
   </div>
   <button class="btn" id="bBack5">DONE</button>
@@ -457,7 +457,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <h2>HOW TO PLAY</h2>
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims, red FIRE button shoots (aim assist helps). Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and shoots: push the aim stick to fire, or tap it to hit the closest bot (aim assist helps). Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
     <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power, <b>1-4</b> to use items, <b>P</b> pauses.</p>
     <p><b>Maps:</b> every match builds a brand-new arena (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn, Dream Grid, School Gym), so no two games play the same.</p>
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>

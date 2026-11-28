@@ -22,10 +22,15 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
 - **Aim fix (V14):** assist now aims where a moving target *will be* (lead), pulls smoothly instead of snapping,
   and Light/Strong lasers curve slightly toward the locked target (bullet magnetism). Aim stick has a scaled
   radial dead zone, light smoothing, and a thumb-lift guard (a flick as you let go keeps your earlier aim).
-  Dashed aim line stops at walls; a ring shows the lead point when locked on. New SETTINGS toggle
-  **AIM STICK FIRES** (off by default): pushing the aim stick shoots. On phones the camera can scroll past
+  Dashed aim line stops at walls; a ring shows the lead point when locked on. On phones the camera can scroll past
   map edges so you're never under the sticks/buttons. Bench (strafing bot, simulated thumb):
   Strong 3-12% -> 85-97% hits, Light 0-9% -> 32-50%. Online guests' lasers don't curve (host-side only).
+- **FIRE MODE (V14, phones, SETTINGS):** the right thumb aims *and* shoots, so you never need a third thumb.
+  **HOLD** (default): push the aim stick to shoot, with a smart trigger that only fires when a bot is in your
+  sights (green aim line), so roaming the map never drains the laser battery. **RELEASE**: drag to aim, let go
+  to shoot (Brawl Stars style). **BUTTON**: old layout, the aim stick only aims and FIRE shoots. In HOLD and
+  RELEASE the FIRE button is hidden and a quick tap on the right side fires at the closest bot (no bot in
+  range = no shot). 1st person always keeps the FIRE button. Test: tests/test_firemode.py.
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
 - **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",

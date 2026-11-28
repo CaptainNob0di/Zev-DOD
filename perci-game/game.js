@@ -250,7 +250,15 @@ let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = lo
 if (!localStorage.getItem('ps_auto_v2')) { localStorage.setItem('ps_auto_v2', '1'); localStorage.setItem('ps_auto', '0'); }   // FIRE button now exists: auto-fire starts OFF for everyone
 let autoFire = TOUCH && localStorage.getItem('ps_auto') === '1';
 let aimAssist = +(localStorage.getItem('ps_assist') || (TOUCH ? 3 : 2));   // 1 off, 2 light, 3 strong
-let aimStickFires = localStorage.getItem('ps_aimfire') === '1';   // classic twin-stick: push the aim stick far to shoot (FIRE button still works)
+// FIRE MODE (phones): how the right thumb shoots, so you never need a third thumb for the FIRE button
+//   hold    = twin-stick: push the aim stick and you shoot while you aim (default); smart trigger: it only shoots
+//             when a bot is in your sights, so pushing the stick while you walk around never wastes battery
+//   release = Brawl Stars style: drag to aim (aim line shows), let go to shoot
+//   button  = the aim stick only aims; the FIRE button shoots
+// In hold and release, a quick TAP on the aim side fires at the best target (led for its movement).
+let fireMode = localStorage.getItem('ps_firemode') || 'hold';
+if (!['hold', 'release', 'button'].includes(fireMode)) fireMode = 'hold';
+const aimTap = { t0: 0, max: 0, quick: 0, shot: 0, shotA: 0 };   // tap / release-shot timers
 let G = null;
 const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim: null, ability: false, coverL: false, coverR: false };
 
@@ -618,12 +626,15 @@ function controlLocal(e, dt, shoot, ability) {
     if (FP) { raw = e.yaw; firing = !!(input.mdown || (TOUCH && autoFire && autoTarget(e, e.yaw, 0.4))); }
     let quick = null;   // FIRE with the aim stick let go: shoot the best bot, led for its movement (like a quick-fire tap)
     const aiming = !FP && input.touchAim && input.touchAim.m > 0.15;
-    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && assistPick(e, raw, 0.4)) || (aimStickFires && input.touchAim.m > 0.55); }
+    if (aiming) { raw = Math.atan2(input.touchAim.dy / TILT, input.touchAim.dx); firing = !!(autoFire && assistPick(e, raw, 0.4)) || (fireMode === 'hold' && input.touchAim.m > 0.3 && !!assistPick(e, raw, 0.35)); }   // smart trigger: HOLD only shoots when a bot is in your sights, so walking around never drains the battery
     else if (FP) { /* set above */ }
     else if (TOUCH) {
       const t = autoFire ? autoTarget(e) : null;
       if (t) { quick = t; firing = true; } else if (m > 0.2) raw = Math.atan2(my, mx);
     } else { raw = Math.atan2((input.my / Z + G.cam.y + LASER_Z) / TILT - e.y, input.mx / Z + G.cam.x - e.x); firing = input.mdown; }
+    // quick tap on the aim stick: shoot the best target for a moment; release mode: the shot you let go of
+    if (aimTap.quick > 0) { aimTap.quick -= dt; if (!FP && !aiming) { const t0 = autoTarget(e); if (t0) { quick = t0; firing = true; } } }   // no bot in range = no shot, no battery used
+    if (aimTap.shot > 0) { aimTap.shot -= dt; if (!aiming && !quick) { raw = aimTap.shotA; } firing = true; }
     if (input.fireBtn) { firing = true; if (!FP && !aiming) { const t0 = autoTarget(e); if (t0) quick = t0; } }
     if (quick) { const L = leadPoint(e, quick, laserSpeed(e)); raw = Math.atan2(L.y - e.y, L.x - e.x); }
     // smooth the stick a little so the aim never jitters or snaps (fast enough that it never feels laggy)
@@ -1071,6 +1082,7 @@ const EYE = 100, FWALL = 150, CW = 3;          // eye height, wall height, colum
 let FPC = null, fpDrawing = false, FPZ = new Float32Array(0), fpLook = 0, fpPrevT = 0;
 const FPW = { hay: [[98, 110, 118], [210, 180, 70]], crate: [[124, 136, 146], [210, 180, 70]], glitch: [[78, 100, 118], [66, 196, 220]], edge: [[36, 24, 60], [0, 230, 255]] }, FPW_D = [[112, 120, 126], [160, 170, 176]];
 function setPov(v) {
+  setTimeout(() => typeof syncFireBtn === 'function' && syncFireBtn());
   pov = v === '1st' ? '1st' : '3rd'; localStorage.setItem('ps_pov', pov);
   if (G && G.player && pov === '1st') G.player.yaw = G.player.a;
   if (pov !== '1st' && document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
@@ -1365,7 +1377,9 @@ function syncSettings() {
   document.querySelectorAll('#setAuto button').forEach((b) => b.classList.toggle('sel', (b.dataset.v === '1') === autoFire));
 }
 document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
-document.querySelectorAll('#setAimFire button').forEach((b) => { b.classList.toggle('sel', (b.dataset.v === '1') === aimStickFires); b.onclick = () => { aimStickFires = b.dataset.v === '1'; localStorage.setItem('ps_aimfire', aimStickFires ? '1' : '0'); document.querySelectorAll('#setAimFire button').forEach((x) => x.classList.toggle('sel', x === b)); }; });
+document.querySelectorAll('#setFireMode button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === fireMode); b.onclick = () => { fireMode = b.dataset.v; localStorage.setItem('ps_firemode', fireMode); document.querySelectorAll('#setFireMode button').forEach((x) => x.classList.toggle('sel', x === b)); syncFireBtn(); }; });
+function syncFireBtn() { document.body.classList.toggle('stickfire', fireMode !== 'button' && pov !== '1st'); }   // 1st person still needs FIRE
+syncFireBtn();
 document.querySelectorAll('#setAuto button').forEach((b) => (b.onclick = () => { autoFire = b.dataset.v === '1'; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); }));
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
@@ -1388,10 +1402,10 @@ const stickHome = (side) => side === 'move' ? { x: 96, y: VH - 110 } : { x: VW -
 function stickFrom(t, s) { const dx = t.clientX - s.x, dy = t.clientY - s.y, raw = Math.min(1, Math.hypot(dx, dy) / 56), m = raw < 0.14 ? 0 : (raw - 0.14) / 0.86, a = Math.atan2(dy, dx); return { dx: Math.cos(a) * m, dy: Math.sin(a) * m, m }; }
 cvs.addEventListener('touchstart', (e) => {
   e.preventDefault(); if (state === 'paused') { state = 'play'; return; }
-  for (const t of e.changedTouches) { const side = t.clientX < VW / 2 ? 'move' : 'aim'; if (!sticks[side]) { const near = Math.hypot(t.clientX - stickHome(side).x, t.clientY - stickHome(side).y) < 90; const o = near ? stickHome(side) : { x: t.clientX, y: t.clientY }; sticks[side] = { id: t.identifier, x: o.x, y: o.y, cx: t.clientX, cy: t.clientY }; const v = stickFrom(t, sticks[side]); if (side === 'move') input.touchMove = v; else input.touchAim = v; } }
+  for (const t of e.changedTouches) { const side = t.clientX < VW / 2 ? 'move' : 'aim'; if (!sticks[side]) { const near = Math.hypot(t.clientX - stickHome(side).x, t.clientY - stickHome(side).y) < 90; const o = near ? stickHome(side) : { x: t.clientX, y: t.clientY }; sticks[side] = { id: t.identifier, x: o.x, y: o.y, cx: t.clientX, cy: t.clientY }; const v = stickFrom(t, sticks[side]); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.t0 = performance.now(); aimTap.max = v.m; } } }
 }, { passive: false });
 const aimHist = [];   // recent aim-stick readings: [time, reading]
-cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimHist.push([performance.now(), v]); if (aimHist.length > 12) aimHist.shift(); } } } }, { passive: false });
+cvs.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { s.cx = t.clientX; s.cy = t.clientY; const v = stickFrom(t, s); if (side === 'move') input.touchMove = v; else { input.touchAim = v; aimTap.max = Math.max(aimTap.max, v.m); aimHist.push([performance.now(), v]); if (aimHist.length > 12) aimHist.shift(); } } } }, { passive: false });
 // letting go of the aim stick: thumbs slide as they lift, so if the last moment swung the aim (more than ~25 degrees),
 // go back to the steady direction from before the final 120 ms
 function settleAim() {
@@ -1402,7 +1416,14 @@ function settleAim() {
   const a0 = Math.atan2(steady[1].dy / TILT, steady[1].dx), a1 = Math.atan2(last[1].dy / TILT, last[1].dx);
   if (Math.abs(angDiff(a1, a0)) > 0.45) { p.rawAim = a0; p.a = a0; }
 }
-const tend = (e) => { for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else { settleAim(); input.touchAim = null; } } } };
+const tend = (e) => { for (const t of e.changedTouches) for (const side of ['move', 'aim']) { const s = sticks[side]; if (s && s.id === t.identifier) { delete sticks[side]; if (side === 'move') input.touchMove = null; else { settleAim(); input.touchAim = null; aimLift(); } } } };
+// what lifting the aim thumb does: a short tap fires at the best target; in RELEASE mode a drag fires where you aimed
+function aimLift() {
+  if (fireMode === 'button' || state !== 'play' || pov === '1st') return;
+  const held = performance.now() - aimTap.t0, p = G && G.player;
+  if (held < 220 && aimTap.max < 0.4) { aimTap.quick = 0.28; return; }
+  if (fireMode === 'release' && p && aimTap.max >= 0.3) { aimTap.shot = 0.18; aimTap.shotA = p.rawAim !== undefined ? p.rawAim : p.a; }
+}
 cvs.addEventListener('touchend', tend); cvs.addEventListener('touchcancel', tend);
 function drawSticks() {
   if (!TOUCH) return;
@@ -2848,7 +2869,7 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { leadPoint, assistAim, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { leadPoint, assistAim, aimTap, aimLift, get fireMode() { return fireMode; }, setFireMode(v) { fireMode = v; syncFireBtn(); }, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 
 /* =====================================================================================================
    NIGHT TRIAL (story mode 2): one night in Lincoln, 7 PM to 7 AM. Somnus Civic runs a city-wide sleep experiment.
