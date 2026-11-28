@@ -7,7 +7,7 @@
 /* auto-update: phones keep old saved copies. On every open, check version.json (never cached) and reload once if a
    newer build is out. When you ship: bump BUILD here, "build" in version.json, and the ?v= on game.js (same value). */
 (function () {
-  var BUILD = '12';
+  var BUILD = '13';
   try {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
       if (!v || !v.build || v.build === BUILD) return;
@@ -132,7 +132,7 @@ body.touch #note{bottom:34%}
  body.touch #tMed{left:14px}body.touch #tThr{left:64px}body.touch #tBrc{left:114px}
  body.touch #amm{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 104px);bottom:auto;text-align:right}
  body.touch #amm b{font-size:34px}
- body.touch #hp{width:calc(50vw - 36px)}
+ body.touch #hp{width:calc(50vw - 36px)}body.touch #hp>div{min-width:0}
 }
 </style>
 </head>
@@ -216,6 +216,6 @@ body.touch #note{bottom:34%}
  <div class="row" id="lHostBtns"><button class="btn alt" style="min-width:0" id="lPrev">&lt; MISSION</button><button class="btn alt" style="min-width:0" id="lNext">MISSION &gt;</button></div>
  <button class="btn" id="lStart">START MISSION</button><div class="msg" id="lMsg"></div><button class="btn alt" id="lLeave">LEAVE SQUAD</button></div>
 
-<script src="game.js?v=12"></script>
+<script src="game.js?v=13"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 Tactical shooter at zevsocialconnect.com/games/shadow-protocol/. Code: `game.js` (game, input, online co-op),
 `r3d.js` (three.js renderer), `index.html` (HUD, menus, touch layout).
 
-## Phone controls (build 12)
+## Phone controls (build 13)
 Tick-marked tactical rings in the game's tan / olive / signal-red palette, square knobs, Teko labels.
 - **MOVE** (left, tan): grab it at its spot or anywhere on the left side. Push all the way out to sprint.
 - **LOOK** (bottom right, olive): a joystick, not a swipe. Push sideways to turn; the further you push, the
