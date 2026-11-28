@@ -501,7 +501,7 @@ function showResult(win, kills) {
 
 /* ============================== LOCAL PLAYER ============================== */
 let keys = new Set(), mouseDown = false, mouseAim = false, lookX = 0, lockedPtr = false;
-const touch = { mx: 0, my: 0, fire: false, aim: false, look: 0, sprint: false };
+const touch = { mx: 0, my: 0, fire: false, aim: false, look: 0, sprint: false, lookRate: 0, fireRate: 0 };   // lookRate / fireRate: stick turn speed (-1..1)
 let footClock = 0;
 function capOf(p) { return p.cap; }
 function reloadGun(p) {
@@ -525,6 +525,16 @@ function localEvent(t) { // use / breach / heal / throw from the local player
   if (G.mode === 'guest') { G.out.push({ s: ++G.seq, t, x: r2(p.x), y: r2(p.y), a: r2(p.a) }); if (t === 'g') sfx('reload', .55); return; }
   if (t === 'u') doUse(p); else if (t === 'b') doBreach(p); else if (t === 'h') doHeal(p); else if (t === 'g') throwFrom(p);
 }
+// the visible, alive enemy closest to your crosshair (within `cone` radians and 16 m)
+function assistTarget(p, cone) {
+  let best = null, bd = cone;
+  for (const e of G.enemies) {
+    if (!e.alive) continue; const d = dist(p.x, p.y, e.x, e.y); if (d > 16 || d < .3) continue;
+    const da = angN(Math.atan2(e.y - p.y, e.x - p.x) - p.a); if (Math.abs(da) > bd) continue;
+    if (!los(p.x, p.y, e.x, e.y)) continue; bd = Math.abs(da); best = { e, da };
+  }
+  return best;
+}
 function updatePlayer(dt) {
   const p = G.me; if (!p) return;
   p.cooldown = Math.max(0, p.cooldown - dt); p.recoil = Math.max(0, p.recoil - dt * 3.4);
@@ -543,7 +553,13 @@ function updatePlayer(dt) {
   const tk = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
   p.turnV = tk ? clamp((p.turnV || 0) + tk * dt * 9, -1, 1) : (p.turnV || 0) * Math.max(0, 1 - dt * 14);
   const sens = prof.sens * (1 - p.aim * .5);
-  p.a = angN(p.a + p.turnV * 2.5 * (1 - p.aim * .4) * dt + lookX * sens + touch.look * sens); lookX = 0; touch.look = 0;
+  // phone sticks: LOOK (and sideways drag on FIRE) turn you at a rate; slower over a target so it's easy to stop on it
+  let stickTurn = touch.lookRate + touch.fireRate * .75;
+  const tgt = touchMode ? assistTarget(p, .16) : null;
+  if (stickTurn && tgt && Math.abs(tgt.da) < .1) stickTurn *= .5;
+  p.a = angN(p.a + p.turnV * 2.5 * (1 - p.aim * .4) * dt + lookX * sens + touch.look * sens + stickTurn * 2.7 * prof.sens * (1 - p.aim * .45) * dt); lookX = 0; touch.look = 0;
+  // holding FIRE on a phone gently pulls your crosshair onto a visible enemy right next to it
+  if (touch.fire && tgt && !p.dead) p.a = angN(p.a + tgt.da * Math.min(1, dt * (4 + p.aim * 3)));
   // ---- velocity with acceleration and friction (frame-rate independent), then wall-sliding collision
   const base = GEAR[p.armor].speed, top = base * (1 + .42 * p.sprint) * (1 - p.aim * .55);
   const dxw = (Math.cos(p.a) * f - Math.sin(p.a) * s) * top, dyw = (Math.sin(p.a) * f + Math.cos(p.a) * s) * top;
@@ -1094,14 +1110,32 @@ function enableTouch() { if (touchMode) return; touchMode = true; document.body.
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) enableTouch();
 // touch controls
 (function () {
-  const zl = $('zl'), zr = $('zr'), st = $('stick'); let lid = null, lx0 = 0, ly0 = 0, rid = null, rx = 0;
-  zl.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); const t = e.changedTouches[0]; lid = t.identifier; lx0 = t.clientX; ly0 = t.clientY; st.style.display = 'block'; st.style.left = (lx0 - 55) + 'px'; st.style.top = (ly0 - 55) + 'px'; }, { passive: false });
-  zl.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === lid) { const dx = t.clientX - lx0, dy = t.clientY - ly0, m = Math.min(1, Math.hypot(dx, dy) / 50), a = Math.atan2(dy, dx); touch.mx = Math.cos(a) * m; touch.my = -Math.sin(a) * m; touch.sprint = m > .93 && Math.hypot(dx, dy) > 62; st.firstElementChild.style.transform = 'translate(' + Math.cos(a) * m * 30 + 'px,' + Math.sin(a) * m * 30 + 'px)'; } }, { passive: false });
-  const lend = (e) => { for (const t of e.changedTouches) if (t.identifier === lid) { lid = null; touch.mx = touch.my = 0; touch.sprint = false; st.style.display = 'none'; st.firstElementChild.style.transform = ''; } };
-  zl.addEventListener('touchend', lend); zl.addEventListener('touchcancel', lend);
-  zr.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); const t = e.changedTouches[0]; rid = t.identifier; rx = t.clientX; }, { passive: false });
-  zr.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === rid) { touch.look += (t.clientX - rx) * .0085; rx = t.clientX; } }, { passive: false });
-  const rend = (e) => { for (const t of e.changedTouches) if (t.identifier === rid) rid = null; }; zr.addEventListener('touchend', rend); zr.addEventListener('touchcancel', rend);
+  // phone sticks, same scheme as Perci Shorti: MOVE (left), LOOK (bottom right), FIRE (right above LOOK).
+  // Touch near a stick's home to grab it there; touch anywhere else on that side and the stick appears under your thumb.
+  const zl = $('zl'), zr = $('zr'), R = 50, FR = 40;
+  const home = (k) => { const W = innerWidth, H = innerHeight;
+    return k === 'mv' ? { x: 124, y: H - 150 } : k === 'lk' ? { x: W - 100, y: H - 118 } : { x: W - 100, y: H - 118 - 124 }; };
+  const el = { mv: $('mvS'), lk: $('lkS'), fr: $('frS') }, S = {};
+  const place = () => { for (const k in el) { const s0 = S[k], h = s0 || home(k); el[k].style.left = h.x + 'px'; el[k].style.top = h.y + 'px'; el[k].classList.toggle('on', !!s0); if (!s0) el[k].firstElementChild.style.transform = 'translate(-50%,-50%)'; } };
+  place(); addEventListener('resize', place);
+  const read = (k, t) => { const s0 = S[k], r = k === 'fr' ? FR : R, dx = t.clientX - s0.x, dy = t.clientY - s0.y, d = Math.hypot(dx, dy), raw = Math.min(1, d / r), m = raw < .12 ? 0 : (raw - .12) / .88, a = Math.atan2(dy, dx);
+    const kx = Math.cos(a) * Math.min(d, r), ky = Math.sin(a) * Math.min(d, r); el[k].firstElementChild.style.transform = 'translate(calc(-50% + ' + kx + 'px),calc(-50% + ' + ky + 'px))';
+    return { x: Math.cos(a) * m, y: Math.sin(a) * m, m, d }; };
+  const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.35);
+  const apply = (k, v) => {
+    if (k === 'mv') { touch.mx = v.x; touch.my = -v.y; touch.sprint = v.m > .93 && v.d > R + 14; }
+    else if (k === 'lk') touch.lookRate = curve(v.x);
+    else touch.fireRate = curve(v.x);
+  };
+  const start = (k, t) => { const h = home(k), near = Math.hypot(t.clientX - h.x, t.clientY - h.y) < (k === 'fr' ? FR + 30 : 95); S[k] = { id: t.identifier, x: near || k === 'fr' ? h.x : t.clientX, y: near || k === 'fr' ? h.y : t.clientY }; if (k === 'fr') touch.fire = true; apply(k, read(k, t)); place(); };
+  const end = (k) => { delete S[k]; if (k === 'mv') { touch.mx = touch.my = 0; touch.sprint = false; } else if (k === 'lk') touch.lookRate = 0; else { touch.fireRate = 0; touch.fire = false; } place(); };
+  const onFire = (t) => { const f = home('fr'), l = home('lk'), df = Math.hypot(t.clientX - f.x, t.clientY - f.y); return df < FR + 30 && df < Math.hypot(t.clientX - l.x, t.clientY - l.y); };
+  zl.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); for (const t of e.changedTouches) if (!S.mv) start('mv', t); }, { passive: false });
+  zr.addEventListener('touchstart', (e) => { e.preventDefault(); audioInit(); for (const t of e.changedTouches) { if (!S.fr && onFire(t)) start('fr', t); else if (!S.lk) start('lk', t); } }, { passive: false });
+  const mv = (e) => { e.preventDefault(); for (const t of e.changedTouches) for (const k in S) if (S[k].id === t.identifier) apply(k, read(k, t)); };
+  const up = (e) => { for (const t of e.changedTouches) for (const k in S) if (S[k] && S[k].id === t.identifier) end(k); };
+  for (const z of [zl, zr]) { z.addEventListener('touchmove', mv, { passive: false }); z.addEventListener('touchend', up); z.addEventListener('touchcancel', up); }
+  window.__sp = { touch, home, S, get me() { return G.me; }, get enemies() { return G.enemies; }, assistTarget };
   const hold = (id, k) => { const el = $(id); el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); touch[k] = true; }, { passive: false }); const off = (e) => { e.preventDefault(); touch[k] = false; }; el.addEventListener('touchend', off); el.addEventListener('touchcancel', off); };
   hold('tFire', 'fire'); hold('tAim', 'aim');
   const tap = (id, f) => $(id).addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); f(); }, { passive: false });
