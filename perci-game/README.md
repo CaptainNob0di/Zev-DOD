@@ -25,12 +25,13 @@ and tag out BROKE-pilot's 5 bots in a 2-minute match. Works on phones (two thumb
   Dashed aim line stops at walls; a ring shows the lead point when locked on. On phones the camera can scroll past
   map edges so you're never under the sticks/buttons. Bench (strafing bot, simulated thumb):
   Strong 3-12% -> 85-97% hits, Light 0-9% -> 32-50%. Online guests' lasers don't curve (host-side only).
-- **FIRE MODE (V14, phones, SETTINGS):** the right thumb aims *and* shoots, so you never need a third thumb.
-  **HOLD** (default): push the aim stick to shoot, with a smart trigger that only fires when a bot is in your
-  sights (green aim line), so roaming the map never drains the laser battery. **RELEASE**: drag to aim, let go
-  to shoot (Brawl Stars style). **BUTTON**: old layout, the aim stick only aims and FIRE shoots. In HOLD and
-  RELEASE the FIRE button is hidden and a quick tap on the right side fires at the closest bot (no bot in
-  range = no shot). 1st person always keeps the FIRE button.
+- **FIRE MODE (V14, phones, SETTINGS):** moving and shooting never needs a third thumb.
+  **AUTO** (default, also the HUD AUTO button): just move with the left thumb; you shoot any bot in range and in
+  sight, aimed ahead of where it's running; no bot = no shot, so it never wastes battery. Push the aim stick to
+  pick a different target. **HOLD**: push the aim stick to shoot, smart trigger only fires with a bot in your
+  sights (green aim line). **RELEASE**: drag to aim, let go to shoot (Brawl Stars style). **BUTTON**: old layout,
+  the aim stick only aims and FIRE shoots. Outside BUTTON the FIRE button is hidden and a quick tap on the right
+  side fires at the closest bot. 1st person always keeps the FIRE button. (Replaces the old AUTO FIRE setting.)
 - **Look (V10):** tactical arena: concrete floor with lane paint and safety stripes, steel barricades,
   cargo crates and tall dividers.
 - **Story Mode (mature content):** 6 chapters that follow Episodes 1-6 ("WTF", "LOG OUT", "WAKE UP", "5150", "PICK UP",

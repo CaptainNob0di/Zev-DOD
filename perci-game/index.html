@@ -436,17 +436,14 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
     <div class="row diff" id="setAssist"><button data-v="1">OFF</button><button data-v="2">LIGHT</button><button data-v="3">STRONG</button></div>
     <p class="muted" style="margin:6px 0 14px">Pulls your shots toward a bot near where you aim. Green brackets show who it's locked on.</p>
     <div class="lab">FIRE MODE (PHONES)</div>
-    <div class="row diff" id="setFireMode"><button data-v="hold">HOLD</button><button data-v="release">RELEASE</button><button data-v="button">BUTTON</button></div>
-    <p class="muted" style="margin:6px 0 14px">HOLD: push the aim stick and you shoot while you aim (one thumb does both); it only fires when a bot is in your sights (green aim line), so roaming the map never wastes battery. RELEASE: drag to aim, let go to shoot. BUTTON: the aim stick only aims and the FIRE button shoots. In HOLD and RELEASE, a quick tap on the right side fires at the closest bot (no bot in range = no shot).</p>
-    <div class="lab">AUTO FIRE (PHONES)</div>
-    <div class="row diff" id="setAuto"><button data-v="0">OFF</button><button data-v="1">ON</button></div>
-    <p class="muted" style="margin:6px 0 14px">When on, you shoot the closest bot while you're only moving.</p>
+    <div class="row diff" id="setFireMode"><button data-v="auto">AUTO</button><button data-v="hold">HOLD</button><button data-v="release">RELEASE</button><button data-v="button">BUTTON</button></div>
+    <p class="muted" style="margin:6px 0 14px">AUTO (best for moving + shooting): just move with your left thumb; you shoot any bot in range and in sight, aimed ahead of where it's running. Push the aim stick to pick a different target. HOLD: push the aim stick to shoot while you aim (only fires with a bot in your sights). RELEASE: drag to aim, let go to shoot. BUTTON: the aim stick only aims and the FIRE button shoots. A quick tap on the right side fires at the closest bot (no bot in range = no shot).</p>
     <div class="lab">MATURE CONTENT (STORY MODE)</div>
     <div class="row diff matSet"><button data-v="1">ON</button><button data-v="0">OFF</button></div>
     <p class="muted" style="margin:6px 0 0">Strong language, crude humor and cartoon weed use, like the show. OFF takes out the weed item and smoke scenes and cleans up the language.</p>
   </div>
   <div class="panel how">
-    <p><b>Phone:</b> left thumb moves &bull; right thumb aims and shoots (push the aim stick, or tap it to fire at the closest bot; change it in SETTINGS &gt; FIRE MODE) &bull; yellow button = your power.</p>
+    <p><b>Phone:</b> left thumb moves &bull; you shoot automatically at bots in sight while you move, right thumb picks a target (change it in SETTINGS &gt; FIRE MODE) &bull; yellow button = your power.</p>
     <p><b>Keyboard:</b> WASD move &bull; mouse aim + click fire &bull; <b>SPACE</b> power &bull; <b>P</b> pause.</p>
   </div>
   <button class="btn" id="bBack5">DONE</button>
@@ -457,7 +454,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <h2>HOW TO PLAY</h2>
   <div class="panel how">
     <p><b>Goal:</b> your team (Perci's crew) vs 5 BROKE-pilot bots. Most tags when the 2:00 clock hits zero wins.</p>
-    <p id="touchHint"><b>Phone:</b> left thumb moves, right thumb aims and shoots: push the aim stick to fire, or tap it to hit the closest bot (aim assist helps). Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
+    <p id="touchHint"><b>Phone:</b> left thumb moves and you shoot automatically at any bot in sight (FIRE MODE: AUTO); push the right stick to pick a target. Power-ups work the moment you grab them. Tap the yellow button for your power. Turn your phone sideways for the widest view.</p>
     <p><b>Desktop:</b> move with <b>WASD</b> or arrows, aim with the <b>mouse</b>, hold <b>click</b> to fire, <b>SPACE</b> for your power, <b>1-4</b> to use items, <b>P</b> pauses.</p>
     <p><b>Maps:</b> every match builds a brand-new arena (Corn Maze, Building 8 Halls, Might Be Castle Lot, The Barn, Dream Grid, School Gym), so no two games play the same.</p>
     <p><b>Shields:</b> everyone has 3 (Perci has 4). Lose them all and you're tagged out for 3 seconds.</p>
@@ -523,7 +520,7 @@ const LEADERBOARD = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', anonKey: 
 const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
-<script src="arenas.js?v=14a"></script>
-<script src="game.js?v=14a"></script>
+<script src="arenas.js?v=14b"></script>
+<script src="game.js?v=14b"></script>
 </body>
 </html>

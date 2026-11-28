@@ -247,17 +247,24 @@ function moveEnt(e, dx, dy) { const s = Math.max(1, Math.ceil(Math.max(Math.abs(
 
 /* ---------------- state ---------------- */
 let state = 'menu', pick = localStorage.getItem('ps_pick') || 'perci', diff = localStorage.getItem('ps_diff') || 'normal';
-if (!localStorage.getItem('ps_auto_v2')) { localStorage.setItem('ps_auto_v2', '1'); localStorage.setItem('ps_auto', '0'); }   // FIRE button now exists: auto-fire starts OFF for everyone
-let autoFire = TOUCH && localStorage.getItem('ps_auto') === '1';
 let aimAssist = +(localStorage.getItem('ps_assist') || (TOUCH ? 3 : 2));   // 1 off, 2 light, 3 strong
-// FIRE MODE (phones): how the right thumb shoots, so you never need a third thumb for the FIRE button
+// FIRE MODE (phones): how you shoot, so moving and shooting never needs a third thumb
+//   auto    = (default) just move: the game aims (leading moving bots) and shoots any bot in range and in sight;
+//             no bot = no shot, so it never wastes battery. Push the aim stick to pick a different target.
 //   hold    = twin-stick: push the aim stick and you shoot while you aim (default); smart trigger: it only shoots
 //             when a bot is in your sights, so pushing the stick while you walk around never wastes battery
 //   release = Brawl Stars style: drag to aim (aim line shows), let go to shoot
 //   button  = the aim stick only aims; the FIRE button shoots
 // In hold and release, a quick TAP on the aim side fires at the best target (led for its movement).
-let fireMode = localStorage.getItem('ps_firemode') || 'hold';
-if (!['hold', 'release', 'button'].includes(fireMode)) fireMode = 'hold';
+if (!localStorage.getItem('ps_firemode_v2')) { localStorage.setItem('ps_firemode_v2', '1'); localStorage.setItem('ps_firemode', 'auto'); }   // AUTO is the new phone default
+let fireMode = localStorage.getItem('ps_firemode') || 'auto';
+if (!['auto', 'hold', 'release', 'button'].includes(fireMode)) fireMode = 'auto';
+let autoFire = TOUCH && fireMode === 'auto';   // shoot the best bot while you're only moving
+function setFireMode(v) {
+  if (fireMode !== 'auto') localStorage.setItem('ps_firemode_last', fireMode);
+  fireMode = v; autoFire = TOUCH && v === 'auto'; localStorage.setItem('ps_firemode', v);
+  if (typeof syncFireBtn === 'function') { syncFireBtn(); syncAutoBtn(); syncSettings(); }
+}
 const aimTap = { t0: 0, max: 0, quick: 0, shot: 0, shotA: 0 };   // tap / release-shot timers
 let G = null;
 const input = { keys: {}, mx: 0, my: 0, mdown: false, touchMove: null, touchAim: null, ability: false, coverL: false, coverR: false };
@@ -1356,7 +1363,7 @@ $('bSubmit').onclick = submitScore; $('bShare').onclick = share;
 $('muteBtn').onclick = () => { muted = !muted; localStorage.setItem('ps_muted', muted ? '1' : '0'); $('muteBtn').textContent = muted ? '🔇' : '🔊'; };
 $('muteBtn').textContent = muted ? '🔇' : '🔊';
 function syncAutoBtn() { const b = $('autoBtn'); if (!b) return; b.textContent = 'AUTO ' + (autoFire ? 'ON' : 'OFF'); b.classList.toggle('on', autoFire); }
-if ($('autoBtn')) $('autoBtn').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncAutoBtn(); };
+if ($('autoBtn')) $('autoBtn').onclick = () => setFireMode(fireMode === 'auto' ? (localStorage.getItem('ps_firemode_last') || 'hold') : 'auto');
 function togglePause() { if (MP.on) { if (state === 'play') mpQuitTap(); return; } if (state === 'play') { state = 'paused'; if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); } else if (state === 'paused') { state = 'play'; } }
 $('pauseBtn').onclick = togglePause;
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !MP.on) state = 'paused'; });
@@ -1374,13 +1381,12 @@ document.querySelectorAll('#inv .slot').forEach((b, i) => tapBtn(b, () => useIte
 // settings screen: aim assist + phone auto-fire
 function syncSettings() {
   document.querySelectorAll('#setAssist button').forEach((b) => b.classList.toggle('sel', +b.dataset.v === aimAssist));
-  document.querySelectorAll('#setAuto button').forEach((b) => b.classList.toggle('sel', (b.dataset.v === '1') === autoFire));
+  document.querySelectorAll('#setFireMode button').forEach((b) => b.classList.toggle('sel', b.dataset.v === fireMode));
 }
 document.querySelectorAll('#setAssist button').forEach((b) => (b.onclick = () => { aimAssist = +b.dataset.v; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); }));
-document.querySelectorAll('#setFireMode button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === fireMode); b.onclick = () => { fireMode = b.dataset.v; localStorage.setItem('ps_firemode', fireMode); document.querySelectorAll('#setFireMode button').forEach((x) => x.classList.toggle('sel', x === b)); syncFireBtn(); }; });
+document.querySelectorAll('#setFireMode button').forEach((b) => { b.classList.toggle('sel', b.dataset.v === fireMode); b.onclick = () => setFireMode(b.dataset.v); });
 function syncFireBtn() { document.body.classList.toggle('stickfire', fireMode !== 'button' && pov !== '1st'); }   // 1st person still needs FIRE
 syncFireBtn();
-document.querySelectorAll('#setAuto button').forEach((b) => (b.onclick = () => { autoFire = b.dataset.v === '1'; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); }));
 if ($('bSettings')) $('bSettings').onclick = () => { syncSettings(); showScreen('sSettings'); };
 if ($('bBack5')) $('bBack5').onclick = () => showScreen('sTitle');
 cvs.addEventListener('mousemove', (e) => { input.mx = e.clientX; input.my = e.clientY; input.mouseSeen = true; });
@@ -2869,7 +2875,7 @@ requestAnimationFrame(loop);
   tick(); setInterval(tick, 1000);
 })();
 
-window.__ps = { leadPoint, assistAim, aimTap, aimLift, get fireMode() { return fireMode; }, setFireMode(v) { fireMode = v; syncFireBtn(); }, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
+window.__ps = { leadPoint, assistAim, aimTap, aimLift, get fireMode() { return fireMode; }, setFireMode, get input() { return input; }, setAssist(v) { aimAssist = v; }, get PROG() { return PROG; }, award, applyLoadout, myLoadout, renderStore, openCheckout, storeOpen, WEAPONS, get Z() { return Z; }, playChapter, playCut, setMature, cleanShots, get mature() { return MATURE; }, startStoryLevel, CHAPTERS, get story() { return storyProg; }, get cut() { return CUT; }, cutTap, cutSkip, get state() { return state; }, useItem, get aimAssist() { return aimAssist; }, get Z() { return Z; }, buildArena, loadArena, midX, ownX, flipWorld, reportCard, reportCardPNG, get line() { return G && G.line; }, get world() { return G && G.world; }, get ev() { return G && G.ev; }, overview(scale = 0.5) { if (!STATIC) buildStatic(); const c = document.createElement('canvas'); c.width = WORLD.w * scale; c.height = (WORLD.h * TILT + 80) * scale; const g = c.getContext('2d'); g.scale(scale, scale); g.translate(0, 80); g.drawImage(STATIC, 0, 0); const ws = SOLID.slice().sort((a, b) => a.y + a.h - b.y - b.h); for (const w of ws) { const sp = wallSprite(w); g.drawImage(sp.c, w.x - (sp.ox ?? 3), w.y * TILT - sp.z - (sp.oy ?? 3)); } return c.toDataURL('image/jpeg', 0.85); }, get arena() { return ARENA && ARENA.id; }, get map() { return { w: WORLD.w, h: WORLD.h, name: MAPNAME, walls: SOLID.length }; }, MP, startMatch, get G() { return G; }, endMatch, astar, set pickChar(k) { pick = k; } };
 
 /* =====================================================================================================
    NIGHT TRIAL (story mode 2): one night in Lincoln, 7 PM to 7 AM. Somnus Civic runs a city-wide sleep experiment.
@@ -3313,7 +3319,7 @@ const COIN = (() => {
     $('pmResume').onclick = resume;
     $('pmSound').onclick = () => { $('muteBtn').onclick(); sync(); };
     $('pmAim').onclick = () => { aimAssist = aimAssist >= 3 ? 1 : aimAssist + 1; localStorage.setItem('ps_assist', String(aimAssist)); syncSettings(); sync(); };
-    $('pmAuto').onclick = () => { autoFire = !autoFire; localStorage.setItem('ps_auto', autoFire ? '1' : '0'); syncSettings(); syncAutoBtn(); sync(); };
+    $('pmAuto').onclick = () => { setFireMode(fireMode === 'auto' ? (localStorage.getItem('ps_firemode_last') || 'hold') : 'auto'); sync(); };
     $('pmPov').onclick = () => { setPov(pov === '1st' ? '3rd' : '1st'); sync(); };
     $('pmCam').onclick = () => { camMode = camMode === 'lead' ? 'center' : 'lead'; localStorage.setItem('ps_cam', camMode); sync(); };
     $('pmQuit').onclick = quit;
