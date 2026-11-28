@@ -1083,17 +1083,6 @@ function drawArrows() {
     if (isN) { const dm = Math.round(Math.hypot(e.x - p.x, e.y - p.y) / 50); ctx.font = '12px Anton, Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#100814'; ctx.fillStyle = '#fff'; const tx = clamp(ex - Math.cos(a) * 26, 20, VW - 20), ty = clamp(ey - Math.sin(a) * 26 + 4, 60, VH - 8); ctx.strokeText(dm + 'm', tx, ty); ctx.fillText(dm + 'm', tx, ty); }
     ctx.globalAlpha = 1;
   }
-  if (state !== 'play') return;
-  {   // FIRE joystick, right above the aim stick
-    const s = sticks.fire, h = stickHome('fire'), R = FIRE_R;
-    ctx.globalAlpha = s ? 0.95 : 0.6;
-    ctx.fillStyle = s ? 'rgba(255,59,85,0.35)' : 'rgba(10,6,20,0.45)'; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,59,85,0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.stroke();
-    const dx = s ? clamp(s.cx - s.x, -R + 4, R - 4) : 0, dy = s ? clamp(s.cy - s.y, -R + 4, R - 4) : 0;
-    ctx.fillStyle = s ? '#fff' : 'rgba(255,59,85,0.92)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 21, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = s ? '#c81e32' : '#fff'; ctx.font = '15px Anton, Impact'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FIRE', h.x + dx, h.y + dy + 1); ctx.textBaseline = 'alphabetic';
-    ctx.globalAlpha = 1;
-  }
 }
 function drawMinimap() {
   const w = TOUCH ? 84 : 150, h = w * WORLD.h / WORLD.w, x = 10, y = TOUCH ? 74 : VH - h - 12, k = w / WORLD.w; ctx.save(); if (TOUCH) ctx.globalAlpha = 0.6;
@@ -1471,6 +1460,17 @@ function drawSticks() {
     const dx = s ? clamp(s.cx - s.x, -56, 56) : 0, dy = s ? clamp(s.cy - s.y, -56, 56) : 0;
     ctx.fillStyle = side === 'aim' ? 'rgba(255,214,10,0.85)' : 'rgba(0,230,255,0.75)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 24, 0, Math.PI * 2); ctx.fill();
     if (!s && G && G.t < 6) { ctx.fillStyle = '#fff'; ctx.font = '700 11px Poppins, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(side === 'aim' ? (pov === '1st' ? 'LOOK' : 'AIM') : 'MOVE', h.x, h.y + 82); }
+    ctx.globalAlpha = 1;
+  }
+  if (state !== 'play') return;
+  {   // FIRE joystick, right above the aim stick
+    const s = sticks.fire, h = stickHome('fire'), R = FIRE_R;
+    ctx.globalAlpha = s ? 0.95 : 0.6;
+    ctx.fillStyle = s ? 'rgba(255,59,85,0.35)' : 'rgba(10,6,20,0.45)'; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,59,85,0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.stroke();
+    const dx = s ? clamp(s.cx - s.x, -R + 4, R - 4) : 0, dy = s ? clamp(s.cy - s.y, -R + 4, R - 4) : 0;
+    ctx.fillStyle = s ? '#fff' : 'rgba(255,59,85,0.92)'; ctx.beginPath(); ctx.arc(h.x + dx, h.y + dy, 21, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = s ? '#c81e32' : '#fff'; ctx.font = '15px Anton, Impact'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FIRE', h.x + dx, h.y + dy + 1); ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;
   }
 }

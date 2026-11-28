@@ -8,7 +8,7 @@
    build number (never cached); if this page is older, reload it once with the new number so the new code loads.
    When you ship an update, bump BUILD here AND in version.json (and the ?v= on game.js / arenas.js). */
 (function () {
-  var BUILD = '14g';
+  var BUILD = '14h';
   try {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
       if (!v || !v.build || v.build === BUILD) return;
@@ -316,7 +316,7 @@ body:not([data-screen="sTitle"]) .previewTag{display:none!important}
   <img class="title-img" src="assets/title.png" alt="Perci Shorti">
   <div class="vs">VS <b>BROKE-PILOT</b></div>
   <div class="tag">DREAM LASER TAG &bull; 5v5</div>
-  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14g</div>
+  <div class="muted" id="buildTag" style="font-size:11px;opacity:.7;margin-top:2px">BUILD 14h</div>
   <p class="muted" style="max-width:520px;text-align:center">BROKE-pilot took over the dream. Pick your fighter, team up with the crew, and tag out the A+ bots before the clock runs out.</p>
   <button class="btn story" id="bStory">STORY MODE</button>
   <button class="btn" id="bPlay">QUICK MATCH</button>
@@ -538,7 +538,7 @@ const LEADERBOARD = { url: 'https://gfxtobocpqagikouxqmp.supabase.co', anonKey: 
 const LAUNCH_AT = '2026-12-31T18:00:00-06:00';
 const PREVIEW_KEY = 'zev-c313ea06';
 </script>
-<script src="arenas.js?v=14g"></script>
-<script src="game.js?v=14g"></script>
+<script src="arenas.js?v=14h"></script>
+<script src="game.js?v=14h"></script>
 </body>
 </html>
